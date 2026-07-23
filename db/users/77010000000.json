@@ -1,0 +1,13 @@
+{
+  "phone": "77010000000",
+  "created_at": 1721558400,
+  "role": "user",
+  "subscription": {
+    "plan": "premium",
+    "expires_at": 1724150400,
+    "cars_limit": 3
+  },
+  "cars": [
+    "car_id_1029"
+  ]
+}

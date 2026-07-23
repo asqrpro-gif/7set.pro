@@ -1,0 +1,51 @@
+generator client {
+  provider = "prisma-client-js"
+}
+
+datasource db {
+  provider = "mysql"
+  url      = env("DATABASE_URL")
+}
+
+model DiagnosticReport {
+  id                     String   @id @default(uuid())
+  brand                  String
+  model                  String
+  code                   String
+  severity               String
+  summary                String   @db.Text
+  teaser_text            String   @db.Text
+  full_analysis_markdown String   @db.LongText
+  sto_protection_tips    String   @db.Text
+  is_paid                Boolean  @default(false)
+  drivability            String?
+  
+  diy_difficulty_text    String?
+  diy_difficulty_score   String?
+  diy_time               String?
+  diy_tools              String?  @db.Text
+  price_parts            String?
+  price_labor            String?
+  diy_instructions       String?  @db.LongText
+
+  diy_difficulty         String?
+  diy_possible           Boolean?
+  free_diagnosis         String?  @db.Text
+  schema_faq             String?  @db.Text
+  verdict                String?  @db.Text
+  userId                 String?
+  user                   User?    @relation(fields: [userId], references: [id])
+
+  created_at             DateTime @default(now())
+}
+
+model User {
+  id           String   @id @default(cuid())
+  email        String   @unique
+  name         String?
+  passwordHash String?
+  role         String?  @default("user")
+  createdAt    DateTime @default(now())
+  updatedAt    DateTime @updatedAt
+  carReports   DiagnosticReport[]
+}

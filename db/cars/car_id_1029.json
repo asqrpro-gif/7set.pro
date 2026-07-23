@@ -1,0 +1,22 @@
+{
+  "id": "car_id_1029",
+  "owner_phone": "77010000000",
+  "brand": "Geely",
+  "model": "Monjaro",
+  "year": 2023,
+  "odometer": {
+    "last_manual_km": 15000,
+    "updated_at": 1721558400,
+    "avg_daily_km": 35.5
+  },
+  "service_logs": [
+    {
+      "id": "log_1",
+      "date": "2026-07-20",
+      "type": "maintenance",
+      "title": "Замена масла и фильтров",
+      "km": 15000,
+      "cost_kzt": 35000
+    }
+  ]
+}
