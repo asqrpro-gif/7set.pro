@@ -1,13 +1,11 @@
+import 'dotenv/config';
 import express from 'express';
-import dotenv from 'dotenv';
 import { PrismaClient } from '@prisma/client';
 import { analyzeCarError } from './lib/gemini.js';
 import { marked } from 'marked';
 import fs from 'fs';
 
 const obd2Codes = JSON.parse(fs.readFileSync('./codes.json', 'utf-8'));
-
-dotenv.config();
 
 const app = express();
 const PORT = process.env.PORT || 3005;
@@ -44,8 +42,8 @@ app.use(express.json());
 
 // Глобальный запрет индексации (до релиза)
 app.get('/robots.txt', (req, res) => {
-    res.type('text/plain');
-    res.send("User-agent: *\nDisallow: /");
+  res.type('text/plain');
+  res.send("User-agent: *\nDisallow: /");
 });
 
 // 3. Главная страница
@@ -122,7 +120,7 @@ app.get('/diagnostic/:brand/:model/:code', async (req, res) => {
 
   const cleanRequestedCode = req.params.code.toUpperCase().trim();
   const obdRegex = /^[PBUC][0-9A-F]{4}$/i;
-  
+
   if (!obdRegex.test(cleanRequestedCode)) {
     return res.status(400).send(`
       <!DOCTYPE html>
@@ -146,7 +144,7 @@ app.get('/diagnostic/:brand/:model/:code', async (req, res) => {
   let baseDescription = "Специфичный код производителя (Manufacturer Specific)";
   const codeMatch = obd2Codes.find(item => item.Code && item.Code.includes(cleanRequestedCode));
   if (codeMatch && codeMatch.Description) {
-      baseDescription = codeMatch.Description;
+    baseDescription = codeMatch.Description;
   }
 
   try {
@@ -191,6 +189,8 @@ app.get('/diagnostic/:brand/:model/:code', async (req, res) => {
           price_parts: data.price_parts,
           price_labor: data.price_labor,
           diy_instructions: data.diy_instructions,
+          seoTitle: data.seoTitle,
+          seoDescription: data.seoDescription,
           is_paid: false
         }
       });
@@ -215,9 +215,9 @@ app.get('/diagnostic/:brand/:model/:code', async (req, res) => {
     // Логика drivability (fallback на severity если нет в БД)
     let drivabilityValue = report.drivability;
     if (!drivabilityValue) {
-       if (severityLevel === 'low') drivabilityValue = 'safe';
-       else if (severityLevel === 'critical') drivabilityValue = 'tow';
-       else drivabilityValue = 'caution'; // medium и high
+      if (severityLevel === 'low') drivabilityValue = 'safe';
+      else if (severityLevel === 'critical') drivabilityValue = 'tow';
+      else drivabilityValue = 'caution'; // medium и high
     }
 
     const drivabilityMap = {
@@ -275,8 +275,8 @@ app.get('/diagnostic/:brand/:model/:code', async (req, res) => {
       ]
     };
     const canonicalUrl = `https://7set.pro/diagnostic/${brand.toLowerCase()}/${model.toLowerCase()}/${code.toUpperCase()}`;
-    const seoTitle = `Ошибка ${displayCode} ${displayBrand} ${displayModel}: расшифровка, причины и ремонт`;
-    const seoDescription = `Узнайте точные симптомы, причины возникновения ошибки ${displayCode} на ${displayBrand} ${displayModel}, а также примерную стоимость ремонта на СТО и пошаговую инструкцию по самостоятельному устранению.`;
+    const seoTitle = report.seoTitle || `Ошибка ${displayCode} ${displayBrand} ${displayModel}: расшифровка, причины и ремонт`;
+    const seoDescription = report.seoDescription || `Узнайте точные симптомы, причины возникновения ошибки ${displayCode} на ${displayBrand} ${displayModel}, а также примерную стоимость ремонта на СТО и пошаговую инструкцию по самостоятельному устранению.`;
 
     const schemaHtml = `<script type="application/ld+json">${JSON.stringify(faqSchema)}</script>`;
 

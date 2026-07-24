@@ -19,6 +19,8 @@ model DiagnosticReport {
   sto_protection_tips    String   @db.Text
   is_paid                Boolean  @default(false)
   drivability            String?
+  seoTitle               String?  @db.Text
+  seoDescription         String?  @db.Text
   
   diy_difficulty_text    String?
   diy_difficulty_score   String?
