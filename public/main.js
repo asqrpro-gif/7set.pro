@@ -83,7 +83,7 @@ document.addEventListener('DOMContentLoaded', () => {
                 console.error('Ошибка:', error);
                 alert('Произошла ошибка при разблокировке: ' + error.message);
                 unlockBtn.disabled = false;
-                unlockBtn.innerText = 'Открыть отчет за 700 ₸';
+                unlockBtn.innerText = 'Разблокировать за $1.99';
             }
         });
     }
@@ -234,7 +234,8 @@ if (addCarForm) {
 
       if (!response.ok) {
         // Ошибка (например, превышен лимит тарифа)
-        resultContainer.innerHTML = `<p class="text-red-500 font-medium py-3 px-4 bg-red-50 rounded-xl border border-red-100">❌ Ошибка: ${data.error}</p>`;
+        resultContainer.innerHTML = `<p class="text-red-500 font-medium py-3 px-4 bg-red-50 rounded-xl border border-red-100 flex items-center gap-2"><i data-lucide="alert-circle" class="w-5 h-5 shrink-0 text-red-500"></i><span>Ошибка: ${data.error}</span></p>`;
+        if (window.lucide) lucide.createIcons();
         return;
       }
 
@@ -246,20 +247,22 @@ if (addCarForm) {
       // Красиво отрисовываем результат
       resultContainer.innerHTML = `
         <div class="bg-blue-50/50 border border-blue-100 rounded-2xl p-5 mt-4">
-          <h3 class="text-lg font-bold text-gray-900 mb-3">✅ Расходники для ${data.car.brand} ${data.car.model} (${data.car.year})</h3>
+          <h3 class="text-lg font-bold text-gray-900 mb-3 flex items-center gap-2"><i data-lucide="check-circle-2" class="w-5 h-5 text-emerald-500 shrink-0"></i><span>Расходники для ${data.car.brand} ${data.car.model} (${data.car.year})</span></h3>
           <ul class="space-y-2.5 text-sm text-gray-700">
-            <li class="flex items-center gap-2"><span>💧 <b>Моторное масло:</b> ${consumables.oil.type} (Допуск: ${consumables.oil.spec}, Объём: ${consumables.oil.volume_liters} л.)</span></li>
-            <li class="flex items-center gap-2"><span>🧹 <b>Дворники (мм):</b> Водитель ${consumables.wipers.driver_mm} / Пассажир ${consumables.wipers.passenger_mm} ${consumables.wipers.rear_mm ? '/ Задний ' + consumables.wipers.rear_mm : ''}</span></li>
-            <li class="flex items-center gap-2"><span>⛽ <b>Рекомендуемое топливо:</b> ${consumables.fuel.type}</span></li>
-            <li class="flex items-center gap-2"><span>❄️ <b>Антифриз:</b> ${consumables.coolant.type} (${consumables.coolant.color}, ${consumables.coolant.volume_liters} л.)</span></li>
+            <li class="flex items-center gap-2.5"><i data-lucide="droplet" class="w-4 h-4 text-blue-500 shrink-0 fill-blue-500/10"></i><span><b>Моторное масло:</b> ${consumables.oil.type} (Допуск: ${consumables.oil.spec}, Объём: ${consumables.oil.volume_liters} л.)</span></li>
+            <li class="flex items-center gap-2.5"><i data-lucide="wind" class="w-4 h-4 text-cyan-500 shrink-0"></i><span><b>Дворники (мм):</b> Водитель ${consumables.wipers.driver_mm} / Пассажир ${consumables.wipers.passenger_mm} ${consumables.wipers.rear_mm ? '/ Задний ' + consumables.wipers.rear_mm : ''}</span></li>
+            <li class="flex items-center gap-2.5"><i data-lucide="fuel" class="w-4 h-4 text-amber-500 shrink-0 fill-amber-500/10"></i><span><b>Рекомендуемое топливо:</b> ${consumables.fuel.type}</span></li>
+            <li class="flex items-center gap-2.5"><i data-lucide="snowflake" class="w-4 h-4 text-sky-500 shrink-0"></i><span><b>Антифриз:</b> ${consumables.coolant.type} (${consumables.coolant.color}, ${consumables.coolant.volume_liters} л.)</span></li>
           </ul>
           <div class="mt-4 pt-3 border-t border-blue-100 flex justify-end">
             <button type="button" onclick="location.reload()" class="text-xs bg-blue-600 text-white px-4 py-2 rounded-lg hover:bg-blue-700 transition-colors">Сохранить и обновить гараж</button>
           </div>
         </div>
       `;
+      if (window.lucide) lucide.createIcons();
     } catch (error) {
-      resultContainer.innerHTML = '<p class="text-red-500 font-medium py-3 px-4 bg-red-50 rounded-xl border border-red-100">❌ Ошибка связи с сервером.</p>';
+      resultContainer.innerHTML = '<p class="text-red-500 font-medium py-3 px-4 bg-red-50 rounded-xl border border-red-100 flex items-center gap-2"><i data-lucide="alert-circle" class="w-5 h-5 shrink-0 text-red-500"></i><span>Ошибка связи с сервером.</span></p>';
+      if (window.lucide) lucide.createIcons();
     }
   });
 }

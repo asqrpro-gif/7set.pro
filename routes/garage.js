@@ -87,7 +87,7 @@ router.get('/', async (req, res) => {
                 <div>
                   <h3 class="font-bold text-lg mb-1">1 Авто</h3>
                   <p class="text-xs text-gray-500 mb-4">Для личного пользования</p>
-                  <div class="text-2xl font-black text-brand mb-4">$3 <span class="text-xs font-normal text-gray-500">/ мес</span></div>
+                  <div class="text-2xl font-black text-brand mb-4">$5.99 <span class="text-xs font-normal text-gray-500">/ мес</span></div>
                 </div>
                 <button type="button" onclick="selectPlan('single')" class="w-full bg-gray-100 hover:bg-gray-200 text-gray-900 font-semibold py-2.5 rounded-xl text-sm transition-colors">Выбрать базовый</button>
               </div>
@@ -97,7 +97,7 @@ router.get('/', async (req, res) => {
                 <div>
                   <h3 class="font-bold text-lg mb-1">До 5 Авто</h3>
                   <p class="text-xs text-gray-500 mb-4">Для семьи и автолюбителей</p>
-                  <div class="text-2xl font-black text-brand mb-4">$7 <span class="text-xs font-normal text-gray-500">/ мес</span></div>
+                  <div class="text-2xl font-black text-brand mb-4">$15.99 <span class="text-xs font-normal text-gray-500">/ мес</span></div>
                 </div>
                 <button type="button" onclick="selectPlan('multi')" class="w-full bg-brand hover:bg-blue-600 text-white font-semibold py-2.5 rounded-xl text-sm transition-colors shadow-sm">Подключить семью</button>
               </div>
@@ -106,7 +106,7 @@ router.get('/', async (req, res) => {
                 <div>
                   <h3 class="font-bold text-lg mb-1">Безлимит</h3>
                   <p class="text-xs text-gray-500 mb-4">Для автоподбора и СТО</p>
-                  <div class="text-2xl font-black text-brand mb-4">$29 <span class="text-xs font-normal text-gray-500">/ мес</span></div>
+                  <div class="text-2xl font-black text-brand mb-4">$25.99 <span class="text-xs font-normal text-gray-500">/ мес</span></div>
                 </div>
                 <button type="button" onclick="selectPlan('pro')" class="w-full bg-gray-900 hover:bg-gray-800 text-white font-semibold py-2.5 rounded-xl text-sm transition-colors">Тариф для профи</button>
               </div>

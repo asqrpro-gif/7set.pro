@@ -174,17 +174,17 @@ app.get('/', (req, res) => {
             </div>
             <div class="usp-grid grid grid-cols-1 md:grid-cols-3 gap-6">
               <div class="usp-card bg-white p-6 rounded-3xl border border-gray-100 shadow-sm hover:shadow-md transition-shadow">
-                <div class="w-12 h-12 bg-blue-50 text-brand rounded-2xl flex items-center justify-center text-2xl mb-4">🎯</div>
+                <div class="w-12 h-12 bg-blue-50 text-brand rounded-2xl flex items-center justify-center mb-4 shadow-sm shadow-blue-500/10"><i data-lucide="crosshair" class="w-6 h-6 text-brand"></i></div>
                 <h3 class="font-bold text-lg text-gray-900 mb-2">Точно под ваш мотор</h3>
                 <p class="text-gray-500 text-sm leading-relaxed">ИИ учитывает не только модель, но и модификацию и индекс двигателя. Никакой «воды» — только конкретные инструкции.</p>
               </div>
               <div class="usp-card bg-white p-6 rounded-3xl border border-gray-100 shadow-sm hover:shadow-md transition-shadow">
-                <div class="w-12 h-12 bg-emerald-50 text-emerald-600 rounded-2xl flex items-center justify-center text-2xl mb-4">🛡</div>
+                <div class="w-12 h-12 bg-emerald-50 text-emerald-600 rounded-2xl flex items-center justify-center mb-4 shadow-sm shadow-emerald-500/10"><i data-lucide="shield-check" class="w-6 h-6 text-emerald-600"></i></div>
                 <h3 class="font-bold text-lg text-gray-900 mb-2">Защита от СТО</h3>
                 <p class="text-gray-500 text-sm leading-relaxed">В каждой карточке ошибки есть раздел «Как не дать себя обмануть механикам» с советами по контролю счета и работ.</p>
               </div>
               <div class="usp-card bg-white p-6 rounded-3xl border border-gray-100 shadow-sm hover:shadow-md transition-shadow">
-                <div class="w-12 h-12 bg-purple-50 text-purple-600 rounded-2xl flex items-center justify-center text-2xl mb-4">🚗</div>
+                <div class="w-12 h-12 bg-purple-50 text-purple-600 rounded-2xl flex items-center justify-center mb-4 shadow-sm shadow-purple-500/10"><i data-lucide="car-front" class="w-6 h-6 text-purple-600"></i></div>
                 <h3 class="font-bold text-lg text-gray-900 mb-2">Личный «Гараж»</h3>
                 <p class="text-gray-500 text-sm leading-relaxed">Внесите авто один раз и мгновенно получайте размеры щеток, допуски моторных масел и объемы заправочных жидкостей.</p>
               </div>
@@ -201,11 +201,11 @@ app.get('/', (req, res) => {
               <div class="price-card bg-white border border-gray-200 rounded-3xl p-6 flex flex-col justify-between hover:border-brand/40 transition-colors">
                 <div>
                   <h3 class="font-bold text-xl text-gray-900 mb-1">1 Автомобиль</h3>
-                  <p class="price text-sm font-semibold text-brand mb-6 bg-brand/10 py-1.5 px-3 rounded-xl inline-block">Бесплатно / Базовый</p>
+                  <p class="price text-2xl font-black text-gray-900 mb-6">$5.99 <span class="text-xs font-normal text-gray-500">/ мес</span></p>
                   <ul class="space-y-3 text-sm text-gray-600 mb-8">
-                    <li class="flex items-center gap-2"><span>✅ Полный лог ошибок OBD-II</span></li>
-                    <li class="flex items-center gap-2"><span>✅ Подбор расходников для 1 авто</span></li>
-                    <li class="flex items-center gap-2"><span>✅ Базовые советы по диагностике</span></li>
+                    <li class="flex items-center gap-2.5"><i data-lucide="check-circle-2" class="w-4 h-4 text-emerald-500 shrink-0"></i><span>Полный лог ошибок OBD-II</span></li>
+                    <li class="flex items-center gap-2.5"><i data-lucide="check-circle-2" class="w-4 h-4 text-emerald-500 shrink-0"></i><span>Подбор расходников для 1 авто</span></li>
+                    <li class="flex items-center gap-2.5"><i data-lucide="check-circle-2" class="w-4 h-4 text-emerald-500 shrink-0"></i><span>Базовые советы по диагностике</span></li>
                   </ul>
                 </div>
                 <a href="/garage" class="btn-outline w-full text-center bg-gray-100 hover:bg-gray-200 text-gray-900 font-bold py-3 rounded-xl transition-colors block">Выбрать</a>
@@ -215,12 +215,12 @@ app.get('/', (req, res) => {
                 <div class="absolute -top-3.5 left-1/2 -translate-x-1/2 bg-brand text-white text-xs font-black px-4 py-1 rounded-full uppercase tracking-wider shadow-sm">Выбор водителей</div>
                 <div>
                   <h3 class="font-bold text-xl text-gray-900 mb-1">Семья (до 5 авто)</h3>
-                  <p class="price text-2xl font-black text-gray-900 mb-6">499 ₽ <span class="text-xs font-normal text-gray-500">/ мес</span></p>
+                  <p class="price text-2xl font-black text-gray-900 mb-6">$15.99 <span class="text-xs font-normal text-gray-500">/ мес</span></p>
                   <ul class="space-y-3 text-sm text-gray-600 mb-8">
-                    <li class="flex items-center gap-2 font-medium text-gray-900"><span>⚡ Ведение нескольких машин</span></li>
-                    <li class="flex items-center gap-2 font-medium text-gray-900"><span>⚡ История обслуживания и ТО</span></li>
-                    <li class="flex items-center gap-2 font-medium text-gray-900"><span>⚡ Защита от переплат на СТО</span></li>
-                    <li class="flex items-center gap-2 font-medium text-gray-900"><span>⚡ Приоритетная ИИ генерация</span></li>
+                    <li class="flex items-center gap-2.5 font-medium text-gray-900"><i data-lucide="zap" class="w-4 h-4 text-amber-500 shrink-0 fill-amber-500/20"></i><span>Ведение нескольких машин</span></li>
+                    <li class="flex items-center gap-2.5 font-medium text-gray-900"><i data-lucide="zap" class="w-4 h-4 text-amber-500 shrink-0 fill-amber-500/20"></i><span>История обслуживания и ТО</span></li>
+                    <li class="flex items-center gap-2.5 font-medium text-gray-900"><i data-lucide="zap" class="w-4 h-4 text-amber-500 shrink-0 fill-amber-500/20"></i><span>Защита от переплат на СТО</span></li>
+                    <li class="flex items-center gap-2.5 font-medium text-gray-900"><i data-lucide="zap" class="w-4 h-4 text-amber-500 shrink-0 fill-amber-500/20"></i><span>Приоритетная ИИ генерация</span></li>
                   </ul>
                 </div>
                 <a href="/garage" class="btn-primary w-full text-center bg-brand hover:bg-blue-600 text-white font-bold py-3.5 rounded-xl transition-colors shadow-md block">Подключить</a>
@@ -229,11 +229,11 @@ app.get('/', (req, res) => {
               <div class="price-card bg-white border border-gray-200 rounded-3xl p-6 flex flex-col justify-between hover:border-brand/40 transition-colors">
                 <div>
                   <h3 class="font-bold text-xl text-gray-900 mb-1">СТО (Безлимит)</h3>
-                  <p class="price text-2xl font-black text-gray-900 mb-6">1999 ₽ <span class="text-xs font-normal text-gray-500">/ мес</span></p>
+                  <p class="price text-2xl font-black text-gray-900 mb-6">$25.99 <span class="text-xs font-normal text-gray-500">/ мес</span></p>
                   <ul class="space-y-3 text-sm text-gray-600 mb-8">
-                    <li class="flex items-center gap-2"><span>🔧 Безлимитные запросы</span></li>
-                    <li class="flex items-center gap-2"><span>🔧 Доступ к дилерским кодам</span></li>
-                    <li class="flex items-center gap-2"><span>🔧 Коммерческое использование</span></li>
+                    <li class="flex items-center gap-2.5"><i data-lucide="wrench" class="w-4 h-4 text-blue-600 shrink-0"></i><span>Безлимитные запросы</span></li>
+                    <li class="flex items-center gap-2.5"><i data-lucide="wrench" class="w-4 h-4 text-blue-600 shrink-0"></i><span>Доступ к дилерским кодам</span></li>
+                    <li class="flex items-center gap-2.5"><i data-lucide="wrench" class="w-4 h-4 text-blue-600 shrink-0"></i><span>Коммерческое использование</span></li>
                   </ul>
                 </div>
                 <a href="/garage" class="btn-outline w-full text-center bg-gray-900 hover:bg-gray-800 text-white font-bold py-3 rounded-xl transition-colors block">Для профи</a>
@@ -273,7 +273,7 @@ app.get('/', (req, res) => {
           <div class="flex flex-col sm:flex-row justify-between items-center gap-4 pt-6 border-t border-gray-100 text-[11px]">
             <div>© ${new Date().getFullYear()} 7Set.pro. Все права защищены.</div>
             <div class="flex gap-4">
-              <span>Сделано с заботой о водителях 🚗</span>
+              <span class="flex items-center gap-1.5">Сделано с заботой о водителях <i data-lucide="car-front" class="w-4 h-4 text-brand inline"></i></span>
             </div>
           </div>
         </footer>
@@ -313,10 +313,12 @@ app.get('/diagnostic/:brand/:model/:code', async (req, res) => {
       </head>
       <body style="display: flex; justify-content: center; align-items: center; height: 100vh; background: var(--bg-body); color: var(--text-main);">
         <div class="card" style="text-align: center; max-width: 500px;">
-          <h2 style="color: #dc3545; margin-bottom: 10px;">❌ Неверный формат кода</h2>
+          <h2 style="color: #dc3545; margin-bottom: 10px; display: inline-flex; items-center; justify-content: center; gap: 8px;"><i data-lucide="alert-triangle" style="width:24px; height:24px;"></i> Неверный формат кода</h2>
           <p style="margin-bottom: 20px;">Код OBD2 должен начинаться с буквы P, B, U или C и содержать 4 цифры или буквы (A-F).<br>Например: <b>P0171</b>.</p>
           <a href="/" class="btn-primary" style="text-decoration: none;">Вернуться на главную</a>
         </div>
+        <script src="https://unpkg.com/lucide@latest"></script>
+        <script>lucide.createIcons();</script>
       </body>
       </html>
     `);
@@ -730,19 +732,19 @@ app.get('/diagnostic/:brand/:model/:code', async (req, res) => {
                         <strong class="block text-brand">Мой Гараж (1 авто)</strong>
                         <small class="text-gray-600 text-xs block mb-2">Безлимит + Трекер ТО</small>
                       </div>
-                      <span class="text-3xl font-extrabold text-brand block mt-2">$2.99<span class="text-sm font-normal text-gray-500">/мес</span></span>
+                      <span class="text-3xl font-extrabold text-brand block mt-2">$5.99<span class="text-sm font-normal text-gray-500">/мес</span></span>
                     </div>
                     <div class="border border-gray-200 rounded-xl p-4 hover:border-brand/40 hover:shadow-md transition-all text-left flex flex-col justify-between cursor-pointer">
                       <div>
                         <strong class="block text-gray-800">Семья (до 5 авто)</strong>
                       </div>
-                      <span class="text-3xl font-extrabold text-gray-900 block mt-2">$6.99<span class="text-sm font-normal text-gray-500">/мес</span></span>
+                      <span class="text-3xl font-extrabold text-gray-900 block mt-2">$15.99<span class="text-sm font-normal text-gray-500">/мес</span></span>
                     </div>
                     <div class="border border-gray-200 rounded-xl p-4 hover:border-brand/40 hover:shadow-md transition-all text-left flex flex-col justify-between cursor-pointer">
                       <div>
                         <strong class="block text-gray-800">Автосервис (Безлимит)</strong>
                       </div>
-                      <span class="text-3xl font-extrabold text-gray-900 block mt-2">$19.99<span class="text-sm font-normal text-gray-500">/мес</span></span>
+                      <span class="text-3xl font-extrabold text-gray-900 block mt-2">$25.99<span class="text-sm font-normal text-gray-500">/мес</span></span>
                     </div>
                   </div>
                 </div>
@@ -783,9 +785,11 @@ app.get('/diagnostic/:brand/:model/:code', async (req, res) => {
     console.error('🔴 Ошибка Gemini API:', error.message || error);
     res.status(500).send(`
       <div style="font-family: sans-serif; padding: 20px; color: #721c24; background: #f8d7da; border-radius: 8px; margin: 20px;">
-        <h2>❌ Сбой получения ответа от ИИ</h2>
+        <h2 style="display: flex; items-center; gap: 8px;"><i data-lucide="alert-triangle" style="width:24px; height:24px;"></i> Сбой получения ответа от ИИ</h2>
         <p>${error.message || 'Ошибка подключения к API'}</p>
       </div>
+      <script src="https://unpkg.com/lucide@latest"></script>
+      <script>lucide.createIcons();</script>
     `);
   }
 });
