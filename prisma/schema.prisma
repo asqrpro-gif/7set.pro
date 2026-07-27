@@ -21,7 +21,9 @@ model DiagnosticReport {
   drivability            String?
   seoTitle               String?  @db.Text
   seoDescription         String?  @db.Text
-  
+  popular_engine_codes   Json?
+  related_obd_codes      Json?
+
   diy_difficulty_text    String?
   diy_difficulty_score   String?
   diy_time               String?
@@ -42,12 +44,12 @@ model DiagnosticReport {
 }
 
 model User {
-  id           String   @id @default(cuid())
-  email        String   @unique
+  id           String             @id @default(cuid())
+  email        String             @unique
   name         String?
   passwordHash String?
-  role         String?  @default("user")
-  createdAt    DateTime @default(now())
-  updatedAt    DateTime @updatedAt
+  role         String?            @default("user")
+  createdAt    DateTime           @default(now())
+  updatedAt    DateTime           @updatedAt
   carReports   DiagnosticReport[]
 }

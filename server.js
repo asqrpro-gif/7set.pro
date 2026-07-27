@@ -17,7 +17,6 @@ const prisma = new PrismaClient();
 // 🟢 1. ГЛОБАЛЬНЫЙ РАДАР (ПЕРЕХВАТЧИК ВСЕХ ЗАПРОСОВ)
 // =====================================================
 app.use((req, res, next) => {
-  // Этот лог сработает ВСЕГДА, если запрос дошел до сервера
   console.log(`[РАДАР] Входящий запрос: ${req.method} ${req.url}`);
   next();
 });
@@ -56,7 +55,7 @@ app.get('/', (req, res) => {
       <meta name="viewport" content="width=device-width, initial-scale=1.0">
       <title>Умный Бортовик — ИИ Экспресс-Диагностика</title>
       <script src="https://cdn.tailwindcss.com?plugins=typography"></script>
-      <script>tailwind.config = { theme: { extend: { colors: { brand: '#0077FF', surface: '#F5F5F7' } } } }</script>
+      <script>tailwind.config = { theme: { extend: { colors: { brand: '#0077FF', surface: '#F5F5F7' } } } }</script>     
       <script src="/main.js" defer></script>
       <script src="https://unpkg.com/lucide@latest"></script>
     </head>
@@ -64,7 +63,7 @@ app.get('/', (req, res) => {
       <div class="max-w-md mx-auto p-4 md:max-w-2xl md:p-6">
         <header class="flex justify-between items-center mb-6">
           <a href="/" class="flex items-center gap-2 hover:opacity-80 transition-opacity">
-            <i data-lucide="activity" style="color: #007bff;"></i> 
+            <i data-lucide="activity" style="color: #007bff;"></i>
             <span class="font-bold text-xl tracking-tight">7Set.Pro</span> <span class="font-normal text-sm opacity-80 ml-1 hidden md:inline">| Умная диагностика авто</span>
           </a>
           <button id="theme-toggle" class="p-2 rounded-full hover:bg-gray-200 transition-colors" aria-label="Переключить тему">
@@ -107,7 +106,7 @@ app.get('/', (req, res) => {
 app.get('/search', (req, res) => {
   const { brand, model, code } = req.query;
   if (!brand || !model || !code) return res.redirect('/');
-  res.redirect(`/diagnostic/${brand.toLowerCase().trim()}/${model.toLowerCase().trim()}/${code.toUpperCase().trim()}`);
+  res.redirect(`/diagnostic/${brand.toLowerCase().trim()}/${model.toLowerCase().trim()}/${code.toUpperCase().trim()}`);  
 });
 
 // 5. Публичная SEO-страница диагностики
@@ -171,6 +170,14 @@ app.get('/diagnostic/:brand/:model/:code', async (req, res) => {
       const data = await analyzeCarError(brand, model, code, baseDescription);
       console.log('✅ Ответ ИИ получен!');
 
+      // Защита от длинного текста от ИИ для колонки drivability
+      let safeDrivability = data.drivability;
+      if (!['safe', 'caution', 'tow'].includes(safeDrivability)) {
+        if (data.severity === 'low') safeDrivability = 'safe';
+        else if (data.severity === 'critical') safeDrivability = 'tow';
+        else safeDrivability = 'caution';
+      }
+
       const newReport = await prisma.diagnosticReport.create({
         data: {
           brand,
@@ -181,7 +188,7 @@ app.get('/diagnostic/:brand/:model/:code', async (req, res) => {
           teaser_text: data.teaser_text,
           full_analysis_markdown: data.full_analysis_markdown,
           sto_protection_tips: data.sto_protection_tips,
-          drivability: data.drivability,
+          drivability: safeDrivability,
           diy_difficulty_text: data.diy_difficulty_text,
           diy_difficulty_score: data.diy_difficulty_score,
           diy_time: data.diy_time,
@@ -204,20 +211,19 @@ app.get('/diagnostic/:brand/:model/:code', async (req, res) => {
     }
 
     const severityMap = {
-      low: { text: '<i data-lucide="info" class="icon-sm" style="vertical-align: middle; margin-right: 4px;"></i> Низкая опасность', class: 'badge-low' },
-      medium: { text: '<i data-lucide="alert-circle" class="icon-sm" style="vertical-align: middle; margin-right: 4px;"></i> Средняя опасность', class: 'badge-medium' },
-      high: { text: '<i data-lucide="alert-triangle" class="icon-sm" style="vertical-align: middle; margin-right: 4px;"></i> Высокая опасность', class: 'badge-high' },
-      critical: { text: '<i data-lucide="shield-alert" class="icon-sm" style="vertical-align: middle; margin-right: 4px;"></i> Критично (не ездить)', class: 'badge-critical' }
+      low: { text: 'Низкая опасность', class: 'badge-low' },
+      medium: { text: 'Средняя опасность', class: 'badge-medium' },
+      high: { text: 'Высокая опасность', class: 'badge-high' },
+      critical: { text: 'Критично (не ездить)', class: 'badge-critical' }
     };
 
     const severity = severityMap[severityLevel] || severityMap.medium;
 
-    // Логика drivability (fallback на severity если нет в БД)
     let drivabilityValue = report.drivability;
     if (!drivabilityValue) {
       if (severityLevel === 'low') drivabilityValue = 'safe';
       else if (severityLevel === 'critical') drivabilityValue = 'tow';
-      else drivabilityValue = 'caution'; // medium и high
+      else drivabilityValue = 'caution';
     }
 
     const drivabilityMap = {
@@ -227,23 +233,13 @@ app.get('/diagnostic/:brand/:model/:code', async (req, res) => {
     };
     const drivabilityData = drivabilityMap[drivabilityValue] || drivabilityMap.caution;
 
-    let diyBadgeClass = 'badge-medium';
-    if (report.diy_difficulty_score) {
-      const score = parseInt(report.diy_difficulty_score, 10);
-      if (score <= 3) diyBadgeClass = 'badge-low';
-      else if (score <= 6) diyBadgeClass = 'badge-medium';
-      else diyBadgeClass = 'badge-high';
-    }
-
-    // Строгий запрет кэширования браузером
     res.setHeader('Cache-Control', 'no-store, no-cache, must-revalidate, private');
 
-    const formatTitleCase = (str) => str.split(/[\s-]+/).map(w => w.charAt(0).toUpperCase() + w.slice(1)).join(' ');
+    const formatTitleCase = (str) => str.split(/[\s-]+/).map(w => w.charAt(0).toUpperCase() + w.slice(1)).join(' ');     
     const displayBrand = formatTitleCase(brand);
     const displayModel = formatTitleCase(model);
     const displayCode = code.toUpperCase();
 
-    // Динамическая генерация SEO-разметки FAQPage
     const faqSchema = {
       "@context": "https://schema.org",
       "@type": "FAQPage",
@@ -291,7 +287,7 @@ app.get('/diagnostic/:brand/:model/:code', async (req, res) => {
         <link rel="canonical" href="${canonicalUrl}">
         ${schemaHtml}
         <script src="https://cdn.tailwindcss.com?plugins=typography"></script>
-        <script>tailwind.config = { theme: { extend: { colors: { brand: '#0077FF', surface: '#F5F5F7' } } } }</script>
+        <script>tailwind.config = { theme: { extend: { colors: { brand: '#0077FF', surface: '#F5F5F7' } } } }</script>   
         <style> ::-webkit-details-marker { display: none; } </style>
         <script src="https://cdn.jsdelivr.net/npm/marked/marked.min.js"></script>
         <script src="/main.js" defer></script>
@@ -301,7 +297,7 @@ app.get('/diagnostic/:brand/:model/:code', async (req, res) => {
         <div class="max-w-md mx-auto p-4 md:max-w-2xl md:p-6">
           <header class="flex justify-between items-center mb-6">
             <a href="/" class="flex items-center gap-2 hover:opacity-80 transition-opacity">
-              <i data-lucide="activity" style="color: #007bff;"></i> 
+              <i data-lucide="activity" style="color: #007bff;"></i>
               <span class="font-bold text-xl tracking-tight">7Set.Pro</span> <span class="font-normal text-sm opacity-80 ml-1 hidden md:inline">| Умная диагностика авто</span>
             </a>
             <button id="theme-toggle" class="p-2 rounded-full hover:bg-gray-200 transition-colors" aria-label="Переключить тему">
@@ -321,11 +317,8 @@ app.get('/diagnostic/:brand/:model/:code', async (req, res) => {
 
               <h1 class="text-2xl font-bold mb-3">${displayBrand} ${displayModel}: Ошибка ${displayCode}</h1>
               <div class="flex flex-col items-center justify-center bg-gray-50 border border-gray-100 rounded-2xl p-8 mb-6">
-                <!-- Надежная иконка автомобиля -->
                 <i data-lucide="car-front" class="w-16 h-16 text-brand mb-3" aria-hidden="true"></i>
                 <span class="text-gray-500 font-medium text-sm">Отчет об ошибке ${displayCode}</span>
-                
-                <!-- SEO Изображение, скрытое от глаз, но видимое для поисковиков -->
                 <img src="https://placehold.co/600x400/ffffff/0077FF?text=${displayCode}" alt="Детальная расшифровка и ремонт ошибки ${displayCode} для ${displayBrand} ${displayModel}" class="sr-only" />
               </div>
               <p class="text-gray-500 font-medium text-sm leading-relaxed mb-4">${summaryText}</p>
@@ -336,13 +329,13 @@ app.get('/diagnostic/:brand/:model/:code', async (req, res) => {
             <div id="paywall-container" data-report-id="${reportId}">
               ${!report.is_paid ? `
               <div class="report-content">
-                <div class="relative overflow-hidden rounded-2xl mt-2 bg-white shadow-sm border border-gray-100">
+                <div class="relative overflow-hidden rounded-2xl mt-2 bg-white shadow-sm border border-gray-100">        
                   <div id="blurred-content" class="absolute inset-0 p-5 overflow-hidden pointer-events-none select-none blur-sm opacity-40 prose prose-blue prose-lg max-w-none text-gray-800">
                     ${marked.parse((report.full_analysis_markdown || '').replace(/\\n/g, '\n'))}
                   </div>
                   <div id="paywall-overlay" class="relative z-10 flex flex-col items-center justify-center bg-white/50 backdrop-blur-sm p-4 py-8">
                     <div class="bg-white border border-gray-100 shadow-2xl rounded-2xl p-6 md:p-8 w-full max-w-md transform transition-all">
-                      
+
                       <div class="flex flex-col items-center text-center mb-5">
                         <div class="bg-blue-50 p-3 rounded-full mb-3">
                           <i data-lucide="lock" class="w-6 h-6 text-brand"></i>
@@ -370,7 +363,7 @@ app.get('/diagnostic/:brand/:model/:code', async (req, res) => {
                         </li>
                       </ul>
 
-                      <button id="unlock-btn" class="w-full bg-brand text-white font-medium rounded-xl py-4 text-lg hover:bg-blue-600 transition-colors shadow-md shadow-brand/30 active:scale-[0.98] flex justify-center items-center gap-2">
+                      <button id="unlock-btn" class="w-full bg-brand text-white font-medium rounded-xl py-4 text-lg hover:bg-blue-600 transition-colors shadow-md shadow-brand/30 active:scale-[0.98] flex justify-center items-center gap-2">    
                         <i data-lucide="unlock" class="w-5 h-5"></i>
                         Разблокировать за $1.99
                       </button>
@@ -388,14 +381,14 @@ app.get('/diagnostic/:brand/:model/:code', async (req, res) => {
                   <summary class="flex items-center gap-3 font-semibold p-5 cursor-pointer hover:bg-gray-50 transition-colors list-none outline-none">
                     <i data-lucide="file-search" class="w-5 h-5 text-brand"></i> Полный разбор причины
                   </summary>
-                  <div class="p-5 border-t border-gray-50 bg-white prose prose-blue prose-lg max-w-none text-gray-800">
+                  <div class="p-5 border-t border-gray-50 bg-white prose prose-blue prose-lg max-w-none text-gray-800">  
                     ${marked.parse((report.full_analysis_markdown || '').replace(/\\n/g, '\n'))}
                   </div>
                 </details>
 
                 <details class="bg-white rounded-2xl shadow-sm mb-4 overflow-hidden border border-gray-50">
                   <summary class="flex items-center gap-3 font-semibold p-5 cursor-pointer hover:bg-gray-50 transition-colors list-none outline-none">
-                    <i data-lucide="wrench" class="w-5 h-5 text-gray-500"></i> Сделай сам 
+                    <i data-lucide="wrench" class="w-5 h-5 text-gray-500"></i> Сделай сам
                     <span class="text-xs px-2 py-0.5 rounded bg-gray-100 text-gray-600 ml-auto">${report.diy_difficulty_text || 'Неизвестно'}</span>
                   </summary>
                   <div class="p-5 border-t border-gray-50 bg-white">
@@ -452,7 +445,7 @@ app.get('/diagnostic/:brand/:model/:code', async (req, res) => {
                 <div class="bg-white rounded-2xl shadow-sm border border-brand/20 p-6 text-center mt-6">
                   <div class="text-xl font-bold flex items-center justify-center gap-2 mb-2"><i data-lucide="shield-check" class="text-brand w-6 h-6"></i> Выберите план подписки</div>
                   <p class="text-green-600 font-bold mb-5 text-sm">🎁 Скидка 20% при оплате за год!</p>
-                  
+
                   <div class="grid grid-cols-1 md:grid-cols-2 gap-3 mt-5">
                     <div class="border border-gray-200 rounded-xl p-4 hover:border-brand/40 hover:shadow-md transition-all text-left flex flex-col justify-between cursor-pointer">
                       <div>
@@ -527,7 +520,6 @@ app.get('/diagnostic/:brand/:model/:code', async (req, res) => {
   }
 });
 
-// 6. Эндпоинт для разблокировки платного отчета
 app.post('/api/unlock-report', async (req, res) => {
   const { reportId, paymentToken } = req.body;
 
