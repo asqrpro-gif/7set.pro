@@ -60,6 +60,15 @@ document.addEventListener('DOMContentLoaded', () => {
                     throw new Error(data.error || 'Ошибка разблокировки отчета');
                 }
 
+                // Дублируем сохранение в localStorage и cookie на стороне клиента (на 3 дня) для гарантированного доступа после перезагрузки
+                try {
+                    let localList = JSON.parse(localStorage.getItem('unlocked_reports') || '[]');
+                    if (!Array.isArray(localList)) localList = [];
+                    if (!localList.includes(reportId)) localList.push(reportId);
+                    localStorage.setItem('unlocked_reports', JSON.stringify(localList));
+                    document.cookie = `unlocked_reports=${encodeURIComponent(JSON.stringify(localList))}; max-age=${3 * 24 * 60 * 60}; path=/`;
+                } catch(e) {}
+
                 // Плавное скрытие оверлея
                 if (paywallOverlay) {
                     paywallOverlay.style.opacity = '0';
@@ -190,3 +199,92 @@ document.addEventListener('DOMContentLoaded', () => {
         });
     }
 });
+
+// ==========================================
+// Логика добавления авто в Гараж и выбора тарифа
+// ==========================================
+const addCarForm = document.getElementById('add-car-form');
+const resultContainer = document.getElementById('consumables-result');
+
+if (addCarForm) {
+  addCarForm.addEventListener('submit', async (e) => {
+    e.preventDefault();
+    
+    // Показываем загрузку (ИИ думает)
+    resultContainer.style.display = 'block';
+    resultContainer.innerHTML = '<p class="text-blue-600 font-medium py-4 text-center animate-pulse">⏳ ИИ подбирает допуски и размеры под вашу модификацию...</p>';
+
+    // Собираем данные из формы
+    const carData = {
+      brand: document.getElementById('car-brand').value,
+      model: document.getElementById('car-model').value,
+      engine: document.getElementById('car-engine').value,
+      year: document.getElementById('car-year').value
+    };
+
+    try {
+      // Отправляем запрос на наш бэкенд
+      const response = await fetch('/garage/add', {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify(carData)
+      });
+
+      const data = await response.json();
+
+      if (!response.ok) {
+        // Ошибка (например, превышен лимит тарифа)
+        resultContainer.innerHTML = `<p class="text-red-500 font-medium py-3 px-4 bg-red-50 rounded-xl border border-red-100">❌ Ошибка: ${data.error}</p>`;
+        return;
+      }
+
+      // Успех! Парсим JSON с расходниками, который вернул ИИ
+      const consumables = typeof data.car.consumablesJson === 'string' 
+        ? JSON.parse(data.car.consumablesJson) 
+        : data.car.consumablesJson;
+
+      // Красиво отрисовываем результат
+      resultContainer.innerHTML = `
+        <div class="bg-blue-50/50 border border-blue-100 rounded-2xl p-5 mt-4">
+          <h3 class="text-lg font-bold text-gray-900 mb-3">✅ Расходники для ${data.car.brand} ${data.car.model} (${data.car.year})</h3>
+          <ul class="space-y-2.5 text-sm text-gray-700">
+            <li class="flex items-center gap-2"><span>💧 <b>Моторное масло:</b> ${consumables.oil.type} (Допуск: ${consumables.oil.spec}, Объём: ${consumables.oil.volume_liters} л.)</span></li>
+            <li class="flex items-center gap-2"><span>🧹 <b>Дворники (мм):</b> Водитель ${consumables.wipers.driver_mm} / Пассажир ${consumables.wipers.passenger_mm} ${consumables.wipers.rear_mm ? '/ Задний ' + consumables.wipers.rear_mm : ''}</span></li>
+            <li class="flex items-center gap-2"><span>⛽ <b>Рекомендуемое топливо:</b> ${consumables.fuel.type}</span></li>
+            <li class="flex items-center gap-2"><span>❄️ <b>Антифриз:</b> ${consumables.coolant.type} (${consumables.coolant.color}, ${consumables.coolant.volume_liters} л.)</span></li>
+          </ul>
+          <div class="mt-4 pt-3 border-t border-blue-100 flex justify-end">
+            <button type="button" onclick="location.reload()" class="text-xs bg-blue-600 text-white px-4 py-2 rounded-lg hover:bg-blue-700 transition-colors">Сохранить и обновить гараж</button>
+          </div>
+        </div>
+      `;
+    } catch (error) {
+      resultContainer.innerHTML = '<p class="text-red-500 font-medium py-3 px-4 bg-red-50 rounded-xl border border-red-100">❌ Ошибка связи с сервером.</p>';
+    }
+  });
+}
+
+window.selectPlan = function(plan) {
+  const titles = {
+    single: "1 Автомобиль (Базовый)",
+    multi: "До 5 Автомобилей (Семья)",
+    pro: "Безлимит (Сервис / СТО)"
+  };
+  alert(`Выбран тариф: "${titles[plan] || plan}". Переход к шлюзу оплаты подписки...`);
+};
+
+window.deleteCarFromGarage = async function(carId) {
+  if (!confirm("Удалить этот автомобиль из вашего Гаража?")) return;
+  try {
+    const res = await fetch(`/garage/${carId}`, { method: 'DELETE' });
+    const data = await res.json();
+    if (data.success) {
+      location.reload();
+    } else {
+      alert("Ошибка: " + (data.error || "Не удалось удалить авто"));
+    }
+  } catch (err) {
+    alert("Ошибка связи с сервером");
+  }
+};
+

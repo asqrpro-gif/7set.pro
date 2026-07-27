@@ -2,7 +2,7 @@
   "name": "7set.pro",
   "version": "1.0.0",
   "description": "",
-  "main": "test-db.js",
+  "main": "server.js",
   "type": "module",
   "directories": {
     "lib": "lib"

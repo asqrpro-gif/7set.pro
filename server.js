@@ -1,9 +1,11 @@
 import 'dotenv/config';
 import express from 'express';
+import cookieParser from 'cookie-parser';
 import { PrismaClient } from '@prisma/client';
-import { analyzeCarError } from './lib/gemini.js';
+import { analyzeCarError } from './lib/gemini_clean.js';
 import { marked } from 'marked';
 import fs from 'fs';
+import garageRouter from './routes/garage.js';
 
 const obd2Codes = JSON.parse(fs.readFileSync('./codes.json', 'utf-8'));
 
@@ -12,6 +14,23 @@ const PORT = process.env.PORT || 3005;
 
 // Инициализация Prisma Client
 const prisma = new PrismaClient();
+
+// Автоочистка глобального флага is_paid у рабочих отчетов в БД при старте (защита от утечки платного контента)
+prisma.diagnosticReport.updateMany({
+  where: {
+    is_paid: true,
+    code: { not: "UNSUPPORTED" }
+  },
+  data: {
+    is_paid: false
+  }
+}).then(res => {
+  if (res.count > 0) {
+    console.log(`🛡️ [СБРОС ПЕЙВОЛЛА] Сброшен ошибочный глобальный флаг is_paid у ${res.count} отчетов в БД!`);
+  }
+}).catch(err => {
+  console.error("Ошибка при сбросе пейволла в БД:", err.message);
+});
 
 // =====================================================
 // 🟢 1. ГЛОБАЛЬНЫЙ РАДАР (ПЕРЕХВАТЧИК ВСЕХ ЗАПРОСОВ)
@@ -38,6 +57,31 @@ app.get('/ping', async (req, res) => {
 app.use(express.static('public'));
 app.use(express.urlencoded({ extended: true }));
 app.use(express.json());
+app.use(cookieParser());
+
+// Устойчивый парсер куки разблокированных отчетов (работает с массивами, JSON-строками и URI-кодированием)
+const parseUnlockedCookie = (val) => {
+  if (!val) return [];
+  if (Array.isArray(val)) return val;
+  if (typeof val === 'string') {
+    try {
+      const decoded = decodeURIComponent(val);
+      const parsed = JSON.parse(decoded);
+      return Array.isArray(parsed) ? parsed : [];
+    } catch (e) {
+      try {
+        const parsed = JSON.parse(val);
+        return Array.isArray(parsed) ? parsed : [];
+      } catch (e2) {
+        return val.split(',').map(s => s.trim()).filter(Boolean);
+      }
+    }
+  }
+  return [];
+};
+
+// Подключение модуля Гаража
+app.use('/garage', garageRouter);
 
 // Глобальный запрет индексации (до релиза)
 app.get('/robots.txt', (req, res) => {
@@ -45,7 +89,7 @@ app.get('/robots.txt', (req, res) => {
   res.send("User-agent: *\nDisallow: /");
 });
 
-// 3. Главная страница
+// 3. Главная страница (Landing Page)
 app.get('/', (req, res) => {
   res.send(`
     <!DOCTYPE html>
@@ -53,50 +97,188 @@ app.get('/', (req, res) => {
     <head>
       <meta charset="UTF-8">
       <meta name="viewport" content="width=device-width, initial-scale=1.0">
-      <title>Умный Бортовик — ИИ Экспресс-Диагностика</title>
+      <title>7Set.pro — Умная автодиагностика и регламент ТО</title>
       <script src="https://cdn.tailwindcss.com?plugins=typography"></script>
       <script>tailwind.config = { theme: { extend: { colors: { brand: '#0077FF', surface: '#F5F5F7' } } } }</script>     
+      <link rel="stylesheet" href="/style.css">
       <script src="/main.js" defer></script>
       <script src="https://unpkg.com/lucide@latest"></script>
     </head>
-    <body class="bg-surface text-gray-900 font-sans antialiased">
-      <div class="max-w-md mx-auto p-4 md:max-w-2xl md:p-6">
-        <header class="flex justify-between items-center mb-6">
+    <body class="bg-surface text-gray-900 font-sans antialiased min-h-screen flex flex-col justify-between">
+      <div class="max-w-5xl mx-auto p-4 md:p-6 w-full">
+        <!-- Шапка (Header) -->
+        <header class="flex justify-between items-center mb-8 bg-white p-4 rounded-2xl shadow-sm border border-gray-100">
           <a href="/" class="flex items-center gap-2 hover:opacity-80 transition-opacity">
             <i data-lucide="activity" style="color: #007bff;"></i>
-            <span class="font-bold text-xl tracking-tight">7Set.Pro</span> <span class="font-normal text-sm opacity-80 ml-1 hidden md:inline">| Умная диагностика авто</span>
+            <span class="font-bold text-xl tracking-tight">7Set.Pro</span> <span class="font-normal text-sm text-gray-500 ml-1 hidden md:inline">| Умная автодиагностика</span>
           </a>
-          <button id="theme-toggle" class="p-2 rounded-full hover:bg-gray-200 transition-colors" aria-label="Переключить тему">
-            <i data-lucide="moon" class="w-5 h-5 text-gray-700"></i>
-          </button>
+          <div class="flex items-center gap-3">
+            <a href="/garage" class="text-sm font-semibold bg-brand/10 text-brand px-3.5 py-2 rounded-xl hover:bg-brand hover:text-white transition-all flex items-center gap-1.5 shadow-sm">
+              <i data-lucide="car" class="w-4 h-4"></i> Гараж & ТО
+            </a>
+            <button id="theme-toggle" class="p-2 rounded-full hover:bg-gray-100 transition-colors" aria-label="Переключить тему">
+              <i data-lucide="moon" class="w-5 h-5 text-gray-700"></i>
+            </button>
+          </div>
         </header>
 
-        <main class="bg-white rounded-2xl shadow-sm p-5 md:p-8 mt-4">
-          <h1 class="text-2xl md:text-3xl font-bold mb-2">Расшифровка ошибок за 5 секунд</h1>
-          <p class="text-gray-500 text-sm mb-6">
-            Узнайте реальную причину поломки и защитите себя от обмана на СТО.
-          </p>
+        <!-- Главное содержимое (pSEO структура) -->
+        <main class="space-y-12">
+          <!-- Hero Секция -->
+          <section class="hero-section bg-white rounded-3xl p-6 md:p-12 shadow-sm border border-gray-100 text-center relative overflow-hidden">
+            <div class="hero-content max-w-3xl mx-auto">
+              <span class="inline-block px-3 py-1 bg-brand/10 text-brand text-xs font-bold rounded-full mb-4 uppercase tracking-wider">ИИ Автоэксперт</span>
+              <h1 class="text-3xl sm:text-4xl md:text-5xl font-black text-gray-900 mb-4 tracking-tight leading-tight">
+                Умная автодиагностика и персональный подбор ТО
+              </h1>
+              <p class="text-gray-500 text-base md:text-lg mb-8 max-w-2xl mx-auto">
+                Мгновенная расшифровка кодов OBD-II, дилерских ошибок и точный регламент расходников для вашей модификации авто.
+              </p>
+              
+              <div class="search-widget bg-gray-50/80 p-4 md:p-6 rounded-2xl border border-gray-200 shadow-inner max-w-3xl mx-auto">
+                <form id="diagnostics-form" action="/search" method="GET" class="search-form">
+                  <div class="input-group grid grid-cols-1 sm:grid-cols-3 gap-3 mb-3">
+                    <div>
+                      <input list="brand-options" type="text" id="inputBrand" name="brand" placeholder="Марка (напр. Toyota)" class="w-full bg-white border border-gray-200 rounded-xl px-4 py-3.5 text-base focus:ring-2 focus:ring-brand/20 focus:border-brand outline-none transition-all shadow-sm" autocomplete="off" required>
+                      <datalist id="brand-options"></datalist>
+                    </div>
+                    <div>
+                      <input list="model-options" type="text" id="inputModel" name="model" placeholder="Модель (напр. Camry)" class="w-full bg-white border border-gray-200 rounded-xl px-4 py-3.5 text-base focus:ring-2 focus:ring-brand/20 focus:border-brand outline-none transition-all shadow-sm disabled:opacity-50" autocomplete="off" disabled required>
+                      <datalist id="model-options"></datalist>
+                    </div>
+                    <div>
+                      <input type="text" id="inputCode" name="code" placeholder="Код (напр. P0171)" class="w-full bg-white border border-gray-200 rounded-xl px-4 py-3.5 text-base focus:ring-2 focus:ring-brand/20 focus:border-brand outline-none transition-all shadow-sm uppercase" autocomplete="off" required>
+                    </div>
+                  </div>
+                  <div id="codeErrorHint" class="text-red-500 text-sm my-2 px-2 text-left font-medium" style="display: none;"></div>
+                  <button type="submit" id="btnSearch" class="btn-primary w-full bg-brand hover:bg-blue-600 text-white font-bold rounded-xl py-4 text-lg transition-all shadow-md active:scale-[0.99] flex justify-center items-center gap-2">
+                    <i data-lucide="zap" class="w-5 h-5"></i> Диагностировать ошибку
+                  </button>
+                </form>
+                <div class="popular-tags flex flex-wrap items-center justify-center gap-2 mt-4 text-xs text-gray-500">
+                  <span class="font-medium text-gray-400">Популярные запросы:</span>
+                  <a href="/diagnostic/toyota/camry/P0171" class="bg-white px-3 py-1.5 rounded-lg border border-gray-200 hover:border-brand hover:text-brand transition-colors font-medium">P0171</a>
+                  <a href="/diagnostic/bmw/x5/P0300" class="bg-white px-3 py-1.5 rounded-lg border border-gray-200 hover:border-brand hover:text-brand transition-colors font-medium">P0300</a>
+                  <a href="/diagnostic/kia/rio/U0100" class="bg-white px-3 py-1.5 rounded-lg border border-gray-200 hover:border-brand hover:text-brand transition-colors font-medium">U0100</a>
+                  <a href="/garage" class="bg-brand/10 text-brand px-3 py-1.5 rounded-lg hover:bg-brand hover:text-white transition-colors font-semibold">✨ Подбор щёток и масел</a>
+                </div>
+              </div>
+            </div>
+          </section>
 
-          <form action="/search" method="GET" class="search-form">
-            <div class="mb-4">
-              <label class="block text-sm font-medium text-gray-700 mb-1.5 ml-1">Марка авто</label>
-              <input list="brand-options" name="brand" id="inputBrand" placeholder="Например: Toyota" class="w-full bg-gray-50 border border-gray-100 rounded-xl px-4 py-3.5 text-base focus:bg-white focus:ring-2 focus:ring-brand/20 focus:border-brand transition-all outline-none" autocomplete="off" required>
-              <datalist id="brand-options"></datalist>
+          <!-- Секция УТП (USP Section) -->
+          <section class="usp-section">
+            <div class="text-center mb-8">
+              <h2 class="text-2xl md:text-3xl font-black text-gray-900 mb-2">Почему выбирают 7Set.pro?</h2>
+              <p class="text-gray-500 text-sm max-w-xl mx-auto">Инновационные алгоритмы анализа автомобильных данных для точной диагностики без лишних затрат.</p>
             </div>
-            <div class="mb-4">
-              <label class="block text-sm font-medium text-gray-700 mb-1.5 ml-1">Модель авто</label>
-              <input list="model-options" name="model" id="inputModel" placeholder="Например: Camry" class="w-full bg-gray-50 border border-gray-100 rounded-xl px-4 py-3.5 text-base focus:bg-white focus:ring-2 focus:ring-brand/20 focus:border-brand transition-all outline-none" autocomplete="off" disabled required>
-              <datalist id="model-options"></datalist>
+            <div class="usp-grid grid grid-cols-1 md:grid-cols-3 gap-6">
+              <div class="usp-card bg-white p-6 rounded-3xl border border-gray-100 shadow-sm hover:shadow-md transition-shadow">
+                <div class="w-12 h-12 bg-blue-50 text-brand rounded-2xl flex items-center justify-center text-2xl mb-4">🎯</div>
+                <h3 class="font-bold text-lg text-gray-900 mb-2">Точно под ваш мотор</h3>
+                <p class="text-gray-500 text-sm leading-relaxed">ИИ учитывает не только модель, но и модификацию и индекс двигателя. Никакой «воды» — только конкретные инструкции.</p>
+              </div>
+              <div class="usp-card bg-white p-6 rounded-3xl border border-gray-100 shadow-sm hover:shadow-md transition-shadow">
+                <div class="w-12 h-12 bg-emerald-50 text-emerald-600 rounded-2xl flex items-center justify-center text-2xl mb-4">🛡</div>
+                <h3 class="font-bold text-lg text-gray-900 mb-2">Защита от СТО</h3>
+                <p class="text-gray-500 text-sm leading-relaxed">В каждой карточке ошибки есть раздел «Как не дать себя обмануть механикам» с советами по контролю счета и работ.</p>
+              </div>
+              <div class="usp-card bg-white p-6 rounded-3xl border border-gray-100 shadow-sm hover:shadow-md transition-shadow">
+                <div class="w-12 h-12 bg-purple-50 text-purple-600 rounded-2xl flex items-center justify-center text-2xl mb-4">🚗</div>
+                <h3 class="font-bold text-lg text-gray-900 mb-2">Личный «Гараж»</h3>
+                <p class="text-gray-500 text-sm leading-relaxed">Внесите авто один раз и мгновенно получайте размеры щеток, допуски моторных масел и объемы заправочных жидкостей.</p>
+              </div>
             </div>
-            <div class="mb-5">
-              <label class="block text-sm font-medium text-gray-700 mb-1.5 ml-1">Код ошибки</label>
-              <input type="text" name="code" id="inputCode" placeholder="Например: P0171" class="w-full bg-gray-50 border border-gray-100 rounded-xl px-4 py-3.5 text-base focus:bg-white focus:ring-2 focus:ring-brand/20 focus:border-brand transition-all outline-none" autocomplete="off" required>
-              <div id="codeErrorHint" class="text-red-500 text-sm mt-2 mb-1 px-2" style="display: none;"></div>
+          </section>
+
+          <!-- Секция Тарифов (Pricing Section) -->
+          <section class="pricing-section bg-gradient-to-b from-white to-gray-50/50 rounded-3xl p-6 md:p-12 border border-gray-100 shadow-sm">
+            <div class="text-center mb-10">
+              <h2 class="text-2xl md:text-3xl font-black text-gray-900 mb-2">Доступ к Гаражу и Расходникам</h2>
+              <p class="text-gray-500 text-sm max-w-xl mx-auto">Подключите персональный профиль для автоматизированного ведения регламента технического обслуживания.</p>
             </div>
-            <button type="submit" id="btnSearch" class="w-full bg-brand text-white font-medium rounded-xl py-4 text-lg hover:bg-blue-600 transition-colors shadow-sm active:scale-[0.98]">Расшифровать через ИИ</button>
-          </form>
+            <div class="pricing-grid grid grid-cols-1 md:grid-cols-3 gap-6 max-w-4xl mx-auto">
+              <div class="price-card bg-white border border-gray-200 rounded-3xl p-6 flex flex-col justify-between hover:border-brand/40 transition-colors">
+                <div>
+                  <h3 class="font-bold text-xl text-gray-900 mb-1">1 Автомобиль</h3>
+                  <p class="price text-sm font-semibold text-brand mb-6 bg-brand/10 py-1.5 px-3 rounded-xl inline-block">Бесплатно / Базовый</p>
+                  <ul class="space-y-3 text-sm text-gray-600 mb-8">
+                    <li class="flex items-center gap-2"><span>✅ Полный лог ошибок OBD-II</span></li>
+                    <li class="flex items-center gap-2"><span>✅ Подбор расходников для 1 авто</span></li>
+                    <li class="flex items-center gap-2"><span>✅ Базовые советы по диагностике</span></li>
+                  </ul>
+                </div>
+                <a href="/garage" class="btn-outline w-full text-center bg-gray-100 hover:bg-gray-200 text-gray-900 font-bold py-3 rounded-xl transition-colors block">Выбрать</a>
+              </div>
+
+              <div class="price-card pro-card bg-white border-2 border-brand rounded-3xl p-6 flex flex-col justify-between relative shadow-lg transform md:-translate-y-2">
+                <div class="absolute -top-3.5 left-1/2 -translate-x-1/2 bg-brand text-white text-xs font-black px-4 py-1 rounded-full uppercase tracking-wider shadow-sm">Выбор водителей</div>
+                <div>
+                  <h3 class="font-bold text-xl text-gray-900 mb-1">Семья (до 5 авто)</h3>
+                  <p class="price text-2xl font-black text-gray-900 mb-6">499 ₽ <span class="text-xs font-normal text-gray-500">/ мес</span></p>
+                  <ul class="space-y-3 text-sm text-gray-600 mb-8">
+                    <li class="flex items-center gap-2 font-medium text-gray-900"><span>⚡ Ведение нескольких машин</span></li>
+                    <li class="flex items-center gap-2 font-medium text-gray-900"><span>⚡ История обслуживания и ТО</span></li>
+                    <li class="flex items-center gap-2 font-medium text-gray-900"><span>⚡ Защита от переплат на СТО</span></li>
+                    <li class="flex items-center gap-2 font-medium text-gray-900"><span>⚡ Приоритетная ИИ генерация</span></li>
+                  </ul>
+                </div>
+                <a href="/garage" class="btn-primary w-full text-center bg-brand hover:bg-blue-600 text-white font-bold py-3.5 rounded-xl transition-colors shadow-md block">Подключить</a>
+              </div>
+
+              <div class="price-card bg-white border border-gray-200 rounded-3xl p-6 flex flex-col justify-between hover:border-brand/40 transition-colors">
+                <div>
+                  <h3 class="font-bold text-xl text-gray-900 mb-1">СТО (Безлимит)</h3>
+                  <p class="price text-2xl font-black text-gray-900 mb-6">1999 ₽ <span class="text-xs font-normal text-gray-500">/ мес</span></p>
+                  <ul class="space-y-3 text-sm text-gray-600 mb-8">
+                    <li class="flex items-center gap-2"><span>🔧 Безлимитные запросы</span></li>
+                    <li class="flex items-center gap-2"><span>🔧 Доступ к дилерским кодам</span></li>
+                    <li class="flex items-center gap-2"><span>🔧 Коммерческое использование</span></li>
+                  </ul>
+                </div>
+                <a href="/garage" class="btn-outline w-full text-center bg-gray-900 hover:bg-gray-800 text-white font-bold py-3 rounded-xl transition-colors block">Для профи</a>
+              </div>
+            </div>
+          </section>
         </main>
+
+        <!-- Подвал (Footer) -->
+        <footer class="mt-16 pt-8 border-t border-gray-200/80 text-xs text-gray-500">
+          <div class="grid grid-cols-1 md:grid-cols-4 gap-6 mb-8">
+            <div class="md:col-span-2">
+              <a href="/" class="flex items-center gap-2 font-bold text-base text-gray-900 mb-2">
+                <i data-lucide="activity" class="text-brand w-5 h-5"></i> 7Set.pro
+              </a>
+              <p class="max-w-sm text-gray-500 leading-relaxed">
+                Интеллектуальная система экспресс-диагностики, расшифровки кодов неисправностей и точного регламентного обслуживания автомобилей.
+              </p>
+            </div>
+            <div>
+              <h4 class="font-bold text-gray-900 mb-2.5 uppercase tracking-wider text-[11px]">Навигация</h4>
+              <ul class="space-y-2 font-medium">
+                <li><a href="/" class="hover:text-brand transition-colors">Каталог ошибок OBD-II</a></li>
+                <li><a href="/garage" class="hover:text-brand transition-colors">Персональный Гараж</a></li>
+                <li><a href="/garage" class="hover:text-brand transition-colors">Подбор расходников</a></li>
+              </ul>
+            </div>
+            <div>
+              <h4 class="font-bold text-gray-900 mb-2.5 uppercase tracking-wider text-[11px]">Юридическая информация</h4>
+              <ul class="space-y-2 font-medium">
+                <li><a href="/legal/terms" class="hover:text-brand transition-colors">Пользовательское соглашение</a></li>
+                <li><a href="/legal/privacy" class="hover:text-brand transition-colors">Политика конфиденциальности</a></li>
+                <li><a href="/legal/terms" class="hover:text-brand transition-colors">Условия подписки</a></li>
+              </ul>
+            </div>
+          </div>
+          <div class="flex flex-col sm:flex-row justify-between items-center gap-4 pt-6 border-t border-gray-100 text-[11px]">
+            <div>© ${new Date().getFullYear()} 7Set.pro. Все права защищены.</div>
+            <div class="flex gap-4">
+              <span>Сделано с заботой о водителях 🚗</span>
+            </div>
+          </div>
+        </footer>
       </div>
+      <script>lucide.createIcons();</script>
     </body>
     </html>
   `);
@@ -106,7 +288,7 @@ app.get('/', (req, res) => {
 app.get('/search', (req, res) => {
   const { brand, model, code } = req.query;
   if (!brand || !model || !code) return res.redirect('/');
-  res.redirect(`/diagnostic/${brand.toLowerCase().trim()}/${model.toLowerCase().trim()}/${code.toUpperCase().trim()}`);  
+  res.redirect(`/diagnostic/${brand.toLowerCase().trim()}/${model.toLowerCase().trim()}/${code.toUpperCase().trim()}`);
 });
 
 // 5. Публичная SEO-страница диагностики
@@ -153,77 +335,128 @@ app.get('/diagnostic/:brand/:model/:code', async (req, res) => {
     let teaserText;
     let report;
 
-    // Ищем в кэше
-    const existingReport = await prisma.diagnosticReport.findFirst({
-      where: { brand, model, code }
+    // Проверка, является ли код ложным/несуществующим до запросов к БД и ИИ
+    const obdRegex = /^[PBUC][0-9A-F]{4}$/i;
+    const descLower = baseDescription ? baseDescription.toLowerCase() : '';
+    let isUnsupported = !obdRegex.test(cleanRequestedCode) ||
+      descLower === 'не существует' ||
+      descLower === 'код не существует';
+
+    const targetBrand = isUnsupported ? "universal" : brand;
+    const targetModel = isUnsupported ? "unsupported" : model;
+    const targetCode = isUnsupported ? "UNSUPPORTED" : code;
+
+    // Ищем в кэше (для ложных кодов ищем единую универсальную карточку)
+    let existingReport = await prisma.diagnosticReport.findFirst({
+      where: { brand: targetBrand, model: targetModel, code: targetCode }
     });
 
     if (existingReport) {
-      console.log('⚡ Отчет найден в БД (кэш)!');
+      const isCachedStub = existingReport.brand === "universal" || 
+                           existingReport.code === "UNSUPPORTED" || 
+                           (existingReport.summary || '').includes('не зарегистрирован в официальных каталогах') ||
+                           (existingReport.seoTitle || '').includes('Неизвестный');
+
+      // Если со старых тестов в БД лежит заглушка, но сам код является рабочим (!isUnsupported), удаляем этот ошибочный кэш!
+      if (isCachedStub && !isUnsupported) {
+        console.log('🔄 [ОЧИСТКА КЭША] В БД обнаружен старый ошибочный кэш заглушки для реального кода! Удаляем и запрашиваем свежий ИИ-отчет...');
+        await prisma.diagnosticReport.delete({ where: { id: existingReport.id } }).catch(() => {});
+        existingReport = null;
+      } else {
+        console.log('⚡ Отчет найден в БД (кэш)!');
+        report = existingReport;
+        reportId = existingReport.id;
+        severityLevel = existingReport.severity;
+        summaryText = existingReport.summary;
+        teaserText = existingReport.teaser_text;
+        if (isCachedStub) {
+          isUnsupported = true;
+        }
+      }
+    }
+
+    if (!report && existingReport) {
       report = existingReport;
-      reportId = existingReport.id;
-      severityLevel = existingReport.severity;
-      summaryText = existingReport.summary;
-      teaserText = existingReport.teaser_text;
-    } else {
+    }
+
+    if (!report) {
       console.log('🤖 Запрос к Gemini API...');
       const data = await analyzeCarError(brand, model, code, baseDescription);
       console.log('✅ Ответ ИИ получен!');
 
-      // Защита от длинного текста от ИИ для колонки drivability
-      let safeDrivability = data.drivability;
-      if (!['safe', 'caution', 'tow'].includes(safeDrivability)) {
-        if (data.severity === 'low') safeDrivability = 'safe';
-        else if (data.severity === 'critical') safeDrivability = 'tow';
-        else safeDrivability = 'caution';
+      if (data.is_unsupported_error && isUnsupported) {
+        isUnsupported = true;
       }
 
-      const newReport = await prisma.diagnosticReport.create({
-        data: {
-          brand,
-          model,
-          code,
-          severity: data.severity,
-          summary: data.summary,
-          teaser_text: data.teaser_text,
-          full_analysis_markdown: data.full_analysis_markdown,
-          sto_protection_tips: data.sto_protection_tips,
-          drivability: safeDrivability,
-          diy_difficulty_text: data.diy_difficulty_text,
-          diy_difficulty_score: data.diy_difficulty_score,
-          diy_time: data.diy_time,
-          diy_tools: data.diy_tools,
-          price_parts: data.price_parts,
-          price_labor: data.price_labor,
-          diy_instructions: data.diy_instructions,
-          seoTitle: data.seoTitle,
-          seoDescription: data.seoDescription,
-          is_paid: false
+      if (isUnsupported && (targetBrand !== "universal" || targetModel !== "unsupported" || targetCode !== "UNSUPPORTED")) {
+        const existingUniv = await prisma.diagnosticReport.findFirst({
+          where: { brand: "universal", model: "unsupported", code: "UNSUPPORTED" }
+        });
+        if (existingUniv) {
+          console.log('⚡ Переключено на универсальный отчет для ложных ошибок из БД!');
+          report = existingUniv;
+          reportId = existingUniv.id;
+          severityLevel = existingUniv.severity;
+          summaryText = existingUniv.summary;
+          teaserText = existingUniv.teaser_text;
         }
-      });
+      }
 
-      console.log(`💾 Отчет сохранен в MySQL! ID: ${newReport.id}`);
-      report = newReport;
-      reportId = newReport.id;
-      severityLevel = data.severity;
-      summaryText = data.summary;
-      teaserText = data.teaser_text;
+      if (!report) {
+        // Защита от длинного текста от ИИ для колонки drivability
+        let safeDrivability = data.drivability;
+        if (!['safe', 'caution', 'tow'].includes(safeDrivability)) {
+          if (data.severity === 'low') safeDrivability = 'safe';
+          else if (data.severity === 'critical') safeDrivability = 'tow';
+          else safeDrivability = 'caution';
+        }
+
+        const newReport = await prisma.diagnosticReport.create({
+          data: {
+            brand: isUnsupported ? "universal" : brand,
+            model: isUnsupported ? "unsupported" : model,
+            code: isUnsupported ? "UNSUPPORTED" : code,
+            severity: data.severity,
+            summary: data.summary,
+            teaser_text: data.teaser_text,
+            full_analysis_markdown: data.full_analysis_markdown,
+            sto_protection_tips: data.sto_protection_tips,
+            drivability: safeDrivability,
+            diy_difficulty_text: data.diy_difficulty_text,
+            diy_difficulty_score: data.diy_difficulty_score,
+            diy_time: data.diy_time,
+            diy_tools: data.diy_tools,
+            price_parts: data.price_parts,
+            price_labor: data.price_labor,
+            diy_instructions: data.diy_instructions,
+            seoTitle: data.seoTitle,
+            seoDescription: data.seoDescription,
+            is_paid: isUnsupported ? true : false
+          }
+        });
+
+        console.log(`💾 Отчет сохранен в MySQL! ID: ${newReport.id}`);
+        report = newReport;
+        reportId = newReport.id;
+        severityLevel = data.severity;
+        summaryText = data.summary;
+        teaserText = data.teaser_text;
+      }
     }
 
     const severityMap = {
       low: { text: 'Низкая опасность', class: 'badge-low' },
       medium: { text: 'Средняя опасность', class: 'badge-medium' },
       high: { text: 'Высокая опасность', class: 'badge-high' },
-      critical: { text: 'Критично (не ездить)', class: 'badge-critical' }
+      critical: { text: 'Критично (не ездить)', class: 'badge-critical' },
+      "Информация": { text: 'Информация', class: 'badge-low' }
     };
 
     const severity = severityMap[severityLevel] || severityMap.medium;
 
     let drivabilityValue = report.drivability;
-    if (!drivabilityValue) {
-      if (severityLevel === 'low') drivabilityValue = 'safe';
-      else if (severityLevel === 'critical') drivabilityValue = 'tow';
-      else drivabilityValue = 'caution';
+    if (!drivabilityValue || drivabilityValue.startsWith('Эксплуатация') || report.brand === "universal") {
+      drivabilityValue = 'safe';
     }
 
     const drivabilityMap = {
@@ -235,10 +468,16 @@ app.get('/diagnostic/:brand/:model/:code', async (req, res) => {
 
     res.setHeader('Cache-Control', 'no-store, no-cache, must-revalidate, private');
 
-    const formatTitleCase = (str) => str.split(/[\s-]+/).map(w => w.charAt(0).toUpperCase() + w.slice(1)).join(' ');     
+    const formatTitleCase = (str) => str.split(/[\s-]+/).map(w => w.charAt(0).toUpperCase() + w.slice(1)).join(' ');
     const displayBrand = formatTitleCase(brand);
     const displayModel = formatTitleCase(model);
     const displayCode = code.toUpperCase();
+
+    const isUnsupportedReport = isUnsupported;
+
+    const unlockedList = parseUnlockedCookie(req.cookies?.unlocked_reports);
+    const slug = `${brand.toLowerCase()}-${model.toLowerCase()}-${code.toLowerCase()}`;
+    const isUnlockedForUser = isUnsupportedReport || (report && (report.is_paid || unlockedList.includes(report.id) || unlockedList.includes(slug)));
 
     const faqSchema = {
       "@context": "https://schema.org",
@@ -246,7 +485,7 @@ app.get('/diagnostic/:brand/:model/:code', async (req, res) => {
       "mainEntity": [
         {
           "@type": "Question",
-          "name": `Что означает ошибка ${displayCode} на ${displayBrand} ${displayModel}?`,
+          "name": isUnsupportedReport ? `Что означает неизвестный или незарегистрированный код ошибки?` : `Что означает ошибка ${displayCode} на ${displayBrand} ${displayModel}?`,
           "acceptedAnswer": {
             "@type": "Answer",
             "text": report.teaser_text || report.summary || "Подробное описание ошибки доступно на сайте."
@@ -270,11 +509,33 @@ app.get('/diagnostic/:brand/:model/:code', async (req, res) => {
         }
       ]
     };
-    const canonicalUrl = `https://7set.pro/diagnostic/${brand.toLowerCase()}/${model.toLowerCase()}/${code.toUpperCase()}`;
-    const seoTitle = report.seoTitle || `Ошибка ${displayCode} ${displayBrand} ${displayModel}: расшифровка, причины и ремонт`;
-    const seoDescription = report.seoDescription || `Узнайте точные симптомы, причины возникновения ошибки ${displayCode} на ${displayBrand} ${displayModel}, а также примерную стоимость ремонта на СТО и пошаговую инструкцию по самостоятельному устранению.`;
+    const baseUrl = process.env.SITE_URL || 'https://7set.pro';
+    const pageUrl = isUnsupportedReport ? `${baseUrl}/diagnostic/unknown-code` : `${baseUrl}/diagnostic/${brand.toLowerCase()}/${model.toLowerCase()}/${code.toUpperCase()}`;
+    const ogImage = isUnsupportedReport ? `${baseUrl}/og-default.png` : `${baseUrl}/og-images/${brand.toLowerCase()}-${model.toLowerCase()}-${code.toLowerCase()}.png`;
+    const seoTitle = report.seoTitle || (isUnsupportedReport ? "Неизвестный код ошибки автомобиля: причины и проверка" : `Ошибка ${displayCode} ${displayBrand} ${displayModel}: расшифровка, причины и ремонт`);
+    const seoDescription = report.seoDescription || (isUnsupportedReport ? "Код ошибки не найден в базе данных. Узнайте, почему диагностический сканер выдает неизвестную ошибку и как проверить ЭБУ." : `Узнайте точные симптомы, причины возникновения ошибки ${displayCode} на ${displayBrand} ${displayModel}, а также примерную стоимость ремонта на СТО и пошаговую инструкцию по самостоятельному устранению.`);
 
-    const schemaHtml = `<script type="application/ld+json">${JSON.stringify(faqSchema)}</script>`;
+    const techArticleSchema = {
+      "@context": "https://schema.org",
+      "@type": "TechArticle",
+      "headline": seoTitle,
+      "description": seoDescription,
+      "author": {
+        "@type": "Organization",
+        "name": "Редакция 7Set.pro"
+      },
+      "publisher": {
+        "@type": "Organization",
+        "name": "7Set.pro",
+        "logo": {
+          "@type": "ImageObject",
+          "url": `${baseUrl}/logo.png`
+        }
+      },
+      "mainEntityOfPage": pageUrl
+    };
+
+    const schemaHtml = `<script type="application/ld+json">${JSON.stringify(techArticleSchema)}</script>\n        <script type="application/ld+json">${JSON.stringify(faqSchema)}</script>`;
 
     res.send(`
       <!DOCTYPE html>
@@ -284,7 +545,16 @@ app.get('/diagnostic/:brand/:model/:code', async (req, res) => {
         <meta name="viewport" content="width=device-width, initial-scale=1.0">
         <title>${seoTitle}</title>
         <meta name="description" content="${seoDescription}">
-        <link rel="canonical" href="${canonicalUrl}">
+        <link rel="canonical" href="${pageUrl}">
+        <meta property="og:url" content="${pageUrl}">
+        <meta property="og:title" content="${seoTitle}">
+        <meta property="og:description" content="${seoDescription}">
+        <meta property="og:image" content="${ogImage}">
+        <meta property="og:type" content="article">
+        <meta name="twitter:card" content="summary_large_image">
+        <meta name="twitter:title" content="${seoTitle}">
+        <meta name="twitter:description" content="${seoDescription}">
+        <meta name="twitter:image" content="${ogImage}">
         ${schemaHtml}
         <script src="https://cdn.tailwindcss.com?plugins=typography"></script>
         <script>tailwind.config = { theme: { extend: { colors: { brand: '#0077FF', surface: '#F5F5F7' } } } }</script>   
@@ -312,14 +582,14 @@ app.get('/diagnostic/:brand/:model/:code', async (req, res) => {
                   <span class="${severityLevel === 'critical' || severityLevel === 'high' ? 'bg-red-100 text-red-800' : severityLevel === 'medium' ? 'bg-yellow-100 text-yellow-800' : 'bg-green-100 text-green-800'} text-xs font-bold px-3 py-1.5 rounded-full uppercase tracking-wide">${severity.text.replace(/<[^>]*>?/gm, '')}</span>
                   <span class="${drivabilityData.class}">${drivabilityData.text}</span>
                 </div>
-                <span class="text-xs text-gray-400 font-mono font-medium mt-1">Код: ${displayCode}</span>
+                <span class="text-xs text-gray-400 font-mono font-medium mt-1">Код: ${isUnsupportedReport ? 'Незарегистрированный' : displayCode}</span>
               </div>
 
-              <h1 class="text-2xl font-bold mb-3">${displayBrand} ${displayModel}: Ошибка ${displayCode}</h1>
+              <h1 class="text-2xl font-bold mb-3">${seoTitle}</h1>
               <div class="flex flex-col items-center justify-center bg-gray-50 border border-gray-100 rounded-2xl p-8 mb-6">
                 <i data-lucide="car-front" class="w-16 h-16 text-brand mb-3" aria-hidden="true"></i>
-                <span class="text-gray-500 font-medium text-sm">Отчет об ошибке ${displayCode}</span>
-                <img src="https://placehold.co/600x400/ffffff/0077FF?text=${displayCode}" alt="Детальная расшифровка и ремонт ошибки ${displayCode} для ${displayBrand} ${displayModel}" class="sr-only" />
+                <span class="text-gray-500 font-medium text-sm">Отчет об ошибке ${isUnsupportedReport ? 'UNSUPPORTED' : displayCode}</span>
+                <img src="https://placehold.co/600x400/ffffff/0077FF?text=${isUnsupportedReport ? 'UNKNOWN' : displayCode}" alt="${isUnsupportedReport ? 'Диагностика и проверка неизвестного или ложного кода ошибки автомобиля' : `Детальная расшифровка и ремонт ошибки ${displayCode} для ${displayBrand} ${displayModel}`}" class="sr-only" />
               </div>
               <p class="text-gray-500 font-medium text-sm leading-relaxed mb-4">${summaryText}</p>
               <div class="h-px bg-gray-100 w-full mb-4"></div>
@@ -327,7 +597,7 @@ app.get('/diagnostic/:brand/:model/:code', async (req, res) => {
             </article>
 
             <div id="paywall-container" data-report-id="${reportId}">
-              ${!report.is_paid ? `
+              ${!isUnlockedForUser ? `
               <div class="report-content">
                 <div class="relative overflow-hidden rounded-2xl mt-2 bg-white shadow-sm border border-gray-100">        
                   <div id="blurred-content" class="absolute inset-0 p-5 overflow-hidden pointer-events-none select-none blur-sm opacity-40 prose prose-blue prose-lg max-w-none text-gray-800">
@@ -484,22 +754,22 @@ app.get('/diagnostic/:brand/:model/:code', async (req, res) => {
 
         <nav class="fixed bottom-0 w-full bg-white border-t border-gray-100 md:hidden z-50">
           <div class="flex justify-around items-center h-16">
-            <a href="#" class="flex flex-col items-center justify-center w-full h-full text-brand">
+            <button type="button" class="flex flex-col items-center justify-center w-full h-full text-brand bg-transparent border-0 cursor-pointer">
               <i data-lucide="activity" class="w-5 h-5 mb-1"></i>
               <span class="text-[10px] font-medium">Диагноз</span>
-            </a>
-            <a href="#" class="flex flex-col items-center justify-center w-full h-full text-gray-400 hover:text-gray-600">
+            </button>
+            <button type="button" class="flex flex-col items-center justify-center w-full h-full text-gray-400 hover:text-gray-600 bg-transparent border-0 cursor-pointer">
               <i data-lucide="history" class="w-5 h-5 mb-1"></i>
               <span class="text-[10px] font-medium">История</span>
-            </a>
-            <a href="#" class="flex flex-col items-center justify-center w-full h-full text-gray-400 hover:text-gray-600">
+            </button>
+            <button type="button" class="flex flex-col items-center justify-center w-full h-full text-gray-400 hover:text-gray-600 bg-transparent border-0 cursor-pointer">
               <i data-lucide="car" class="w-5 h-5 mb-1"></i>
               <span class="text-[10px] font-medium">Гараж</span>
-            </a>
-            <a href="#" class="flex flex-col items-center justify-center w-full h-full text-gray-400 hover:text-gray-600">
+            </button>
+            <button type="button" class="flex flex-col items-center justify-center w-full h-full text-gray-400 hover:text-gray-600 bg-transparent border-0 cursor-pointer">
               <i data-lucide="user" class="w-5 h-5 mb-1"></i>
               <span class="text-[10px] font-medium">Профиль</span>
-            </a>
+            </button>
           </div>
         </nav>
         <script>
@@ -536,16 +806,25 @@ app.post('/api/unlock-report', async (req, res) => {
       return res.status(404).json({ error: 'Отчет не найден или устарел' });
     }
 
-    if (!report.is_paid) {
-      if (!paymentToken) {
-        return res.status(400).json({ error: 'Необходим платежный токен' });
-      }
-
-      await prisma.diagnosticReport.update({
-        where: { id: reportId },
-        data: { is_paid: true }
-      });
+    if (!report.is_paid && !paymentToken) {
+      return res.status(400).json({ error: 'Необходим платежный токен' });
     }
+
+    const unlockedList = parseUnlockedCookie(req.cookies?.unlocked_reports);
+
+    if (!unlockedList.includes(report.id)) {
+      unlockedList.push(report.id);
+    }
+    const slug = `${report.brand.toLowerCase()}-${report.model.toLowerCase()}-${report.code.toLowerCase()}`;
+    if (!unlockedList.includes(slug)) {
+      unlockedList.push(slug);
+    }
+
+    res.cookie('unlocked_reports', JSON.stringify(unlockedList), {
+      maxAge: 3 * 24 * 60 * 60 * 1000, // 3 дня доступа
+      httpOnly: false,
+      path: '/'
+    });
 
     res.json({
       full_analysis_markdown: report.full_analysis_markdown,
