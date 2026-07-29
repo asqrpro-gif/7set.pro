@@ -17,9 +17,11 @@ document.addEventListener('DOMContentLoaded', () => {
     const savedTheme = localStorage.getItem('theme');
     if (savedTheme === 'dark') {
         document.documentElement.setAttribute('data-theme', 'dark');
+        document.documentElement.classList.add('dark');
     } else if (!savedTheme && window.matchMedia && window.matchMedia('(prefers-color-scheme: dark)').matches) {
         // Поддержка системной темы по умолчанию
         document.documentElement.setAttribute('data-theme', 'dark');
+        document.documentElement.classList.add('dark');
     }
     updateThemeIcon();
 
@@ -28,9 +30,11 @@ document.addEventListener('DOMContentLoaded', () => {
             const currentTheme = document.documentElement.getAttribute('data-theme');
             if (currentTheme === 'dark') {
                 document.documentElement.removeAttribute('data-theme');
+                document.documentElement.classList.remove('dark');
                 localStorage.setItem('theme', 'light');
             } else {
                 document.documentElement.setAttribute('data-theme', 'dark');
+                document.documentElement.classList.add('dark');
                 localStorage.setItem('theme', 'dark');
             }
             updateThemeIcon();
