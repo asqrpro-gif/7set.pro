@@ -2,12 +2,10 @@ import 'dotenv/config';
 import express from 'express';
 import cookieParser from 'cookie-parser';
 import { PrismaClient } from '@prisma/client';
-import { analyzeCarError } from './lib/gemini_clean.js';
+import { analyzeCarErrorFast, analyzeCarErrorDeep } from './lib/gemini_clean.js';
 import { marked } from 'marked';
 import fs from 'fs';
 import garageRouter from './routes/garage.js';
-
-const obd2Codes = JSON.parse(fs.readFileSync('./codes.json', 'utf-8'));
 
 const app = express();
 const PORT = process.env.PORT || 3005;
@@ -79,6 +77,62 @@ const parseUnlockedCookie = (val) => {
   }
   return [];
 };
+
+// Вспомогательная функция для хирургического форматирования Markdown текста (восстановление заголовков h2/h3, списков и добавление иконок)
+const formatReportMarkdown = (text) => {
+  if (!text) return '';
+  let str = text.replace(/\\n/g, '\n');
+  // 0. Удаляем любые пустые строки с символами # без текста (причина появления пустых тегов h1/h2 в разметке)
+  str = str.replace(/^[ \t]*#{1,6}[ \t]*$/gm, '');
+  // 0.5. Преобразуем Setext заголовки (подчеркивания === или ---) и HTML теги h1-h6 в обычные ###
+  str = str.replace(/^([^\n]+)\n[ \t]*[=-]{2,}[ \t]*$/gm, '### $1');
+  str = str.replace(/<h[1-6][^>]*>([\s\S]*?)<\/h[1-6]>/ig, '### $1');
+  // 1. Приводим все заголовки # (h1), ## (h2) или #### внутри отчета строго к h3 (###), так как основные секции (Полный разбор причины, Сделай сам) теперь являются h2
+  str = str.replace(/^[ \t]*#{1,6}\s+(?=\S)/gm, '### ');
+  // Гарантируем пустую строку перед заголовками ###
+  str = str.replace(/([^\n])\s*(#{1,3}\s+)/g, '$1\n\n$2');
+  // Гарантируем новую строку перед словами "Шаг 1", "Шаг 2", если они идут в середине текста (и не сразу после иконки или символа решетки/звездочки):
+  str = str.replace(/([^\n>#*])\s+(#{0,3}\s*(?:<[^>]+>\s*)?(?:\*\*)?Шаг\s+\d+)/ig, '$1\n\n$2');
+  // Общее правило для ЛЮБЫХ заголовков ### или ##, заканчивающихся на двоеточие или точку/тире (исключая точки в номерах вроде 1.): отделяем текст новой строкой
+  str = str.replace(/(#{1,3}\s*(?:<[^>]+>|[^\n:.!?]){2,100}(?::|(?<!\d)[.!?]))\s+([А-ЯA-Z1-9«"'][^\n])/g, '$1\n\n$2');
+  // Гарантируем, что после ключевых заголовков всегда идет перевод строки \n\n
+  str = str.replace(/(Как не лохануться на СТО:?)\s*([^\n])/ig, '$1\n\n$2');
+  str = str.replace(/(Специфика\s+[^\n:]{3,35}:?)\s+([А-ЯA-Z«"'][а-яa-z0-9])/g, '$1\n\n$2');
+  str = str.replace(/(Основные[^:\n]+:)\s*([^\n])/ig, '$1\n\n$2');
+  // Гарантируем новую строку перед нумерованными списками (1. 2. 3. 4.) и маркированными (-), НО НЕ внутри заголовков # и не после слова "Шаг"
+  str = str.replace(/(?<!#[^\n]*)(?<!Шаг\s*)(?<!Step\s*)([^\n])\s+(\d+\.\s+\S)/ig, '$1\n\n$2');
+  str = str.replace(/(?<!#[^\n]*)([^\n])\s+(-\s+\S)/g, '$1\n\n$2');
+  // Прогоняем повторно для смежных пунктов списков (например, "1. ... 2. ...")
+  str = str.replace(/(?<!#[^\n]*)(?<!Шаг\s*)(?<!Step\s*)([^\n])\s+(\d+\.\s+\S)/ig, '$1\n\n$2');
+  str = str.replace(/(?<!#[^\n]*)([^\n])\s+(-\s+\S)/g, '$1\n\n$2');
+  // Если первый блок причин идет без ### в начале, делаем его h3
+  str = str.replace(/^(Основные технические причины[^:]*:)/i, '### <i data-lucide="alert-triangle" class="inline-block w-5 h-5 text-amber-500 mr-1.5 align-text-bottom"></i> $1\n\n');
+  // Добавляем иконки Lucide к ключевым заголовкам, если их там еще нет (безопасная проверка через негативный lookahead)
+  str = str.replace(/(#{1,3}\s+)(?!<i|[^<\n]*data-lucide)(Специфика)/g, '$1<i data-lucide="wrench" class="inline-block w-5 h-5 text-brand mr-1.5 align-text-bottom"></i> $2');
+  str = str.replace(/(#{1,3}\s+)(?!<i|[^<\n]*data-lucide)(Как не лохануться)/g, '$1<i data-lucide="shield-alert" class="inline-block w-5 h-5 text-red-500 mr-1.5 align-text-bottom"></i> $2');
+  str = str.replace(/(#{1,3}\s+)(?!<i|[^<\n]*data-lucide)(Основные)/g, '$1<i data-lucide="alert-triangle" class="inline-block w-5 h-5 text-amber-500 mr-1.5 align-text-bottom"></i> $2');
+  // Иконки для шагов в Сделай сам:
+  str = str.replace(/(#{1,3}\s+)(?!<i|[^<\n]*data-lucide)((?:Шаг\s*\d+[\s:.-]*)?[^#\n]*(?:Визуальн|Осмотр)[^#\n]*)/ig, '$1<i data-lucide="eye" class="inline-block w-5 h-5 text-brand mr-1.5 align-text-bottom"></i> $2');
+  str = str.replace(/(#{1,3}\s+)(?!<i|[^<\n]*data-lucide)((?:Шаг\s*\d+[\s:.-]*)?[^#\n]*(?:Сканер|OBD|Live Data|Чтение|Код)[^#\n]*)/ig, '$1<i data-lucide="cpu" class="inline-block w-5 h-5 text-brand mr-1.5 align-text-bottom"></i> $2');
+  str = str.replace(/(#{1,3}\s+)(?!<i|[^<\n]*data-lucide)((?:Шаг\s*\d+[\s:.-]*)?[^#\n]*(?:Мультиметр|Сопротивление|Напряжение|Проводк|Датчик|Электрик)[^#\n]*)/ig, '$1<i data-lucide="gauge" class="inline-block w-5 h-5 text-brand mr-1.5 align-text-bottom"></i> $2');
+  str = str.replace(/(#{1,3}\s+)(?!<i|[^<\n]*data-lucide)((?:Шаг\s*\d+[\s:.-]*)?[^#\n]*(?:Замена|Ремонт|Очистк|Промывк|Сняти|Установк)[^#\n]*)/ig, '$1<i data-lucide="wrench" class="inline-block w-5 h-5 text-brand mr-1.5 align-text-bottom"></i> $2');
+  return str;
+};
+
+// Функция для 100% гарантии чистоты структуры HTML заголовков (удаление пустых h1-h6 и приведение всех заголовков внутри контента к h3)
+const cleanReportHtml = (html) => {
+  if (!html) return '';
+  let str = html;
+  // 1. Удаляем любые пустые теги заголовков h1-h6 (даже с пробелами, <br>, &nbsp; или пустыми иконками <i>)
+  str = str.replace(/<h[1-6][^>]*>([\s\S]*?)<\/h[1-6]>/ig, (match, content) => {
+    const textOnly = content.replace(/<[^>]+>/g, '').replace(/&nbsp;|\s/g, '').trim();
+    return textOnly.length === 0 ? '' : match;
+  });
+  // 2. Все оставшиеся заголовки h1, h2, h4, h5, h6 внутри контента отчетов принудительно превращаем строго в h3
+  str = str.replace(/<h[12456]([^>]*)>([\s\S]*?)<\/h[12456]>/ig, '<h3$1>$2</h3>');
+  return str;
+};
+
 
 // Подключение модуля Гаража
 app.use('/garage', garageRouter);
@@ -324,11 +378,8 @@ app.get('/diagnostic/:brand/:model/:code', async (req, res) => {
     `);
   }
 
-  let baseDescription = "Специфичный код производителя (Manufacturer Specific)";
-  const codeMatch = obd2Codes.find(item => item.Code && item.Code.includes(cleanRequestedCode));
-  if (codeMatch && codeMatch.Description) {
-    baseDescription = codeMatch.Description;
-  }
+  const baseDescription = "";
+
 
   try {
     let reportId;
@@ -354,15 +405,17 @@ app.get('/diagnostic/:brand/:model/:code', async (req, res) => {
     });
 
     if (existingReport) {
-      const isCachedStub = existingReport.brand === "universal" || 
-                           existingReport.code === "UNSUPPORTED" || 
-                           (existingReport.summary || '').includes('не зарегистрирован в официальных каталогах') ||
-                           (existingReport.seoTitle || '').includes('Неизвестный');
+      const isCachedStub = existingReport.brand === "universal" ||
+        existingReport.code === "UNSUPPORTED" ||
+        (existingReport.summary || '').includes('не зарегистрирован в официальных каталогах') ||
+        (existingReport.summary || '').includes('Сбой по коду') ||
+        (existingReport.summary || '').includes('официально расшифровывается как:') ||
+        (existingReport.seoTitle || '').includes('Неизвестный');
 
       // Если со старых тестов в БД лежит заглушка, но сам код является рабочим (!isUnsupported), удаляем этот ошибочный кэш!
       if (isCachedStub && !isUnsupported) {
         console.log('🔄 [ОЧИСТКА КЭША] В БД обнаружен старый ошибочный кэш заглушки для реального кода! Удаляем и запрашиваем свежий ИИ-отчет...');
-        await prisma.diagnosticReport.delete({ where: { id: existingReport.id } }).catch(() => {});
+        await prisma.diagnosticReport.delete({ where: { id: existingReport.id } }).catch(() => { });
         existingReport = null;
       } else {
         console.log('⚡ Отчет найден в БД (кэш)!');
@@ -382,67 +435,65 @@ app.get('/diagnostic/:brand/:model/:code', async (req, res) => {
     }
 
     if (!report) {
-      console.log('🤖 Запрос к Gemini API...');
-      const data = await analyzeCarError(brand, model, code, baseDescription);
-      console.log('✅ Ответ ИИ получен!');
+      console.log('🤖 Запрос FAST-части к Gemini API...');
+      // 1. Ждем ТОЛЬКО быструю часть (2-3 сек)
+      const fastData = await analyzeCarErrorFast(brand, model, code, baseDescription); 
+      console.log('✅ Быстрый ответ получен!');
 
-      if (data.is_unsupported_error && isUnsupported) {
-        isUnsupported = true;
+      // Защита от длинного текста от ИИ для колонки drivability
+      let safeDrivability = fastData.drivability;
+      if (!['safe', 'caution', 'tow'].includes(safeDrivability)) {
+        if (fastData.severity === 'low') safeDrivability = 'safe';
+        else if (fastData.severity === 'critical') safeDrivability = 'tow';
+        else safeDrivability = 'caution';
       }
 
-      if (isUnsupported && (targetBrand !== "universal" || targetModel !== "unsupported" || targetCode !== "UNSUPPORTED")) {
-        const existingUniv = await prisma.diagnosticReport.findFirst({
-          where: { brand: "universal", model: "unsupported", code: "UNSUPPORTED" }
-        });
-        if (existingUniv) {
-          console.log('⚡ Переключено на универсальный отчет для ложных ошибок из БД!');
-          report = existingUniv;
-          reportId = existingUniv.id;
-          severityLevel = existingUniv.severity;
-          summaryText = existingUniv.summary;
-          teaserText = existingUniv.teaser_text;
+      // 2. Создаем запись в БД (платные поля пока пустые или с заглушками)
+      const newReport = await prisma.diagnosticReport.create({
+        data: {
+          brand: isUnsupported ? "universal" : brand,
+          model: isUnsupported ? "unsupported" : model,
+          code: isUnsupported ? "UNSUPPORTED" : code,
+          severity: fastData.severity,
+          summary: fastData.summary,
+          teaser_text: fastData.teaser_text,
+          drivability: safeDrivability,
+          seoTitle: fastData.seoTitle,
+          seoDescription: fastData.seoDescription,
+          is_paid: isUnsupported ? true : false,
+          is_complete: false, // Флаг неполного отчета
+          full_analysis_markdown: "Фоновый анализ в процессе... Подождите пару секунд и обновите страницу.",
+          sto_protection_tips: "Фоновый анализ в процессе... Подождите пару секунд и обновите страницу."
         }
-      }
+      });
 
-      if (!report) {
-        // Защита от длинного текста от ИИ для колонки drivability
-        let safeDrivability = data.drivability;
-        if (!['safe', 'caution', 'tow'].includes(safeDrivability)) {
-          if (data.severity === 'low') safeDrivability = 'safe';
-          else if (data.severity === 'critical') safeDrivability = 'tow';
-          else safeDrivability = 'caution';
-        }
+      console.log(`💾 Базовый отчет сохранен в MySQL! ID: ${newReport.id}`);
+      report = newReport;
+      reportId = newReport.id;
+      severityLevel = fastData.severity;
+      summaryText = fastData.summary;
+      teaserText = fastData.teaser_text;
 
-        const newReport = await prisma.diagnosticReport.create({
-          data: {
-            brand: isUnsupported ? "universal" : brand,
-            model: isUnsupported ? "unsupported" : model,
-            code: isUnsupported ? "UNSUPPORTED" : code,
-            severity: data.severity,
-            summary: data.summary,
-            teaser_text: data.teaser_text,
-            full_analysis_markdown: data.full_analysis_markdown,
-            sto_protection_tips: data.sto_protection_tips,
-            drivability: safeDrivability,
-            diy_difficulty_text: data.diy_difficulty_text,
-            diy_difficulty_score: data.diy_difficulty_score,
-            diy_time: data.diy_time,
-            diy_tools: data.diy_tools,
-            price_parts: data.price_parts,
-            price_labor: data.price_labor,
-            diy_instructions: data.diy_instructions,
-            seoTitle: data.seoTitle,
-            seoDescription: data.seoDescription,
-            is_paid: isUnsupported ? true : false
-          }
-        });
-
-        console.log(`💾 Отчет сохранен в MySQL! ID: ${newReport.id}`);
-        report = newReport;
-        reportId = newReport.id;
-        severityLevel = data.severity;
-        summaryText = data.summary;
-        teaserText = data.teaser_text;
+      // 3. ⚡ АСИНХРОННЫЙ ФОНОВЫЙ ЗАПУСК ⚡ (БЕЗ await!)
+      if (!isUnsupported) {
+        analyzeCarErrorDeep(brand, model, code, baseDescription).then(async (deepData) => {
+          await prisma.diagnosticReport.update({
+            where: { id: newReport.id },
+            data: {
+              full_analysis_markdown: deepData.full_analysis_markdown,
+              sto_protection_tips: deepData.sto_protection_tips,
+              diy_instructions: deepData.diy_instructions,
+              price_parts: deepData.price_parts,
+              price_labor: deepData.price_labor,
+              diy_difficulty_text: deepData.diy_difficulty_text,
+              diy_difficulty_score: deepData.diy_difficulty_score,
+              diy_time: deepData.diy_time,
+              diy_tools: deepData.diy_tools,
+              is_complete: true // Отчет готов!
+            }
+          });
+          console.log(`✅ [ФОН] Глубокая генерация для ${code} успешно завершена и сохранена!`);
+        }).catch(err => console.error("❌ Фоновая генерация упала:", err));
       }
     }
 
@@ -514,8 +565,23 @@ app.get('/diagnostic/:brand/:model/:code', async (req, res) => {
     const baseUrl = process.env.SITE_URL || 'https://7set.pro';
     const pageUrl = isUnsupportedReport ? `${baseUrl}/diagnostic/unknown-code` : `${baseUrl}/diagnostic/${brand.toLowerCase()}/${model.toLowerCase()}/${code.toUpperCase()}`;
     const ogImage = isUnsupportedReport ? `${baseUrl}/og-default.png` : `${baseUrl}/og-images/${brand.toLowerCase()}-${model.toLowerCase()}-${code.toLowerCase()}.png`;
-    const seoTitle = report.seoTitle || (isUnsupportedReport ? "Неизвестный код ошибки автомобиля: причины и проверка" : `Ошибка ${displayCode} ${displayBrand} ${displayModel}: расшифровка, причины и ремонт`);
-    const seoDescription = report.seoDescription || (isUnsupportedReport ? "Код ошибки не найден в базе данных. Узнайте, почему диагностический сканер выдает неизвестную ошибку и как проверить ЭБУ." : `Узнайте точные симптомы, причины возникновения ошибки ${displayCode} на ${displayBrand} ${displayModel}, а также примерную стоимость ремонта на СТО и пошаговую инструкцию по самостоятельному устранению.`);
+    let seoTitle = report.seoTitle || (isUnsupportedReport ? "Неизвестный код ошибки автомобиля: причины и проверка" : `Ошибка ${displayCode} ${displayBrand} ${displayModel}: расшифровка, причины и ремонт`);
+    if (!isUnsupportedReport && seoTitle && !seoTitle.toLowerCase().includes(displayModel.toLowerCase())) {
+      const brandReg = new RegExp(`(${displayBrand})`, 'i');
+      if (brandReg.test(seoTitle)) {
+        seoTitle = seoTitle.replace(brandReg, `$1 ${displayModel}`);
+      } else {
+        seoTitle = `Ошибка ${displayCode} ${displayBrand} ${displayModel}: ${seoTitle.replace(/^Ошибка\s+[PBUC][0-9A-F]{4}\s*[:\-]?\s*/i, '')}`;
+      }
+    }
+
+    let seoDescription = report.seoDescription || (isUnsupportedReport ? "Код ошибки не найден в базе данных. Узнайте, почему диагностический сканер выдает неизвестную ошибку и как проверить ЭБУ." : `Узнайте точные симптомы, причины возникновения ошибки ${displayCode} на ${displayBrand} ${displayModel}, а также примерную стоимость ремонта на СТО и пошаговую инструкцию по самостоятельному устранению.`);
+    if (!isUnsupportedReport && seoDescription && !seoDescription.toLowerCase().includes(displayModel.toLowerCase())) {
+      const brandReg = new RegExp(`(${displayBrand})`, 'i');
+      if (brandReg.test(seoDescription)) {
+        seoDescription = seoDescription.replace(brandReg, `$1 ${displayModel}`);
+      }
+    }
 
     const techArticleSchema = {
       "@context": "https://schema.org",
@@ -603,7 +669,7 @@ app.get('/diagnostic/:brand/:model/:code', async (req, res) => {
               <div class="report-content">
                 <div class="relative overflow-hidden rounded-2xl mt-2 bg-white shadow-sm border border-gray-100">        
                   <div id="blurred-content" class="absolute inset-0 p-5 overflow-hidden pointer-events-none select-none blur-sm opacity-40 prose prose-blue prose-lg max-w-none text-gray-800">
-                    ${marked.parse((report.full_analysis_markdown || '').replace(/\\n/g, '\n'))}
+                    ${cleanReportHtml(marked.parse(formatReportMarkdown(report.full_analysis_markdown || '')))}
                   </div>
                   <div id="paywall-overlay" class="relative z-10 flex flex-col items-center justify-center bg-white/50 backdrop-blur-sm p-4 py-8">
                     <div class="bg-white border border-gray-100 shadow-2xl rounded-2xl p-6 md:p-8 w-full max-w-md transform transition-all">
@@ -651,33 +717,32 @@ app.get('/diagnostic/:brand/:model/:code', async (req, res) => {
               <div class="report-content">
                 <details class="bg-white rounded-2xl shadow-sm mb-4 overflow-hidden border border-gray-50" open>
                   <summary class="flex items-center gap-3 font-semibold p-5 cursor-pointer hover:bg-gray-50 transition-colors list-none outline-none">
-                    <i data-lucide="file-search" class="w-5 h-5 text-brand"></i> Полный разбор причины
+                    <h2 class="text-base md:text-lg font-semibold m-0 flex items-center gap-3 w-full font-inherit text-inherit"><i data-lucide="file-search" class="w-5 h-5 text-brand shrink-0"></i> Полный разбор причины</h2>
                   </summary>
                   <div class="p-5 border-t border-gray-50 bg-white prose prose-blue prose-lg max-w-none text-gray-800">  
-                    ${marked.parse((report.full_analysis_markdown || '').replace(/\\n/g, '\n'))}
+                    ${cleanReportHtml(marked.parse(formatReportMarkdown(report.full_analysis_markdown || '')))}
                   </div>
                 </details>
 
                 <details class="bg-white rounded-2xl shadow-sm mb-4 overflow-hidden border border-gray-50">
                   <summary class="flex items-center gap-3 font-semibold p-5 cursor-pointer hover:bg-gray-50 transition-colors list-none outline-none">
-                    <i data-lucide="wrench" class="w-5 h-5 text-gray-500"></i> Сделай сам
-                    <span class="text-xs px-2 py-0.5 rounded bg-gray-100 text-gray-600 ml-auto">${report.diy_difficulty_text || 'Неизвестно'}</span>
+                    <h2 class="text-base md:text-lg font-semibold m-0 flex items-center gap-3 w-full font-inherit text-inherit"><i data-lucide="wrench" class="w-5 h-5 text-gray-500 shrink-0"></i> Сделай сам <span class="text-xs px-2 py-0.5 rounded bg-gray-100 text-gray-600 ml-auto font-normal shrink-0">${report.diy_difficulty_text || 'Неизвестно'}</span></h2>
                   </summary>
                   <div class="p-5 border-t border-gray-50 bg-white">
                      <div class="flex flex-col gap-3 mb-5">
                        <div class="grid grid-cols-2 gap-3">
-                         <div class="bg-gray-50 rounded-xl p-3 text-center">
-                           <span class="text-xs text-gray-500 uppercase">Сложность</span><br>
-                           <strong class="text-sm">${report.diy_difficulty_score || '?'} / 10</strong>
+                         <div class="bg-gray-50 rounded-xl p-3.5 text-center flex flex-col justify-center">
+                           <span class="text-xs text-gray-500 font-medium uppercase tracking-wider mb-1">Сложность</span>
+                           <strong class="text-sm md:text-base font-bold text-gray-800">${(() => { const m = String(report.diy_difficulty_score || '3/5').match(/(\d+)\s*(?:[\/|из]\s*(\d+))?/i); return m ? `${m[1]} из ${m[2] || '5'}` : '3 из 5'; })()}</strong>
                          </div>
-                         <div class="bg-gray-50 rounded-xl p-3 text-center">
-                           <span class="text-xs text-gray-500 uppercase">Время</span><br>
-                           <strong class="text-sm">${report.diy_time || 'Не указано'}</strong>
+                         <div class="bg-gray-50 rounded-xl p-3.5 text-center flex flex-col justify-center">
+                           <span class="text-xs text-gray-500 font-medium uppercase tracking-wider mb-1">Время</span>
+                           <strong class="text-sm md:text-base font-bold text-gray-800">${report.diy_time || 'Не указано'}</strong>
                          </div>
                        </div>
-                       <div class="bg-gray-50 rounded-xl p-3 text-center">
-                         <span class="text-xs text-gray-500 uppercase">Инструменты</span><br>
-                         <strong class="text-sm">${report.diy_tools || 'Не указаны'}</strong>
+                       <div class="bg-gray-50 rounded-xl p-3.5 text-left flex flex-col">
+                         <span class="text-xs text-gray-500 font-medium uppercase tracking-wider mb-1">Инструменты</span>
+                         <div class="text-sm md:text-base font-medium text-gray-800 leading-relaxed">${report.diy_tools || 'Не указаны'}</div>
                        </div>
                      </div>
                      <div class="bg-orange-50 border-l-4 border-orange-500 p-4 mb-4 rounded-r-xl">
@@ -688,22 +753,22 @@ app.get('/diagnostic/:brand/:model/:code', async (req, res) => {
                            Автомобиль — это механизм повышенной опасности. Любое неквалифицированное вмешательство может привести к серьезным поломкам (вплоть до "окирпичивания" электронных блоков) или создать угрозу ДТП. Данная инструкция носит исключительно ознакомительный характер и не является прямым руководством к действию. Всю ответственность за последствия самостоятельного ремонта вы берете на себя.
                         </p>
                      </div>
-                     <div class="prose prose-blue prose-lg max-w-none text-gray-800 mt-4">${marked.parse((report.diy_instructions || '').replace(/\\n/g, '\n'))}</div>
+                     <div class="prose prose-blue prose-lg max-w-none text-gray-800 mt-4">${cleanReportHtml(marked.parse(formatReportMarkdown(report.diy_instructions || '')))}</div>
                   </div>
                 </details>
 
                 <details class="bg-white rounded-2xl shadow-sm mb-4 overflow-hidden border border-gray-50" open>
                   <summary class="flex items-center gap-3 font-semibold p-5 cursor-pointer hover:bg-gray-50 transition-colors list-none outline-none">
-                    <i data-lucide="wallet" class="w-5 h-5 text-green-600"></i> Финансовый прогноз
+                    <h2 class="text-base md:text-lg font-semibold m-0 flex items-center gap-3 w-full font-inherit text-inherit"><i data-lucide="wallet" class="w-5 h-5 text-green-600 shrink-0"></i> Финансовый прогноз</h2>
                   </summary>
                   <div class="p-5 border-t border-gray-50 bg-white">
                      <div class="grid grid-cols-2 gap-4 mt-2">
                        <div class="bg-gray-50 rounded-xl p-4">
-                         <h4 class="text-xs text-gray-500 mb-1 flex items-center gap-1"><i data-lucide="settings" class="w-3 h-3"></i> Запчасти</h4>
+                         <h3 class="text-xs text-gray-500 mb-1 flex items-center gap-1"><i data-lucide="settings" class="w-3 h-3"></i> Запчасти</h3>
                          <div class="font-bold text-lg text-gray-800"><span class="text-gray-400 font-normal mr-1">~</span>${(report.price_parts || 'Уточняется').replace(/\\n/g, '<br>')}</div>
                        </div>
                        <div class="bg-gray-50 rounded-xl p-4">
-                         <h4 class="text-xs text-gray-500 mb-1 flex items-center gap-1"><i data-lucide="user-cog" class="w-3 h-3"></i> Работа СТО</h4>
+                         <h3 class="text-xs text-gray-500 mb-1 flex items-center gap-1"><i data-lucide="user-cog" class="w-3 h-3"></i> Работа СТО</h3>
                          <div class="font-bold text-lg text-gray-800"><span class="text-gray-400 font-normal mr-1">~</span>${(report.price_labor || 'Уточняется').replace(/\\n/g, '<br>')}</div>
                        </div>
                      </div>
@@ -713,41 +778,6 @@ app.get('/diagnostic/:brand/:model/:code', async (req, res) => {
                      </div>
                   </div>
                 </details>
-
-                <div class="bg-white rounded-2xl shadow-sm border border-brand/20 p-6 text-center mt-6">
-                  <div class="text-xl font-bold flex items-center justify-center gap-2 mb-2"><i data-lucide="shield-check" class="text-brand w-6 h-6"></i> Выберите план подписки</div>
-                  <p class="text-green-600 font-bold mb-5 text-sm">🎁 Скидка 20% при оплате за год!</p>
-
-                  <div class="grid grid-cols-1 md:grid-cols-2 gap-3 mt-5">
-                    <div class="border border-gray-200 rounded-xl p-4 hover:border-brand/40 hover:shadow-md transition-all text-left flex flex-col justify-between cursor-pointer">
-                      <div>
-                        <strong class="block text-gray-800">Разовый отчет</strong>
-                        <small class="text-gray-500 text-xs block mb-2">Только эта ошибка</small>
-                      </div>
-                      <span class="text-3xl font-extrabold text-gray-900 block mt-2">$1.99</span>
-                    </div>
-                    <div class="border-2 border-brand bg-blue-50/50 rounded-xl p-4 relative hover:shadow-md transition-all text-left flex flex-col justify-between cursor-pointer">
-                      <span class="absolute -top-3 left-1/2 transform -translate-x-1/2 bg-brand text-white px-3 py-1 rounded-full text-xs font-bold shadow-sm">Хит продаж</span>
-                      <div>
-                        <strong class="block text-brand">Мой Гараж (1 авто)</strong>
-                        <small class="text-gray-600 text-xs block mb-2">Безлимит + Трекер ТО</small>
-                      </div>
-                      <span class="text-3xl font-extrabold text-brand block mt-2">$5.99<span class="text-sm font-normal text-gray-500">/мес</span></span>
-                    </div>
-                    <div class="border border-gray-200 rounded-xl p-4 hover:border-brand/40 hover:shadow-md transition-all text-left flex flex-col justify-between cursor-pointer">
-                      <div>
-                        <strong class="block text-gray-800">Семья (до 5 авто)</strong>
-                      </div>
-                      <span class="text-3xl font-extrabold text-gray-900 block mt-2">$15.99<span class="text-sm font-normal text-gray-500">/мес</span></span>
-                    </div>
-                    <div class="border border-gray-200 rounded-xl p-4 hover:border-brand/40 hover:shadow-md transition-all text-left flex flex-col justify-between cursor-pointer">
-                      <div>
-                        <strong class="block text-gray-800">Автосервис (Безлимит)</strong>
-                      </div>
-                      <span class="text-3xl font-extrabold text-gray-900 block mt-2">$25.99<span class="text-sm font-normal text-gray-500">/мес</span></span>
-                    </div>
-                  </div>
-                </div>
               </div>
               `}
             </div>

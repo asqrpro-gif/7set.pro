@@ -694,3 +694,145 @@ a {
 [data-theme="dark"] .price-card.pro-card {
     background: rgba(59, 130, 246, 0.08);
 }
+
+/* =========================================
+   Глобальное переопределение для Темной темы (Dark Mode Overrides)
+   ========================================= */
+[data-theme="dark"] body,
+[data-theme="dark"] .bg-surface {
+    background-color: var(--bg-body) !important;
+    color: var(--text-main) !important;
+}
+
+[data-theme="dark"] .bg-white {
+    background-color: var(--bg-card) !important;
+    border-color: var(--border-color) !important;
+    color: var(--text-main) !important;
+}
+
+[data-theme="dark"] .bg-gray-50 {
+    background-color: rgba(30, 41, 59, 0.6) !important;
+    border-color: var(--border-color) !important;
+    color: var(--text-main) !important;
+}
+
+[data-theme="dark"] .bg-gray-100 {
+    background-color: rgba(51, 65, 85, 0.6) !important;
+    color: var(--text-main) !important;
+}
+
+[data-theme="dark"] .hover\:bg-gray-50:hover,
+[data-theme="dark"] .hover\:bg-gray-100:hover,
+[data-theme="dark"] .hover\:bg-gray-200:hover {
+    background-color: rgba(51, 65, 85, 0.5) !important;
+}
+
+[data-theme="dark"] .bg-blue-50,
+[data-theme="dark"] .bg-blue-50\/50 {
+    background-color: rgba(30, 58, 138, 0.3) !important;
+    border-color: rgba(59, 130, 246, 0.4) !important;
+}
+
+[data-theme="dark"] .bg-orange-50 {
+    background-color: rgba(124, 45, 18, 0.25) !important;
+    border-color: #f97316 !important;
+}
+
+/* Заголовки и тексты */
+[data-theme="dark"] h1,
+[data-theme="dark"] h2,
+[data-theme="dark"] h3,
+[data-theme="dark"] h4,
+[data-theme="dark"] h5,
+[data-theme="dark"] h6,
+[data-theme="dark"] strong,
+[data-theme="dark"] b,
+[data-theme="dark"] summary,
+[data-theme="dark"] .text-gray-900,
+[data-theme="dark"] .text-gray-800,
+[data-theme="dark"] .text-gray-700 {
+    color: var(--text-main) !important;
+}
+
+[data-theme="dark"] .text-gray-600,
+[data-theme="dark"] .text-gray-500,
+[data-theme="dark"] .text-gray-400 {
+    color: var(--text-muted) !important;
+}
+
+/* Переопределение Tailwind Typography (.prose) и .markdown-body в темной теме */
+[data-theme="dark"] .prose,
+[data-theme="dark"] .prose p,
+[data-theme="dark"] .prose li,
+[data-theme="dark"] .prose span,
+[data-theme="dark"] .prose table,
+[data-theme="dark"] .prose td,
+[data-theme="dark"] .prose th,
+[data-theme="dark"] .markdown-body,
+[data-theme="dark"] .markdown-body p,
+[data-theme="dark"] .markdown-body li {
+    color: var(--text-main) !important;
+}
+
+[data-theme="dark"] .prose h1,
+[data-theme="dark"] .prose h2,
+[data-theme="dark"] .prose h3,
+[data-theme="dark"] .prose h4,
+[data-theme="dark"] .prose strong,
+[data-theme="dark"] .prose b,
+[data-theme="dark"] .markdown-body h1,
+[data-theme="dark"] .markdown-body h2,
+[data-theme="dark"] .markdown-body h3,
+[data-theme="dark"] .markdown-body strong,
+[data-theme="dark"] .markdown-body b {
+    color: #ffffff !important;
+}
+
+[data-theme="dark"] .prose a,
+[data-theme="dark"] .markdown-body a {
+    color: var(--primary-hover) !important;
+}
+
+[data-theme="dark"] .prose code,
+[data-theme="dark"] .markdown-body code {
+    color: #e2e8f0 !important;
+    background-color: #0f172a !important;
+    border-color: #334155 !important;
+}
+
+/* Границы и разделители */
+[data-theme="dark"] .border-gray-50,
+[data-theme="dark"] .border-gray-100,
+[data-theme="dark"] .border-gray-200,
+[data-theme="dark"] .border-gray-300,
+[data-theme="dark"] .border-gray-400,
+[data-theme="dark"] .divide-y > * + *,
+[data-theme="dark"] .divide-gray-100 > * + *,
+[data-theme="dark"] hr,
+[data-theme="dark"] .h-px.bg-gray-100,
+[data-theme="dark"] .h-px.bg-gray-200 {
+    border-color: var(--border-color) !important;
+    background-color: var(--border-color) !important;
+}
+
+/* Элементы форм (поиск, селекты, инпуты) */
+[data-theme="dark"] input,
+[data-theme="dark"] select,
+[data-theme="dark"] textarea {
+    background-color: #0f172a !important;
+    color: var(--text-main) !important;
+    border-color: var(--border-color) !important;
+}
+[data-theme="dark"] input::placeholder,
+[data-theme="dark"] textarea::placeholder {
+    color: var(--text-muted) !important;
+}
+
+/* Пейволл / размытый контент и оверлей */
+[data-theme="dark"] #paywall-overlay {
+    background-color: rgba(15, 23, 42, 0.75) !important;
+}
+[data-theme="dark"] #paywall-overlay .bg-white {
+    background-color: var(--bg-card) !important;
+    border-color: var(--border-color) !important;
+}

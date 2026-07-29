@@ -4,6 +4,15 @@ document.addEventListener('DOMContentLoaded', () => {
     // =========================================
     const themeToggleBtn = document.getElementById('theme-toggle');
 
+    const updateThemeIcon = () => {
+        if (!themeToggleBtn) return;
+        const isDark = document.documentElement.getAttribute('data-theme') === 'dark';
+        themeToggleBtn.innerHTML = `<i data-lucide="${isDark ? 'sun' : 'moon'}" class="w-5 h-5 text-gray-700"></i>`;
+        if (window.lucide && typeof lucide.createIcons === 'function') {
+            lucide.createIcons();
+        }
+    };
+
     // Инициализация темы из localStorage
     const savedTheme = localStorage.getItem('theme');
     if (savedTheme === 'dark') {
@@ -12,6 +21,7 @@ document.addEventListener('DOMContentLoaded', () => {
         // Поддержка системной темы по умолчанию
         document.documentElement.setAttribute('data-theme', 'dark');
     }
+    updateThemeIcon();
 
     if (themeToggleBtn) {
         themeToggleBtn.addEventListener('click', () => {
@@ -23,6 +33,7 @@ document.addEventListener('DOMContentLoaded', () => {
                 document.documentElement.setAttribute('data-theme', 'dark');
                 localStorage.setItem('theme', 'dark');
             }
+            updateThemeIcon();
         });
     }
 
@@ -197,6 +208,11 @@ document.addEventListener('DOMContentLoaded', () => {
                 form.submit();
             }
         });
+    }
+
+    // Гарантированная отрисовка иконок Lucide для всего Markdown контента ИИ
+    if (window.lucide && typeof lucide.createIcons === 'function') {
+        lucide.createIcons();
     }
 });
 

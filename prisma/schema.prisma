@@ -18,6 +18,7 @@ model DiagnosticReport {
   full_analysis_markdown String   @db.LongText
   sto_protection_tips    String   @db.Text
   is_paid                Boolean  @default(false)
+  is_complete            Boolean  @default(true)
   drivability            String?
   seoTitle               String?  @db.Text
   seoDescription         String?  @db.Text
