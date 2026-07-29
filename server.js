@@ -437,7 +437,7 @@ app.get('/diagnostic/:brand/:model/:code', async (req, res) => {
     if (!report) {
       console.log('🤖 Запрос FAST-части к Gemini API...');
       // 1. Ждем ТОЛЬКО быструю часть (2-3 сек)
-      const fastData = await analyzeCarErrorFast(brand, model, code, baseDescription); 
+      const fastData = await analyzeCarErrorFast(brand, model, code, baseDescription);
       console.log('✅ Быстрый ответ получен!');
 
       // Защита от длинного текста от ИИ для колонки drivability
@@ -603,6 +603,20 @@ app.get('/diagnostic/:brand/:model/:code', async (req, res) => {
       "mainEntityOfPage": pageUrl
     };
 
+    if (!isUnlockedForUser) {
+      techArticleSchema.isAccessibleForFree = "False";
+      techArticleSchema.hasPart = [
+        {
+          "@type": "WebPageElement",
+          "isAccessibleForFree": "False",
+          "cssSelector": ".paywall-blur-container"
+        }
+      ];
+    }
+
+    let fullAnalysisHtml = cleanReportHtml(marked.parse(formatReportMarkdown(report.full_analysis_markdown || '')));
+    let diyInstructionsHtml = cleanReportHtml(marked.parse(formatReportMarkdown(report.diy_instructions || '')));
+
     const schemaHtml = `<script type="application/ld+json">${JSON.stringify(techArticleSchema)}</script>\n        <script type="application/ld+json">${JSON.stringify(faqSchema)}</script>`;
 
     res.send(`
@@ -626,7 +640,10 @@ app.get('/diagnostic/:brand/:model/:code', async (req, res) => {
         ${schemaHtml}
         <script src="https://cdn.tailwindcss.com?plugins=typography"></script>
         <script>tailwind.config = { theme: { extend: { colors: { brand: '#0077FF', surface: '#F5F5F7' } } } }</script>   
-        <style> ::-webkit-details-marker { display: none; } </style>
+        <style> 
+          ::-webkit-details-marker { display: none; } 
+          .paywall-blur-container { filter: blur(5px); user-select: none; pointer-events: none; max-height: 60vh; overflow: hidden; position: relative; }
+        </style>
         <script src="https://cdn.jsdelivr.net/npm/marked/marked.min.js"></script>
         <script src="/main.js" defer></script>
         <script src="https://unpkg.com/lucide@latest"></script>
@@ -665,121 +682,114 @@ app.get('/diagnostic/:brand/:model/:code', async (req, res) => {
             </article>
 
             <div id="paywall-container" data-report-id="${reportId}">
-              ${!isUnlockedForUser ? `
-              <div class="report-content">
-                <div class="relative overflow-hidden rounded-2xl mt-2 bg-white shadow-sm border border-gray-100">        
-                  <div id="blurred-content" class="absolute inset-0 p-5 overflow-hidden pointer-events-none select-none blur-sm opacity-40 prose prose-blue prose-lg max-w-none text-gray-800">
-                    ${cleanReportHtml(marked.parse(formatReportMarkdown(report.full_analysis_markdown || '')))}
-                  </div>
-                  <div id="paywall-overlay" class="relative z-10 flex flex-col items-center justify-center bg-white/50 backdrop-blur-sm p-4 py-8">
-                    <div class="bg-white border border-gray-100 shadow-2xl rounded-2xl p-6 md:p-8 w-full max-w-md transform transition-all">
-
-                      <div class="flex flex-col items-center text-center mb-5">
-                        <div class="bg-blue-50 p-3 rounded-full mb-3">
-                          <i data-lucide="lock" class="w-6 h-6 text-brand"></i>
-                        </div>
-                        <h3 class="text-xl font-bold text-gray-900">Разблокируйте полный отчет</h3>
-                        <p class="text-sm text-gray-500 mt-1">Узнайте всё о поломке и сэкономьте на ремонте.</p>
-                      </div>
-
-                      <ul class="space-y-3 mb-6 text-sm text-gray-700">
-                        <li class="flex items-start gap-3">
-                          <i data-lucide="search-check" class="w-5 h-5 text-green-500 shrink-0"></i>
-                          <span><strong>Причины и симптомы:</strong> точный диагноз проблемы.</span>
-                        </li>
-                        <li class="flex items-start gap-3">
-                          <i data-lucide="shield-alert" class="w-5 h-5 text-red-500 shrink-0"></i>
-                          <span><strong>Защита от обмана:</strong> как не лохануться на СТО.</span>
-                        </li>
-                        <li class="flex items-start gap-3">
-                          <i data-lucide="wrench" class="w-5 h-5 text-orange-500 shrink-0"></i>
-                          <span><strong>Сделай сам:</strong> пошаговая инструкция по ремонту.</span>
-                        </li>
-                        <li class="flex items-start gap-3">
-                          <i data-lucide="calculator" class="w-5 h-5 text-blue-500 shrink-0"></i>
-                          <span><strong>Фин. прогноз:</strong> реальная стоимость запчастей и работы.</span>
-                        </li>
-                      </ul>
-
-                      <button id="unlock-btn" class="w-full bg-brand text-white font-medium rounded-xl py-4 text-lg hover:bg-blue-600 transition-colors shadow-md shadow-brand/30 active:scale-[0.98] flex justify-center items-center gap-2">    
-                        <i data-lucide="unlock" class="w-5 h-5"></i>
-                        Разблокировать за $1.99
-                      </button>
-                      <p class="text-xs text-center text-gray-400 mt-3 flex items-center justify-center gap-1">
-                        <i data-lucide="shield-check" class="w-3 h-3"></i> Безопасная оплата
-                      </p>
-
+              <div class="report-content relative">
+                <div class="${!isUnlockedForUser ? 'paywall-blur-container' : ''}">
+                  <details class="bg-white rounded-2xl shadow-sm mb-4 overflow-hidden border border-gray-50" open>
+                    <summary class="flex items-center gap-3 font-semibold p-5 cursor-pointer hover:bg-gray-50 transition-colors list-none outline-none">
+                      <h2 class="text-base md:text-lg font-semibold m-0 flex items-center gap-3 w-full font-inherit text-inherit"><i data-lucide="file-search" class="w-5 h-5 text-brand shrink-0"></i> Полный разбор причины</h2>
+                    </summary>
+                    <div class="p-5 border-t border-gray-50 bg-white prose prose-blue prose-lg max-w-none text-gray-800">  
+                      ${fullAnalysisHtml}
                     </div>
+                  </details>
+
+                  <details class="bg-white rounded-2xl shadow-sm mb-4 overflow-hidden border border-gray-50">
+                    <summary class="flex items-center gap-3 font-semibold p-5 cursor-pointer hover:bg-gray-50 transition-colors list-none outline-none">
+                      <h2 class="text-base md:text-lg font-semibold m-0 flex items-center gap-3 w-full font-inherit text-inherit"><i data-lucide="wrench" class="w-5 h-5 text-gray-500 shrink-0"></i> Сделай сам <span class="text-xs px-2 py-0.5 rounded bg-gray-100 text-gray-600 ml-auto font-normal shrink-0">${report.diy_difficulty_text || 'Неизвестно'}</span></h2>
+                    </summary>
+                    <div class="p-5 border-t border-gray-50 bg-white">
+                       <div class="flex flex-col gap-3 mb-5">
+                         <div class="grid grid-cols-2 gap-3">
+                           <div class="bg-gray-50 rounded-xl p-3.5 text-center flex flex-col justify-center">
+                             <span class="text-xs text-gray-500 font-medium uppercase tracking-wider mb-1">Сложность</span>
+                             <strong class="text-sm md:text-base font-bold text-gray-800">${(() => { const m = String(report.diy_difficulty_score || '3/5').match(/(\d+)\s*(?:[\/|из]\s*(\d+))?/i); return m ? `${m[1]} из ${m[2] || '5'}` : '3 из 5'; })()}</strong>
+                           </div>
+                           <div class="bg-gray-50 rounded-xl p-3.5 text-center flex flex-col justify-center">
+                             <span class="text-xs text-gray-500 font-medium uppercase tracking-wider mb-1">Время</span>
+                             <strong class="text-sm md:text-base font-bold text-gray-800">${report.diy_time || 'Не указано'}</strong>
+                           </div>
+                         </div>
+                         <div class="bg-gray-50 rounded-xl p-3.5 text-left flex flex-col">
+                           <span class="text-xs text-gray-500 font-medium uppercase tracking-wider mb-1">Инструменты</span>
+                           <div class="text-sm md:text-base font-medium text-gray-800 leading-relaxed">${report.diy_tools || 'Не указаны'}</div>
+                         </div>
+                       </div>
+                       <div class="bg-orange-50 border-l-4 border-orange-500 p-4 mb-4 rounded-r-xl">
+                          <strong class="text-orange-600 flex items-center gap-2 mb-2 text-sm">
+                             <i data-lucide="alert-triangle" class="w-4 h-4"></i> Внимание!
+                          </strong>
+                          <p class="text-orange-900 text-sm md:text-base m-0 leading-relaxed">
+                             Автомобиль — это механизм повышенной опасности. Любое неквалифицированное вмешательство может привести к серьезным поломкам (вплоть до "окирпичивания" электронных блоков) или создать угрозу ДТП. Данная инструкция носит исключительно ознакомительный характер и не является прямым руководством к действию. Всю ответственность за последствия самостоятельного ремонта вы берете на себя.
+                          </p>
+                       </div>
+                       <div class="prose prose-blue prose-lg max-w-none text-gray-800 mt-4">${diyInstructionsHtml}</div>
+                    </div>
+                  </details>
+
+                  <details class="bg-white rounded-2xl shadow-sm mb-4 overflow-hidden border border-gray-50" ${isUnlockedForUser ? 'open' : ''}>
+                    <summary class="flex items-center gap-3 font-semibold p-5 cursor-pointer hover:bg-gray-50 transition-colors list-none outline-none">
+                      <h2 class="text-base md:text-lg font-semibold m-0 flex items-center gap-3 w-full font-inherit text-inherit"><i data-lucide="wallet" class="w-5 h-5 text-green-600 shrink-0"></i> Финансовый прогноз</h2>
+                    </summary>
+                    <div class="p-5 border-t border-gray-50 bg-white">
+                       <div class="grid grid-cols-2 gap-4 mt-2">
+                         <div class="bg-gray-50 rounded-xl p-4">
+                           <h3 class="text-xs text-gray-500 mb-1 flex items-center gap-1"><i data-lucide="settings" class="w-3 h-3"></i> Запчасти</h3>
+                           <div class="font-bold text-lg text-gray-800"><span class="text-gray-400 font-normal mr-1">~</span>${(report.price_parts || 'Уточняется').replace(/\\n/g, '<br>')}</div>
+                         </div>
+                         <div class="bg-gray-50 rounded-xl p-4">
+                           <h3 class="text-xs text-gray-500 mb-1 flex items-center gap-1"><i data-lucide="user-cog" class="w-3 h-3"></i> Работа СТО</h3>
+                           <div class="font-bold text-lg text-gray-800"><span class="text-gray-400 font-normal mr-1">~</span>${(report.price_labor || 'Уточняется').replace(/\\n/g, '<br>')}</div>
+                         </div>
+                       </div>
+                       <div class="mt-4 p-3 bg-gray-50 rounded-xl border border-dashed border-gray-200 text-xs text-gray-500 flex gap-2 items-start leading-relaxed">
+                          <i data-lucide="banknote" class="w-4 h-4 flex-shrink-0 mt-0.5 text-gray-400"></i>
+                          <span>Указанные цены сгенерированы на основе общих рыночных данных. Они являются ориентировочными, чтобы вы понимали примерный масштаб проблемы. Точную стоимость запчастей и работ может назвать только мастер на СТО после физической диагностики.</span>
+                       </div>
+                    </div>
+                  </details>
+                </div>
+
+                ${!isUnlockedForUser ? `
+                <div id="paywall-overlay" class="absolute z-10 inset-0 w-full flex flex-col items-center justify-center bg-gradient-to-t from-white via-white/80 to-white/0 p-4 pb-8" style="pointer-events: none;">
+                  <div class="bg-white border border-gray-100 shadow-2xl rounded-2xl p-6 md:p-8 w-full max-w-md transform transition-all mx-auto" style="pointer-events: auto;">
+                    <div class="flex flex-col items-center text-center mb-5">
+                      <div class="bg-blue-50 p-3 rounded-full mb-3">
+                        <i data-lucide="lock" class="w-6 h-6 text-brand"></i>
+                      </div>
+                      <h3 class="text-xl font-bold text-gray-900">Разблокируйте полный отчет</h3>
+                      <p class="text-sm text-gray-500 mt-1">Узнайте всё о поломке и сэкономьте на ремонте.</p>
+                    </div>
+
+                    <ul class="space-y-3 mb-6 text-sm text-gray-700">
+                      <li class="flex items-start gap-3">
+                        <i data-lucide="search-check" class="w-5 h-5 text-green-500 shrink-0"></i>
+                        <span><strong>Причины и симптомы:</strong> точный диагноз проблемы.</span>
+                      </li>
+                      <li class="flex items-start gap-3">
+                        <i data-lucide="shield-alert" class="w-5 h-5 text-red-500 shrink-0"></i>
+                        <span><strong>Защита от обмана:</strong> как не лохануться на СТО.</span>
+                      </li>
+                      <li class="flex items-start gap-3">
+                        <i data-lucide="wrench" class="w-5 h-5 text-orange-500 shrink-0"></i>
+                        <span><strong>Сделай сам:</strong> пошаговая инструкция по ремонту.</span>
+                      </li>
+                      <li class="flex items-start gap-3">
+                        <i data-lucide="calculator" class="w-5 h-5 text-blue-500 shrink-0"></i>
+                        <span><strong>Фин. прогноз:</strong> реальная стоимость запчастей и работы.</span>
+                      </li>
+                    </ul>
+
+                    <button id="unlock-btn" class="w-full bg-brand text-white font-medium rounded-xl py-4 text-lg hover:bg-blue-600 transition-colors shadow-md shadow-brand/30 active:scale-[0.98] flex justify-center items-center gap-2">    
+                      <i data-lucide="unlock" class="w-5 h-5"></i>
+                      Разблокировать за $1.99
+                    </button>
+                    <p class="text-xs text-center text-gray-400 mt-3 flex items-center justify-center gap-1">
+                      <i data-lucide="shield-check" class="w-3 h-3"></i> Безопасная оплата
+                    </p>
                   </div>
                 </div>
+                ` : ''}
               </div>
-              ` : `
-              <div class="report-content">
-                <details class="bg-white rounded-2xl shadow-sm mb-4 overflow-hidden border border-gray-50" open>
-                  <summary class="flex items-center gap-3 font-semibold p-5 cursor-pointer hover:bg-gray-50 transition-colors list-none outline-none">
-                    <h2 class="text-base md:text-lg font-semibold m-0 flex items-center gap-3 w-full font-inherit text-inherit"><i data-lucide="file-search" class="w-5 h-5 text-brand shrink-0"></i> Полный разбор причины</h2>
-                  </summary>
-                  <div class="p-5 border-t border-gray-50 bg-white prose prose-blue prose-lg max-w-none text-gray-800">  
-                    ${cleanReportHtml(marked.parse(formatReportMarkdown(report.full_analysis_markdown || '')))}
-                  </div>
-                </details>
-
-                <details class="bg-white rounded-2xl shadow-sm mb-4 overflow-hidden border border-gray-50">
-                  <summary class="flex items-center gap-3 font-semibold p-5 cursor-pointer hover:bg-gray-50 transition-colors list-none outline-none">
-                    <h2 class="text-base md:text-lg font-semibold m-0 flex items-center gap-3 w-full font-inherit text-inherit"><i data-lucide="wrench" class="w-5 h-5 text-gray-500 shrink-0"></i> Сделай сам <span class="text-xs px-2 py-0.5 rounded bg-gray-100 text-gray-600 ml-auto font-normal shrink-0">${report.diy_difficulty_text || 'Неизвестно'}</span></h2>
-                  </summary>
-                  <div class="p-5 border-t border-gray-50 bg-white">
-                     <div class="flex flex-col gap-3 mb-5">
-                       <div class="grid grid-cols-2 gap-3">
-                         <div class="bg-gray-50 rounded-xl p-3.5 text-center flex flex-col justify-center">
-                           <span class="text-xs text-gray-500 font-medium uppercase tracking-wider mb-1">Сложность</span>
-                           <strong class="text-sm md:text-base font-bold text-gray-800">${(() => { const m = String(report.diy_difficulty_score || '3/5').match(/(\d+)\s*(?:[\/|из]\s*(\d+))?/i); return m ? `${m[1]} из ${m[2] || '5'}` : '3 из 5'; })()}</strong>
-                         </div>
-                         <div class="bg-gray-50 rounded-xl p-3.5 text-center flex flex-col justify-center">
-                           <span class="text-xs text-gray-500 font-medium uppercase tracking-wider mb-1">Время</span>
-                           <strong class="text-sm md:text-base font-bold text-gray-800">${report.diy_time || 'Не указано'}</strong>
-                         </div>
-                       </div>
-                       <div class="bg-gray-50 rounded-xl p-3.5 text-left flex flex-col">
-                         <span class="text-xs text-gray-500 font-medium uppercase tracking-wider mb-1">Инструменты</span>
-                         <div class="text-sm md:text-base font-medium text-gray-800 leading-relaxed">${report.diy_tools || 'Не указаны'}</div>
-                       </div>
-                     </div>
-                     <div class="bg-orange-50 border-l-4 border-orange-500 p-4 mb-4 rounded-r-xl">
-                        <strong class="text-orange-600 flex items-center gap-2 mb-2 text-sm">
-                           <i data-lucide="alert-triangle" class="w-4 h-4"></i> Внимание!
-                        </strong>
-                        <p class="text-orange-900 text-sm md:text-base m-0 leading-relaxed">
-                           Автомобиль — это механизм повышенной опасности. Любое неквалифицированное вмешательство может привести к серьезным поломкам (вплоть до "окирпичивания" электронных блоков) или создать угрозу ДТП. Данная инструкция носит исключительно ознакомительный характер и не является прямым руководством к действию. Всю ответственность за последствия самостоятельного ремонта вы берете на себя.
-                        </p>
-                     </div>
-                     <div class="prose prose-blue prose-lg max-w-none text-gray-800 mt-4">${cleanReportHtml(marked.parse(formatReportMarkdown(report.diy_instructions || '')))}</div>
-                  </div>
-                </details>
-
-                <details class="bg-white rounded-2xl shadow-sm mb-4 overflow-hidden border border-gray-50" open>
-                  <summary class="flex items-center gap-3 font-semibold p-5 cursor-pointer hover:bg-gray-50 transition-colors list-none outline-none">
-                    <h2 class="text-base md:text-lg font-semibold m-0 flex items-center gap-3 w-full font-inherit text-inherit"><i data-lucide="wallet" class="w-5 h-5 text-green-600 shrink-0"></i> Финансовый прогноз</h2>
-                  </summary>
-                  <div class="p-5 border-t border-gray-50 bg-white">
-                     <div class="grid grid-cols-2 gap-4 mt-2">
-                       <div class="bg-gray-50 rounded-xl p-4">
-                         <h3 class="text-xs text-gray-500 mb-1 flex items-center gap-1"><i data-lucide="settings" class="w-3 h-3"></i> Запчасти</h3>
-                         <div class="font-bold text-lg text-gray-800"><span class="text-gray-400 font-normal mr-1">~</span>${(report.price_parts || 'Уточняется').replace(/\\n/g, '<br>')}</div>
-                       </div>
-                       <div class="bg-gray-50 rounded-xl p-4">
-                         <h3 class="text-xs text-gray-500 mb-1 flex items-center gap-1"><i data-lucide="user-cog" class="w-3 h-3"></i> Работа СТО</h3>
-                         <div class="font-bold text-lg text-gray-800"><span class="text-gray-400 font-normal mr-1">~</span>${(report.price_labor || 'Уточняется').replace(/\\n/g, '<br>')}</div>
-                       </div>
-                     </div>
-                     <div class="mt-4 p-3 bg-gray-50 rounded-xl border border-dashed border-gray-200 text-xs text-gray-500 flex gap-2 items-start leading-relaxed">
-                        <i data-lucide="banknote" class="w-4 h-4 flex-shrink-0 mt-0.5 text-gray-400"></i>
-                        <span>Указанные цены сгенерированы на основе общих рыночных данных. Они являются ориентировочными, чтобы вы понимали примерный масштаб проблемы. Точную стоимость запчастей и работ может назвать только мастер на СТО после физической диагностики.</span>
-                     </div>
-                  </div>
-                </details>
-              </div>
-              `}
             </div>
           </div>
         </div>
