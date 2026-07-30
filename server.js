@@ -2,7 +2,8 @@ import 'dotenv/config';
 import express from 'express';
 import cookieParser from 'cookie-parser';
 import { PrismaClient } from '@prisma/client';
-import { analyzeCarErrorFast, analyzeCarErrorDeep } from './lib/gemini_clean.js';
+import { analyzeCarErrorFast, analyzeCarErrorDeep, getFactFromDB } from './lib/gemini_clean.js';
+import { renderErrorCodePage } from './lib/error_code.js';
 import { marked } from 'marked';
 import fs from 'fs';
 import garageRouter from './routes/garage.js';
@@ -379,29 +380,11 @@ app.get('/diagnostic/:brand/:model/:code', async (req, res) => {
   const cleanRequestedCode = req.params.code.toUpperCase().trim();
   const obdRegex = /^[PBUC][0-9A-F]{4}$/i;
 
-  if (!obdRegex.test(cleanRequestedCode)) {
-    return res.status(400).send(`
-      <!DOCTYPE html>
-      <html lang="ru">
-      <head>
-        <meta charset="UTF-8">
-        <title>Неверный код ошибки</title>
-        <link rel="stylesheet" href="/style.css">
-      </head>
-      <body style="display: flex; justify-content: center; align-items: center; height: 100vh; background: var(--bg-body); color: var(--text-main);">
-        <div class="card" style="text-align: center; max-width: 500px;">
-          <h2 style="color: #dc3545; margin-bottom: 10px; display: inline-flex; items-center; justify-content: center; gap: 8px;"><i data-lucide="alert-triangle" style="width:24px; height:24px;"></i> Неверный формат кода</h2>
-          <p style="margin-bottom: 20px;">Код OBD2 должен начинаться с буквы P, B, U или C и содержать 4 цифры или буквы (A-F).<br>Например: <b>P0171</b>.</p>
-          <a href="/" class="btn-primary" style="text-decoration: none;">Вернуться на главную</a>
-        </div>
-        <script src="https://unpkg.com/lucide@latest"></script>
-        <script>lucide.createIcons();</script>
-      </body>
-      </html>
-    `);
-  }
+  const baseDescription = getFactFromDB(cleanRequestedCode);
 
-  const baseDescription = "";
+  if (!obdRegex.test(cleanRequestedCode) || !baseDescription) {
+    return res.status(404).send(renderErrorCodePage(brand, cleanRequestedCode));
+  }
 
 
   try {
@@ -413,10 +396,7 @@ app.get('/diagnostic/:brand/:model/:code', async (req, res) => {
 
     // Проверка, является ли код ложным/несуществующим до запросов к БД и ИИ
     const obdRegex = /^[PBUC][0-9A-F]{4}$/i;
-    const descLower = baseDescription ? baseDescription.toLowerCase() : '';
-    let isUnsupported = !obdRegex.test(cleanRequestedCode) ||
-      descLower === 'не существует' ||
-      descLower === 'код не существует';
+    let isUnsupported = !obdRegex.test(cleanRequestedCode) || !baseDescription;
 
     const targetBrand = isUnsupported ? "universal" : brand;
     const targetModel = isUnsupported ? "unsupported" : model;
