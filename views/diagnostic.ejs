@@ -1,0 +1,333 @@
+<!DOCTYPE html>
+<html lang="ru">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title><%= seoTitle %></title>
+  <meta name="description" content="<%= seoDescription %>">
+  <link rel="canonical" href="<%= pageUrl %>">
+  <meta property="og:url" content="<%= pageUrl %>">
+  <meta property="og:title" content="<%= seoTitle %>">
+  <meta property="og:description" content="<%= seoDescription %>">
+  <meta property="og:image" content="<%= ogImage %>">
+  <meta property="og:type" content="article">
+  <meta name="twitter:card" content="summary_large_image">
+  <meta name="twitter:title" content="<%= seoTitle %>">
+  <meta name="twitter:description" content="<%= seoDescription %>">
+  <meta name="twitter:image" content="<%= ogImage %>">
+  <%- schemaHtml %>
+  <script src="https://cdn.tailwindcss.com?plugins=typography"></script>
+  <script>
+    tailwind.config = { 
+      darkMode: 'class',
+      theme: { 
+        extend: { 
+          colors: { brand: '#0077FF', surface: '#F5F5F7' },
+          animation: {
+            'scan': 'scan 3s ease-in-out infinite',
+            'shimmer': 'shimmer 2.5s infinite',
+            'pulse-glow': 'pulse-glow 2s cubic-bezier(0.4, 0, 0.6, 1) infinite',
+            'gradient-xy': 'gradient-xy 6s ease infinite',
+          },
+          keyframes: {
+            scan: {
+              '0%': { transform: 'translateY(0)', opacity: 0 },
+              '10%': { opacity: 1 },
+              '90%': { opacity: 1 },
+              '100%': { transform: 'translateY(35vh)', opacity: 0 },
+            },
+            shimmer: {
+              '0%': { transform: 'translateX(-100%)' },
+              '100%': { transform: 'translateX(100%)' }
+            },
+            'pulse-glow': {
+              '0%, 100%': { boxShadow: '0 0 0 0 rgba(0, 119, 255, 0.4)' },
+              '50%': { boxShadow: '0 0 0 25px rgba(0, 119, 255, 0)' }
+            },
+            'gradient-xy': {
+              '0%, 100%': { backgroundSize: '400% 400%', backgroundPosition: 'left top' },
+              '50%': { backgroundSize: '200% 200%', backgroundPosition: 'right bottom' }
+            }
+          }
+        } 
+      } 
+    }
+  </script>
+  <style> 
+    ::-webkit-details-marker { display: none; } 
+    .paywall-blur-container { filter: blur(6px); user-select: none; pointer-events: none; max-height: 35vh; overflow: hidden; position: relative; }
+  </style>
+  <script src="https://cdn.jsdelivr.net/npm/marked/marked.min.js"></script>
+  <script src="/main.js" defer></script>
+  <script src="https://unpkg.com/lucide@latest"></script>
+    <!-- Yandex.Metrika counter -->
+  <script type="text/javascript">
+      (function(m,e,t,r,i,k,a){
+          m[i]=m[i]||function(){(m[i].a=m[i].a||[]).push(arguments)};
+          m[i].l=1*new Date();
+          for (var j = 0; j < document.scripts.length; j++) {if (document.scripts[j].src === r) { return; }}
+          k=e.createElement(t),a=e.getElementsByTagName(t)[0],k.async=1,k.src=r,a.parentNode.insertBefore(k,a)
+      })(window, document,'script','https://mc.yandex.ru/metrika/tag.js?id=111154643', 'ym');
+
+      ym(111154643, 'init', {ssr:true, webvisor:true, clickmap:true, ecommerce:"dataLayer", referrer: document.referrer, url: location.href, accurateTrackBounce:true, trackLinks:true});
+  </script>
+  <noscript><div><img src="https://mc.yandex.ru/watch/111154643" style="position:absolute; left:-9999px;" alt="" /></div></noscript>
+  <!-- /Yandex.Metrika counter -->
+</head>
+<body class="bg-surface dark:bg-slate-900 text-gray-900 dark:text-white font-sans antialiased pb-20 md:pb-0">
+  <div class="max-w-md mx-auto p-4 md:max-w-3xl md:p-6 w-full">
+    <!-- Шапка (Header) -->
+    <header class="flex justify-between items-center mb-8 bg-white dark:bg-slate-800 p-4 rounded-2xl shadow-sm border border-gray-100 dark:border-slate-700">
+      <a href="/" class="flex items-center gap-2 hover:opacity-80 transition-opacity">
+        <i data-lucide="activity" style="color: #007bff;"></i>
+        <span class="font-bold text-xl tracking-tight text-gray-900 dark:text-white">7Set.Pro</span> <span class="font-normal text-sm text-gray-500 dark:text-gray-400 ml-1 hidden md:inline">| Умная автодиагностика</span>
+      </a>
+      <div class="flex items-center gap-3">
+        <a href="/garage" class="text-sm font-semibold bg-brand/10 dark:bg-brand/20 text-brand dark:text-blue-400 px-3.5 py-2 rounded-xl hover:bg-brand hover:text-white dark:hover:bg-brand dark:hover:text-white transition-all flex items-center gap-1.5 shadow-sm hidden md:flex">
+          <i data-lucide="car" class="w-4 h-4"></i> Гараж & ТО
+        </a>
+        <button id="theme-toggle" class="p-2 rounded-full hover:bg-gray-100 dark:hover:bg-slate-700 transition-colors" aria-label="Переключить тему">
+          <i data-lucide="moon" class="w-5 h-5 text-gray-700 dark:text-gray-300"></i>
+        </button>
+      </div>
+    </header>
+
+    <nav class="flex text-gray-500 text-[11px] md:text-xs mb-6 px-1" aria-label="Breadcrumb">
+      <ol class="inline-flex items-center space-x-1 md:space-x-2">
+        <li class="inline-flex items-center">
+          <a href="/" class="hover:text-brand inline-flex items-center transition-colors">Главная</a>
+        </li>
+        <li>
+          <div class="flex items-center">
+            <i data-lucide="chevron-right" class="w-3 h-3 mx-1 text-gray-400"></i>
+            <a href="/search?brand=<%= encodeURIComponent(brand) %>" class="hover:text-brand transition-colors"><%= displayBrand %></a>
+          </div>
+        </li>
+        <li>
+          <div class="flex items-center">
+            <i data-lucide="chevron-right" class="w-3 h-3 mx-1 text-gray-400"></i>
+            <a href="/search?brand=<%= encodeURIComponent(brand) %>&model=<%= encodeURIComponent(model) %>" class="hover:text-brand transition-colors"><%= displayModel %></a>
+          </div>
+        </li>
+        <li aria-current="page">
+          <div class="flex items-center">
+            <i data-lucide="chevron-right" class="w-3 h-3 mx-1 text-gray-400"></i>
+            <span class="font-semibold text-gray-800 dark:text-gray-200"><%= isUnsupportedReport ? 'Неизвестный код' : displayCode %></span>
+          </div>
+        </li>
+      </ol>
+    </nav>
+
+    <div class="diagnostic-grid">
+      <article class="bg-white dark:bg-slate-800 rounded-2xl shadow-sm p-5 mb-4 border border-transparent dark:border-slate-700">
+        <div class="flex justify-between items-start mb-4">
+          <div class="flex flex-wrap gap-2">
+            <span class="<%= severityClass %> text-xs font-bold px-3 py-1.5 rounded-full uppercase tracking-wide"><%= severityText %></span>
+            <span class="<%= drivabilityDataClass %>"><%- drivabilityData.text %></span>
+          </div>
+          <span class="text-xs text-gray-400 dark:text-gray-500 font-mono font-medium mt-1">Код: <%= isUnsupportedReport ? 'Незарегистрированный' : displayCode %></span>
+        </div>
+
+        <h1 class="text-2xl font-bold mb-3 text-gray-900 dark:text-white"><%= seoTitle %></h1>
+        <div class="flex flex-col items-center justify-center bg-gray-50 dark:bg-slate-700/30 border border-gray-100 dark:border-slate-700 rounded-2xl p-8 mb-6">
+          <i data-lucide="car-front" class="w-16 h-16 text-brand mb-3" aria-hidden="true"></i>
+          <span class="text-gray-500 dark:text-gray-400 font-medium text-sm">Отчет об ошибке <%= isUnsupportedReport ? 'UNSUPPORTED' : displayCode %></span>
+          <img src="https://placehold.co/600x400/ffffff/0077FF?text=<%= isUnsupportedReport ? 'UNKNOWN' : displayCode %>" alt="<%= isUnsupportedReport ? 'Диагностика и проверка неизвестного или ложного кода ошибки автомобиля' : `Детальная расшифровка и ремонт ошибки ${displayCode} для ${displayBrand} ${displayModel}` %>" class="sr-only" />
+        </div>
+        <p class="text-gray-500 dark:text-gray-400 font-medium text-sm leading-relaxed mb-4"><%- summaryText %></p>
+        <div class="h-px bg-gray-100 dark:bg-slate-700 w-full mb-4"></div>
+        <p class="text-gray-800 dark:text-gray-200 leading-relaxed"><%- teaserText %></p>
+      </article>
+
+      <div id="paywall-container" data-report-id="<%= reportId %>">
+        <div class="report-content relative">
+          <div class="<%= !isUnlockedForUser ? 'paywall-blur-container' : '' %>">
+            
+            <details class="bg-white dark:bg-slate-800 rounded-2xl shadow-sm mb-4 overflow-hidden border border-gray-50 dark:border-slate-700" open>
+              <summary class="flex items-center gap-3 font-semibold p-5 cursor-pointer hover:bg-gray-50 dark:hover:bg-slate-700/50 transition-colors list-none outline-none">
+                <h2 class="text-base md:text-lg font-semibold m-0 flex items-center gap-3 w-full font-inherit text-inherit text-gray-900 dark:text-white"><i data-lucide="file-search" class="w-5 h-5 text-brand shrink-0"></i> Полный разбор причины</h2>
+              </summary>
+              <div class="p-5 border-t border-gray-50 dark:border-slate-700 bg-white dark:bg-slate-800 prose prose-blue prose-lg dark:prose-invert max-w-none text-gray-800 dark:text-gray-200">  
+                <%- fullAnalysisHtml %>
+              </div>
+            </details>
+
+            <details class="bg-white dark:bg-slate-800 rounded-2xl shadow-sm mb-4 overflow-hidden border border-gray-50 dark:border-slate-700" open>
+              <summary class="flex items-center gap-3 font-semibold p-5 cursor-pointer hover:bg-gray-50 dark:hover:bg-slate-700/50 transition-colors list-none outline-none">
+                <h2 class="text-base md:text-lg font-semibold m-0 flex items-center gap-3 w-full font-inherit text-inherit text-gray-900 dark:text-white"><i data-lucide="shield-alert" class="w-5 h-5 text-red-500 shrink-0"></i> Защита от обмана на СТО</h2>
+              </summary>
+              <div class="p-5 border-t border-gray-50 dark:border-slate-700 bg-white dark:bg-slate-800 prose prose-blue prose-lg dark:prose-invert max-w-none text-gray-800 dark:text-gray-200">  
+                <%- scamProtectionHtml %>
+              </div>
+            </details>
+
+            <details class="bg-white dark:bg-slate-800 rounded-2xl shadow-sm mb-4 overflow-hidden border border-gray-50 dark:border-slate-700" open>
+              <summary class="flex items-center gap-3 font-semibold p-5 cursor-pointer hover:bg-gray-50 dark:hover:bg-slate-700/50 transition-colors list-none outline-none">
+                <h2 class="text-base md:text-lg font-semibold m-0 flex items-center gap-3 w-full font-inherit text-inherit text-gray-900 dark:text-white"><i data-lucide="wallet" class="w-5 h-5 text-green-600 shrink-0"></i> Финансовый прогноз</h2>
+              </summary>
+              <div class="p-5 border-t border-gray-50 dark:border-slate-700 bg-white dark:bg-slate-800">
+                 <div class="grid grid-cols-2 gap-4 mt-2">
+                   <div class="bg-gray-50 dark:bg-slate-700/30 rounded-xl p-4">
+                     <h3 class="text-xs text-gray-500 dark:text-gray-400 mb-1 flex items-center gap-1"><i data-lucide="settings" class="w-3 h-3"></i> Запчасти</h3>
+                     <div class="font-bold text-lg text-gray-800 dark:text-gray-100"><span class="text-gray-400 font-normal mr-1">~</span><%- pricePartsHtml %></div>
+                   </div>
+                   <div class="bg-gray-50 dark:bg-slate-700/30 rounded-xl p-4">
+                     <h3 class="text-xs text-gray-500 dark:text-gray-400 mb-1 flex items-center gap-1"><i data-lucide="user-cog" class="w-3 h-3"></i> Работа СТО</h3>
+                     <div class="font-bold text-lg text-gray-800 dark:text-gray-100"><span class="text-gray-400 font-normal mr-1">~</span><%- priceLaborHtml %></div>
+                   </div>
+                 </div>
+                 <div class="mt-4 p-3 bg-gray-50 dark:bg-slate-700/30 rounded-xl border border-dashed border-gray-200 dark:border-slate-600 text-xs text-gray-500 dark:text-gray-400 flex gap-2 items-start leading-relaxed">
+                    <i data-lucide="banknote" class="w-4 h-4 flex-shrink-0 mt-0.5 text-gray-400"></i>
+                    <span>Указанные цены сгенерированы на основе общих рыночных данных. Они являются ориентировочными, чтобы вы понимали примерный масштаб проблемы. Точную стоимость запчастей и работ может назвать только мастер на СТО после физической диагностики.</span>
+                 </div>
+              </div>
+            </details>
+
+            <details class="bg-white dark:bg-slate-800 rounded-2xl shadow-sm mb-4 overflow-hidden border border-gray-50 dark:border-slate-700" open>
+              <summary class="flex items-center gap-3 font-semibold p-5 cursor-pointer hover:bg-gray-50 dark:hover:bg-slate-700/50 transition-colors list-none outline-none">
+                <h2 class="text-base md:text-lg font-semibold m-0 flex items-center gap-3 w-full font-inherit text-inherit text-gray-900 dark:text-white"><i data-lucide="wrench" class="w-5 h-5 text-gray-500 dark:text-gray-400 shrink-0"></i> Сделай сам <span class="text-xs px-2 py-0.5 rounded bg-gray-100 dark:bg-slate-700 text-gray-600 dark:text-gray-300 ml-auto font-normal shrink-0"><%= report.diy_difficulty_text || 'Неизвестно' %></span></h2>
+              </summary>
+              <div class="p-5 border-t border-gray-50 dark:border-slate-700 bg-white dark:bg-slate-800">
+                 <div class="flex flex-col gap-3 mb-5">
+                   <div class="grid grid-cols-2 gap-3">
+                     <div class="bg-gray-50 dark:bg-slate-700/30 rounded-xl p-3.5 text-center flex flex-col justify-center">
+                       <span class="text-xs text-gray-500 dark:text-gray-400 font-medium uppercase tracking-wider mb-1">Сложность</span>
+                       <strong class="text-sm md:text-base font-bold text-gray-800 dark:text-gray-100"><%= difficultyScoreHtml %></strong>
+                     </div>
+                     <div class="bg-gray-50 dark:bg-slate-700/30 rounded-xl p-3.5 text-center flex flex-col justify-center">
+                       <span class="text-xs text-gray-500 dark:text-gray-400 font-medium uppercase tracking-wider mb-1">Время</span>
+                       <strong class="text-sm md:text-base font-bold text-gray-800 dark:text-gray-100"><%= report.diy_time || 'Не указано' %></strong>
+                     </div>
+                   </div>
+                   <div class="bg-gray-50 dark:bg-slate-700/30 rounded-xl p-3.5 text-left flex flex-col">
+                     <span class="text-xs text-gray-500 dark:text-gray-400 font-medium uppercase tracking-wider mb-1">Инструменты</span>
+                     <div class="text-sm md:text-base font-medium text-gray-800 dark:text-gray-100 leading-relaxed"><%= report.diy_tools || 'Не указаны' %></div>
+                   </div>
+                 </div>
+                 <div class="bg-orange-50 dark:bg-orange-900/20 border-l-4 border-orange-500 p-4 mb-4 rounded-r-xl">
+                    <strong class="text-orange-600 dark:text-orange-400 flex items-center gap-2 mb-2 text-sm">
+                       <i data-lucide="alert-triangle" class="w-4 h-4"></i> Внимание!
+                    </strong>
+                    <p class="text-orange-900 dark:text-orange-200 text-sm md:text-base m-0 leading-relaxed">
+                       Автомобиль — это механизм повышенной опасности. Любое неквалифицированное вмешательство может привести к серьезным поломкам (вплоть до "окирпичивания" электронных блоков) или создать угрозу ДТП. Данная инструкция носит исключительно ознакомительный характер и не является прямым руководством к действию. Всю ответственность за последствия самостоятельного ремонта вы берете на себя.
+                    </p>
+                 </div>
+                 <div class="prose prose-blue prose-lg dark:prose-invert max-w-none text-gray-800 dark:text-gray-200 mt-4"><%- diyInstructionsHtml %></div>
+              </div>
+            </details>
+          </div>
+
+          <% if (!isUnlockedForUser) { %>
+          <!-- Градиентное перекрытие и сканер над размытым текстом -->
+          <div class="absolute z-10 inset-0 pointer-events-none overflow-hidden rounded-2xl">
+            <div class="absolute inset-0 bg-gradient-to-t from-white via-white/80 to-transparent"></div>
+            <div class="absolute top-0 left-0 w-full h-[2px] bg-brand shadow-[0_0_15px_3px_rgba(0,119,255,0.8)] animate-scan"></div>
+          </div>
+
+          <!-- Сама карточка пейволла в нормальном потоке с отрицательным отступом -->
+          <div id="paywall-overlay" class="relative z-20 w-full flex flex-col items-center justify-center p-4 pb-8 -mt-32 md:-mt-40" style="pointer-events: none;">
+            
+            <div class="bg-slate-900 bg-gradient-to-br from-slate-900 via-blue-950 to-slate-900 animate-gradient-xy border border-white/10 shadow-[0_20px_60px_-10px_rgba(0,119,255,0.5)] animate-pulse-glow rounded-3xl p-6 md:p-8 w-full max-w-md transform transition-all mx-auto relative overflow-hidden" style="pointer-events: auto;">
+              
+              <!-- Декоративные партиклы/сетка на фоне карточки -->
+              <div class="absolute inset-0 opacity-20" style="background-image: radial-gradient(rgba(255, 255, 255, 0.15) 1px, transparent 1px); background-size: 20px 20px;"></div>
+
+              <div class="relative z-10">
+                <div class="flex flex-col items-center text-center mb-5">
+                  
+                  <!-- Индикатор "ИИ-анализ завершен" -->
+                  <div class="flex items-center justify-center gap-2 mb-5 px-3.5 py-1.5 bg-blue-900/40 border border-blue-400/30 rounded-full shadow-inner backdrop-blur-sm">
+                    <span class="relative flex h-2 w-2">
+                      <span class="animate-ping absolute inline-flex h-full w-full rounded-full bg-blue-400 opacity-75"></span>
+                      <span class="relative inline-flex rounded-full h-2 w-2 bg-blue-400"></span>
+                    </span>
+                    <span class="text-[10px] font-bold text-blue-300 tracking-widest uppercase">Детальный ответ готов</span>
+                  </div>
+
+                  <div class="bg-blue-500/10 border border-blue-500/20 p-3.5 rounded-full mb-4 shadow-[0_0_15px_rgba(0,119,255,0.4)] text-blue-400">
+                    <i data-lucide="lock" class="w-6 h-6"></i>
+                  </div>
+                  <h3 class="text-2xl font-extrabold text-white tracking-tight drop-shadow-md">Разблокируйте полный отчет</h3>
+                  <p class="text-sm text-gray-300 mt-2 font-medium">Узнайте всё о поломке и сэкономьте на ремонте.</p>
+                </div>
+
+                <ul class="space-y-3.5 mb-7 text-sm text-gray-200 bg-white/5 backdrop-blur-md p-4 rounded-2xl border border-white/10">
+                  <li class="flex items-start gap-3">
+                    <i data-lucide="search-check" class="w-5 h-5 text-green-400 shrink-0 drop-shadow-sm"></i>
+                    <span><strong class="text-white">Причины и симптомы:</strong> точный диагноз проблемы.</span>
+                  </li>
+                  <li class="flex items-start gap-3">
+                    <i data-lucide="shield-alert" class="w-5 h-5 text-red-400 shrink-0 drop-shadow-sm"></i>
+                    <span><strong class="text-white">Защита от обмана:</strong> как не лохануться на СТО.</span>
+                  </li>
+                  <li class="flex items-start gap-3">
+                    <i data-lucide="wrench" class="w-5 h-5 text-orange-400 shrink-0 drop-shadow-sm"></i>
+                    <span><strong class="text-white">Сделай сам:</strong> пошаговая инструкция по ремонту.</span>
+                  </li>
+                  <li class="flex items-start gap-3">
+                    <i data-lucide="calculator" class="w-5 h-5 text-blue-400 shrink-0 drop-shadow-sm"></i>
+                    <span><strong class="text-white">Фин. прогноз:</strong> реальная стоимость запчастей и работы.</span>
+                  </li>
+                </ul>
+
+                <button id="unlock-btn" class="relative overflow-hidden w-full bg-brand text-white font-bold rounded-xl py-4 text-lg hover:bg-blue-500 transition-all shadow-[0_0_20px_rgba(0,119,255,0.5)] hover:shadow-[0_0_30px_rgba(0,119,255,0.7)] hover:-translate-y-0.5 active:scale-[0.98] flex justify-center items-center gap-2 group border border-blue-400/50">    
+                  <div class="absolute inset-0 -translate-x-full bg-gradient-to-r from-transparent via-white/40 to-transparent group-hover:animate-shimmer"></div>
+                  <i data-lucide="unlock" class="w-5 h-5 relative z-10 drop-shadow-md"></i>
+                  <span class="relative z-10 drop-shadow-md">Разблокировать за $1.99</span>
+                </button>
+                <p class="text-xs text-center text-gray-400 mt-4 flex items-center justify-center gap-1.5 font-medium">
+                  <i data-lucide="shield-check" class="w-3.5 h-3.5 text-green-400"></i> Безопасная оплата 256-bit
+                </p>
+              </div>
+            </div>
+          </div>
+          <% } %>
+        </div>
+      </div>
+    </div>
+    <%- relatedReportsHtml %>
+  </div>
+
+  <nav class="fixed bottom-0 w-full bg-white dark:bg-slate-900 border-t border-gray-100 dark:border-slate-800 md:hidden z-50">
+    <div class="flex justify-around items-center h-16">
+      <button type="button" class="flex flex-col items-center justify-center w-full h-full text-brand bg-transparent border-0 cursor-pointer">
+        <i data-lucide="activity" class="w-5 h-5 mb-1"></i>
+        <span class="text-[10px] font-medium">Диагноз</span>
+      </button>
+      <button type="button" class="flex flex-col items-center justify-center w-full h-full text-gray-400 hover:text-gray-600 dark:hover:text-gray-300 bg-transparent border-0 cursor-pointer transition-colors">
+        <i data-lucide="history" class="w-5 h-5 mb-1"></i>
+        <span class="text-[10px] font-medium">История</span>
+      </button>
+      <button type="button" class="flex flex-col items-center justify-center w-full h-full text-gray-400 hover:text-gray-600 dark:hover:text-gray-300 bg-transparent border-0 cursor-pointer transition-colors">
+        <i data-lucide="car" class="w-5 h-5 mb-1"></i>
+        <span class="text-[10px] font-medium">Гараж</span>
+      </button>
+      <button type="button" class="flex flex-col items-center justify-center w-full h-full text-gray-400 hover:text-gray-600 dark:hover:text-gray-300 bg-transparent border-0 cursor-pointer transition-colors">
+        <i data-lucide="user" class="w-5 h-5 mb-1"></i>
+        <span class="text-[10px] font-medium">Профиль</span>
+      </button>
+    </div>
+  </nav>
+  <script>
+    lucide.createIcons();
+    <% if (!isUnsupportedReport && report && report.is_complete === false) { %>
+    (function() {
+      let pollInterval = setInterval(async () => {
+        try {
+          const res = await fetch('/api/report-status/<%= reportId %>');
+          if (res.ok) {
+            const data = await res.json();
+            if (data.is_complete) {
+              clearInterval(pollInterval);
+              window.location.reload();
+            }
+          }
+        } catch (e) {
+          console.error('Polling error:', e);
+        }
+      }, 4000); // Опрашиваем каждые 4 секунды
+    })();
+    <% } %>
+  </script>
+</body>
+</html>

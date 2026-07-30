@@ -8,8 +8,18 @@ import { marked } from 'marked';
 import fs from 'fs';
 import garageRouter from './routes/garage.js';
 
+import path from 'path';
+import { fileURLToPath } from 'url';
+
+const __filename = fileURLToPath(import.meta.url);
+const __dirname = path.dirname(__filename);
+
 const app = express();
 const PORT = process.env.PORT || 3005;
+
+app.set('view engine', 'ejs');
+app.set('views', path.join(__dirname, 'views'));
+
 
 // Инициализация Prisma Client
 const prisma = new PrismaClient();
@@ -138,10 +148,10 @@ const cleanReportHtml = (html) => {
 // Подключение модуля Гаража
 app.use('/garage', garageRouter);
 
-// Глобальный запрет индексации (до релиза)
+// Разрешаем индексацию для поисковиков
 app.get('/robots.txt', (req, res) => {
   res.type('text/plain');
-  res.send("User-agent: *\nDisallow: /");
+  res.send("User-agent: *\nAllow: /\nSitemap: https://7set.pro/sitemap.xml");
 });
 
 // 3. Главная страница (Landing Page)
@@ -205,6 +215,38 @@ app.get('/', async (req, res) => {
       <meta charset="UTF-8">
       <meta name="viewport" content="width=device-width, initial-scale=1.0">
       <title>7Set.pro — Умная автодиагностика и регламент ТО</title>
+      <meta name="description" content="Умная нейросеть для расшифровки ошибок OBD-II и дилерских кодов. Быстрая диагностика и точный регламент технического обслуживания для вашего автомобиля.">
+      <link rel="canonical" href="https://7set.pro/" />
+      <link rel="icon" type="image/svg+xml" href="/favicon.svg">
+      
+      <!-- Open Graph / Facebook -->
+      <meta property="og:type" content="website">
+      <meta property="og:url" content="https://7set.pro/">
+      <meta property="og:title" content="7Set.pro — Умная автодиагностика и регламент ТО">
+      <meta property="og:description" content="Умная нейросеть для расшифровки ошибок OBD-II и дилерских кодов. Быстрая диагностика и точный регламент технического обслуживания для вашего автомобиля.">
+      <meta property="og:image" content="https://7set.pro/og-default.png">
+      
+      <!-- Twitter -->
+      <meta name="twitter:card" content="summary_large_image">
+      <meta name="twitter:url" content="https://7set.pro/">
+      <meta name="twitter:title" content="7Set.pro — Умная автодиагностика и регламент ТО">
+      <meta name="twitter:description" content="Умная нейросеть для расшифровки ошибок OBD-II и дилерских кодов. Быстрая диагностика и точный регламент технического обслуживания для вашего автомобиля.">
+      <meta name="twitter:image" content="https://7set.pro/og-default.png">
+
+      <!-- Schema.org JSON-LD -->
+      <script type="application/ld+json">
+      {
+        "@context": "https://schema.org",
+        "@type": "WebSite",
+        "name": "7Set.pro",
+        "url": "https://7set.pro/",
+        "potentialAction": {
+          "@type": "SearchAction",
+          "target": "https://7set.pro/search?brand={brand}&code={code}",
+          "query-input": "required name=code"
+        }
+      }
+      </script>
       <script src="https://cdn.tailwindcss.com?plugins=typography"></script>
       <script>
         tailwind.config = { 
@@ -1091,37 +1133,27 @@ app.get('/diagnostic/:brand/:model/:code', async (req, res) => {
     const slug = `${brand.toLowerCase()}-${model.toLowerCase()}-${code.toLowerCase()}`;
     const isUnlockedForUser = isUnsupportedReport || (report && (report.is_paid || unlockedList.includes(report.id) || unlockedList.includes(slug)));
 
-    const faqSchema = {
+    let relatedReports = [];
+    if (!isUnsupportedReport) {
+      relatedReports = await prisma.diagnosticReport.findMany({
+        where: { brand: targetBrand, model: targetModel, is_complete: true, code: { not: targetCode } },
+        take: 6,
+        orderBy: { created_at: 'desc' }
+      });
+    }
+
+    const baseUrl = process.env.SITE_URL || 'https://7set.pro';
+    
+    const breadcrumbSchema = {
       "@context": "https://schema.org",
-      "@type": "FAQPage",
-      "mainEntity": [
-        {
-          "@type": "Question",
-          "name": isUnsupportedReport ? `Что означает неизвестный или незарегистрированный код ошибки?` : `Что означает ошибка ${displayCode} на ${displayBrand} ${displayModel}?`,
-          "acceptedAnswer": {
-            "@type": "Answer",
-            "text": report.teaser_text || report.summary || "Подробное описание ошибки доступно на сайте."
-          }
-        },
-        {
-          "@type": "Question",
-          "name": `Можно ли починить своими руками?`,
-          "acceptedAnswer": {
-            "@type": "Answer",
-            "text": `Сложность: ${report.diy_difficulty_text || 'Неизвестно'}. Примерное время: ${report.diy_time || 'Не указано'}. Потребуются: ${report.diy_tools || 'стандартные инструменты'}.`
-          }
-        },
-        {
-          "@type": "Question",
-          "name": `Сколько примерная стоимость ремонта?`,
-          "acceptedAnswer": {
-            "@type": "Answer",
-            "text": `Примерная стоимость запчастей: ${report.price_parts || 'Уточняется'}. Работа специалиста: ${report.price_labor || 'Уточняется'}.`
-          }
-        }
+      "@type": "BreadcrumbList",
+      "itemListElement": [
+        { "@type": "ListItem", "position": 1, "name": "Главная", "item": baseUrl },
+        { "@type": "ListItem", "position": 2, "name": displayBrand, "item": `${baseUrl}/search?brand=${encodeURIComponent(brand)}` },
+        { "@type": "ListItem", "position": 3, "name": displayModel, "item": `${baseUrl}/search?brand=${encodeURIComponent(brand)}&model=${encodeURIComponent(model)}` },
+        { "@type": "ListItem", "position": 4, "name": isUnsupportedReport ? 'Неизвестный' : displayCode }
       ]
     };
-    const baseUrl = process.env.SITE_URL || 'https://7set.pro';
     const pageUrl = isUnsupportedReport ? `${baseUrl}/diagnostic/unknown-code` : `${baseUrl}/diagnostic/${brand.toLowerCase()}/${model.toLowerCase()}/${code.toUpperCase()}`;
     const ogImage = isUnsupportedReport ? `${baseUrl}/og-default.png` : `${baseUrl}/og-images/${brand.toLowerCase()}-${model.toLowerCase()}-${code.toLowerCase()}.png`;
     let seoTitle = report.seoTitle || (isUnsupportedReport ? "Неизвестный код ошибки автомобиля: причины и проверка" : `Ошибка ${displayCode} ${displayBrand} ${displayModel}: расшифровка, причины и ремонт`);
@@ -1147,6 +1179,9 @@ app.get('/diagnostic/:brand/:model/:code', async (req, res) => {
       "@type": "TechArticle",
       "headline": seoTitle,
       "description": seoDescription,
+      "image": ogImage,
+      "datePublished": report && report.created_at ? report.created_at.toISOString() : new Date().toISOString(),
+      "dateModified": report && report.updated_at ? report.updated_at.toISOString() : new Date().toISOString(),
       "author": {
         "@type": "Organization",
         "name": "Редакция 7Set.pro"
@@ -1173,284 +1208,71 @@ app.get('/diagnostic/:brand/:model/:code', async (req, res) => {
       ];
     }
 
-    let fullAnalysisHtml = cleanReportHtml(marked.parse(formatReportMarkdown(report.full_analysis_markdown || '')));
+    let rawFullAnalysis = report.full_analysis_markdown || '';
+    let rawScamProtection = '';
+
+    const splitRegex = /###\s*(<i[^>]*>\s*<\/i>\s*)?Как не лохануться на СТО/i;
+    const splitMatch = rawFullAnalysis.match(splitRegex);
+
+    if (splitMatch) {
+      rawScamProtection = rawFullAnalysis.substring(splitMatch.index + splitMatch[0].length).trim();
+      rawFullAnalysis = rawFullAnalysis.substring(0, splitMatch.index).trim();
+    } else {
+      rawScamProtection = report.sto_protection_tips || '';
+    }
+
+    let fullAnalysisHtml = cleanReportHtml(marked.parse(formatReportMarkdown(rawFullAnalysis)));
+    let scamProtectionHtml = cleanReportHtml(marked.parse(formatReportMarkdown(rawScamProtection)));
     let diyInstructionsHtml = cleanReportHtml(marked.parse(formatReportMarkdown(report.diy_instructions || '')));
 
-    const schemaHtml = `<script type="application/ld+json">${JSON.stringify(techArticleSchema)}</script>\n        <script type="application/ld+json">${JSON.stringify(faqSchema)}</script>`;
-
-    res.send(`
-      <!DOCTYPE html>
-      <html lang="ru">
-      <head>
-        <meta charset="UTF-8">
-        <meta name="viewport" content="width=device-width, initial-scale=1.0">
-        <title>${seoTitle}</title>
-        <meta name="description" content="${seoDescription}">
-        <link rel="canonical" href="${pageUrl}">
-        <meta property="og:url" content="${pageUrl}">
-        <meta property="og:title" content="${seoTitle}">
-        <meta property="og:description" content="${seoDescription}">
-        <meta property="og:image" content="${ogImage}">
-        <meta property="og:type" content="article">
-        <meta name="twitter:card" content="summary_large_image">
-        <meta name="twitter:title" content="${seoTitle}">
-        <meta name="twitter:description" content="${seoDescription}">
-        <meta name="twitter:image" content="${ogImage}">
-        ${schemaHtml}
-        <script src="https://cdn.tailwindcss.com?plugins=typography"></script>
-        <script>
-          tailwind.config = { 
-            theme: { 
-              extend: { 
-                colors: { brand: '#0077FF', surface: '#F5F5F7' },
-                animation: {
-                  'scan': 'scan 3s ease-in-out infinite',
-                  'shimmer': 'shimmer 2.5s infinite',
-                  'pulse-glow': 'pulse-glow 2s cubic-bezier(0.4, 0, 0.6, 1) infinite',
-                  'gradient-xy': 'gradient-xy 6s ease infinite',
-                },
-                keyframes: {
-                  scan: {
-                    '0%': { transform: 'translateY(0)', opacity: 0 },
-                    '10%': { opacity: 1 },
-                    '90%': { opacity: 1 },
-                    '100%': { transform: 'translateY(35vh)', opacity: 0 },
-                  },
-                  shimmer: {
-                    '0%': { transform: 'translateX(-100%)' },
-                    '100%': { transform: 'translateX(100%)' }
-                  },
-                  'pulse-glow': {
-                    '0%, 100%': { boxShadow: '0 0 0 0 rgba(0, 119, 255, 0.4)' },
-                    '50%': { boxShadow: '0 0 0 25px rgba(0, 119, 255, 0)' }
-                  },
-                  'gradient-xy': {
-                    '0%, 100%': { backgroundSize: '400% 400%', backgroundPosition: 'left top' },
-                    '50%': { backgroundSize: '200% 200%', backgroundPosition: 'right bottom' }
-                  }
-                }
-              } 
-            } 
-          }
-        </script>
-        <style> 
-          ::-webkit-details-marker { display: none; } 
-          .paywall-blur-container { filter: blur(6px); user-select: none; pointer-events: none; max-height: 35vh; overflow: hidden; position: relative; }
-        </style>
-        <script src="https://cdn.jsdelivr.net/npm/marked/marked.min.js"></script>
-        <script src="/main.js" defer></script>
-        <script src="https://unpkg.com/lucide@latest"></script>
-          <!-- Yandex.Metrika counter -->
-        <script type="text/javascript">
-            (function(m,e,t,r,i,k,a){
-                m[i]=m[i]||function(){(m[i].a=m[i].a||[]).push(arguments)};
-                m[i].l=1*new Date();
-                for (var j = 0; j < document.scripts.length; j++) {if (document.scripts[j].src === r) { return; }}
-                k=e.createElement(t),a=e.getElementsByTagName(t)[0],k.async=1,k.src=r,a.parentNode.insertBefore(k,a)
-            })(window, document,'script','https://mc.yandex.ru/metrika/tag.js?id=111154643', 'ym');
-
-            ym(111154643, 'init', {ssr:true, webvisor:true, clickmap:true, ecommerce:"dataLayer", referrer: document.referrer, url: location.href, accurateTrackBounce:true, trackLinks:true});
-        </script>
-        <noscript><div><img src="https://mc.yandex.ru/watch/111154643" style="position:absolute; left:-9999px;" alt="" /></div></noscript>
-        <!-- /Yandex.Metrika counter -->
-    </head>
-      <body class="bg-surface text-gray-900 font-sans antialiased pb-20 md:pb-0">
-        <div class="max-w-md mx-auto p-4 md:max-w-2xl md:p-6">
-          <header class="flex justify-between items-center mb-6">
-            <a href="/" class="flex items-center gap-2 hover:opacity-80 transition-opacity">
-              <i data-lucide="activity" style="color: #007bff;"></i>
-              <span class="font-bold text-xl tracking-tight">7Set.Pro</span> <span class="font-normal text-sm opacity-80 ml-1 hidden md:inline">| Умная диагностика авто</span>
-            </a>
-            <button id="theme-toggle" class="p-2 rounded-full hover:bg-gray-200 transition-colors" aria-label="Переключить тему">
-              <i data-lucide="moon" class="w-5 h-5 text-gray-700"></i>
-            </button>
-          </header>
-
-          <div class="diagnostic-grid">
-            <article class="bg-white rounded-2xl shadow-sm p-5 mb-4">
-              <div class="flex justify-between items-start mb-4">
-                <div class="flex flex-wrap gap-2">
-                  <span class="${severityLevel === 'critical' || severityLevel === 'high' ? 'bg-red-100 text-red-800' : severityLevel === 'medium' ? 'bg-yellow-100 text-yellow-800' : 'bg-green-100 text-green-800'} text-xs font-bold px-3 py-1.5 rounded-full uppercase tracking-wide">${severity.text.replace(/<[^>]*>?/gm, '')}</span>
-                  <span class="${drivabilityData.class}">${drivabilityData.text}</span>
-                </div>
-                <span class="text-xs text-gray-400 font-mono font-medium mt-1">Код: ${isUnsupportedReport ? 'Незарегистрированный' : displayCode}</span>
-              </div>
-
-              <h1 class="text-2xl font-bold mb-3">${seoTitle}</h1>
-              <div class="flex flex-col items-center justify-center bg-gray-50 border border-gray-100 rounded-2xl p-8 mb-6">
-                <i data-lucide="car-front" class="w-16 h-16 text-brand mb-3" aria-hidden="true"></i>
-                <span class="text-gray-500 font-medium text-sm">Отчет об ошибке ${isUnsupportedReport ? 'UNSUPPORTED' : displayCode}</span>
-                <img src="https://placehold.co/600x400/ffffff/0077FF?text=${isUnsupportedReport ? 'UNKNOWN' : displayCode}" alt="${isUnsupportedReport ? 'Диагностика и проверка неизвестного или ложного кода ошибки автомобиля' : `Детальная расшифровка и ремонт ошибки ${displayCode} для ${displayBrand} ${displayModel}`}" class="sr-only" />
-              </div>
-              <p class="text-gray-500 font-medium text-sm leading-relaxed mb-4">${summaryText}</p>
-              <div class="h-px bg-gray-100 w-full mb-4"></div>
-              <p class="text-gray-800 leading-relaxed">${teaserText}</p>
-            </article>
-
-            <div id="paywall-container" data-report-id="${reportId}">
-              <div class="report-content relative">
-                <div class="${!isUnlockedForUser ? 'paywall-blur-container' : ''}">
-                  <details class="bg-white rounded-2xl shadow-sm mb-4 overflow-hidden border border-gray-50" open>
-                    <summary class="flex items-center gap-3 font-semibold p-5 cursor-pointer hover:bg-gray-50 transition-colors list-none outline-none">
-                      <h2 class="text-base md:text-lg font-semibold m-0 flex items-center gap-3 w-full font-inherit text-inherit"><i data-lucide="file-search" class="w-5 h-5 text-brand shrink-0"></i> Полный разбор причины</h2>
-                    </summary>
-                    <div class="p-5 border-t border-gray-50 bg-white prose prose-blue prose-lg max-w-none text-gray-800">  
-                      ${fullAnalysisHtml}
-                    </div>
-                  </details>
-
-                  <details class="bg-white rounded-2xl shadow-sm mb-4 overflow-hidden border border-gray-50" open>
-                    <summary class="flex items-center gap-3 font-semibold p-5 cursor-pointer hover:bg-gray-50 transition-colors list-none outline-none">
-                      <h2 class="text-base md:text-lg font-semibold m-0 flex items-center gap-3 w-full font-inherit text-inherit"><i data-lucide="wrench" class="w-5 h-5 text-gray-500 shrink-0"></i> Сделай сам <span class="text-xs px-2 py-0.5 rounded bg-gray-100 text-gray-600 ml-auto font-normal shrink-0">${report.diy_difficulty_text || 'Неизвестно'}</span></h2>
-                    </summary>
-                    <div class="p-5 border-t border-gray-50 bg-white">
-                       <div class="flex flex-col gap-3 mb-5">
-                         <div class="grid grid-cols-2 gap-3">
-                           <div class="bg-gray-50 rounded-xl p-3.5 text-center flex flex-col justify-center">
-                             <span class="text-xs text-gray-500 font-medium uppercase tracking-wider mb-1">Сложность</span>
-                             <strong class="text-sm md:text-base font-bold text-gray-800">${(() => { const m = String(report.diy_difficulty_score || '3/5').match(/(\d+)\s*(?:[\/|из]\s*(\d+))?/i); return m ? `${m[1]} из ${m[2] || '5'}` : '3 из 5'; })()}</strong>
-                           </div>
-                           <div class="bg-gray-50 rounded-xl p-3.5 text-center flex flex-col justify-center">
-                             <span class="text-xs text-gray-500 font-medium uppercase tracking-wider mb-1">Время</span>
-                             <strong class="text-sm md:text-base font-bold text-gray-800">${report.diy_time || 'Не указано'}</strong>
-                           </div>
-                         </div>
-                         <div class="bg-gray-50 rounded-xl p-3.5 text-left flex flex-col">
-                           <span class="text-xs text-gray-500 font-medium uppercase tracking-wider mb-1">Инструменты</span>
-                           <div class="text-sm md:text-base font-medium text-gray-800 leading-relaxed">${report.diy_tools || 'Не указаны'}</div>
-                         </div>
-                       </div>
-                       <div class="bg-orange-50 border-l-4 border-orange-500 p-4 mb-4 rounded-r-xl">
-                          <strong class="text-orange-600 flex items-center gap-2 mb-2 text-sm">
-                             <i data-lucide="alert-triangle" class="w-4 h-4"></i> Внимание!
-                          </strong>
-                          <p class="text-orange-900 text-sm md:text-base m-0 leading-relaxed">
-                             Автомобиль — это механизм повышенной опасности. Любое неквалифицированное вмешательство может привести к серьезным поломкам (вплоть до "окирпичивания" электронных блоков) или создать угрозу ДТП. Данная инструкция носит исключительно ознакомительный характер и не является прямым руководством к действию. Всю ответственность за последствия самостоятельного ремонта вы берете на себя.
-                          </p>
-                       </div>
-                       <div class="prose prose-blue prose-lg max-w-none text-gray-800 mt-4">${diyInstructionsHtml}</div>
-                    </div>
-                  </details>
-
-                  <details class="bg-white rounded-2xl shadow-sm mb-4 overflow-hidden border border-gray-50" open>
-                    <summary class="flex items-center gap-3 font-semibold p-5 cursor-pointer hover:bg-gray-50 transition-colors list-none outline-none">
-                      <h2 class="text-base md:text-lg font-semibold m-0 flex items-center gap-3 w-full font-inherit text-inherit"><i data-lucide="wallet" class="w-5 h-5 text-green-600 shrink-0"></i> Финансовый прогноз</h2>
-                    </summary>
-                    <div class="p-5 border-t border-gray-50 bg-white">
-                       <div class="grid grid-cols-2 gap-4 mt-2">
-                         <div class="bg-gray-50 rounded-xl p-4">
-                           <h3 class="text-xs text-gray-500 mb-1 flex items-center gap-1"><i data-lucide="settings" class="w-3 h-3"></i> Запчасти</h3>
-                           <div class="font-bold text-lg text-gray-800"><span class="text-gray-400 font-normal mr-1">~</span>${(report.price_parts || 'Уточняется').replace(/\\n/g, '<br>')}</div>
-                         </div>
-                         <div class="bg-gray-50 rounded-xl p-4">
-                           <h3 class="text-xs text-gray-500 mb-1 flex items-center gap-1"><i data-lucide="user-cog" class="w-3 h-3"></i> Работа СТО</h3>
-                           <div class="font-bold text-lg text-gray-800"><span class="text-gray-400 font-normal mr-1">~</span>${(report.price_labor || 'Уточняется').replace(/\\n/g, '<br>')}</div>
-                         </div>
-                       </div>
-                       <div class="mt-4 p-3 bg-gray-50 rounded-xl border border-dashed border-gray-200 text-xs text-gray-500 flex gap-2 items-start leading-relaxed">
-                          <i data-lucide="banknote" class="w-4 h-4 flex-shrink-0 mt-0.5 text-gray-400"></i>
-                          <span>Указанные цены сгенерированы на основе общих рыночных данных. Они являются ориентировочными, чтобы вы понимали примерный масштаб проблемы. Точную стоимость запчастей и работ может назвать только мастер на СТО после физической диагностики.</span>
-                       </div>
-                    </div>
-                  </details>
-                </div>
-
-                ${!isUnlockedForUser ? `
-                <!-- Градиентное перекрытие и сканер над размытым текстом -->
-                <div class="absolute z-10 inset-0 pointer-events-none overflow-hidden rounded-2xl">
-                  <div class="absolute inset-0 bg-gradient-to-t from-white via-white/80 to-transparent"></div>
-                  <div class="absolute top-0 left-0 w-full h-[2px] bg-brand shadow-[0_0_15px_3px_rgba(0,119,255,0.8)] animate-scan"></div>
-                </div>
-
-                <!-- Сама карточка пейволла в нормальном потоке с отрицательным отступом -->
-                <div id="paywall-overlay" class="relative z-20 w-full flex flex-col items-center justify-center p-4 pb-8 -mt-32 md:-mt-40" style="pointer-events: none;">
-                  
-                  <div class="bg-slate-900 bg-gradient-to-br from-slate-900 via-blue-950 to-slate-900 animate-gradient-xy border border-white/10 shadow-[0_20px_60px_-10px_rgba(0,119,255,0.5)] animate-pulse-glow rounded-3xl p-6 md:p-8 w-full max-w-md transform transition-all mx-auto relative overflow-hidden" style="pointer-events: auto;">
-                    
-                    <!-- Декоративные партиклы/сетка на фоне карточки -->
-                    <div class="absolute inset-0 opacity-20" style="background-image: radial-gradient(rgba(255, 255, 255, 0.15) 1px, transparent 1px); background-size: 20px 20px;"></div>
-
-                    <div class="relative z-10">
-                      <div class="flex flex-col items-center text-center mb-5">
-                        
-                        <!-- Индикатор "ИИ-анализ завершен" -->
-                        <div class="flex items-center justify-center gap-2 mb-5 px-3.5 py-1.5 bg-blue-900/40 border border-blue-400/30 rounded-full shadow-inner backdrop-blur-sm">
-                          <span class="relative flex h-2 w-2">
-                            <span class="animate-ping absolute inline-flex h-full w-full rounded-full bg-blue-400 opacity-75"></span>
-                            <span class="relative inline-flex rounded-full h-2 w-2 bg-blue-400"></span>
-                          </span>
-                          <span class="text-[10px] font-bold text-blue-300 tracking-widest uppercase">Детальный ответ готов</span>
-                        </div>
-
-                        <div class="bg-blue-500/10 border border-blue-500/20 p-3.5 rounded-full mb-4 shadow-[0_0_15px_rgba(0,119,255,0.4)] text-blue-400">
-                          <i data-lucide="lock" class="w-6 h-6"></i>
-                        </div>
-                        <h3 class="text-2xl font-extrabold text-white tracking-tight drop-shadow-md">Разблокируйте полный отчет</h3>
-                        <p class="text-sm text-gray-300 mt-2 font-medium">Узнайте всё о поломке и сэкономьте на ремонте.</p>
-                      </div>
-
-                      <ul class="space-y-3.5 mb-7 text-sm text-gray-200 bg-white/5 backdrop-blur-md p-4 rounded-2xl border border-white/10">
-                        <li class="flex items-start gap-3">
-                          <i data-lucide="search-check" class="w-5 h-5 text-green-400 shrink-0 drop-shadow-sm"></i>
-                          <span><strong class="text-white">Причины и симптомы:</strong> точный диагноз проблемы.</span>
-                        </li>
-                        <li class="flex items-start gap-3">
-                          <i data-lucide="shield-alert" class="w-5 h-5 text-red-400 shrink-0 drop-shadow-sm"></i>
-                          <span><strong class="text-white">Защита от обмана:</strong> как не лохануться на СТО.</span>
-                        </li>
-                        <li class="flex items-start gap-3">
-                          <i data-lucide="wrench" class="w-5 h-5 text-orange-400 shrink-0 drop-shadow-sm"></i>
-                          <span><strong class="text-white">Сделай сам:</strong> пошаговая инструкция по ремонту.</span>
-                        </li>
-                        <li class="flex items-start gap-3">
-                          <i data-lucide="calculator" class="w-5 h-5 text-blue-400 shrink-0 drop-shadow-sm"></i>
-                          <span><strong class="text-white">Фин. прогноз:</strong> реальная стоимость запчастей и работы.</span>
-                        </li>
-                      </ul>
-
-                      <button id="unlock-btn" class="relative overflow-hidden w-full bg-brand text-white font-bold rounded-xl py-4 text-lg hover:bg-blue-500 transition-all shadow-[0_0_20px_rgba(0,119,255,0.5)] hover:shadow-[0_0_30px_rgba(0,119,255,0.7)] hover:-translate-y-0.5 active:scale-[0.98] flex justify-center items-center gap-2 group border border-blue-400/50">    
-                        <div class="absolute inset-0 -translate-x-full bg-gradient-to-r from-transparent via-white/40 to-transparent group-hover:animate-shimmer"></div>
-                        <i data-lucide="unlock" class="w-5 h-5 relative z-10 drop-shadow-md"></i>
-                        <span class="relative z-10 drop-shadow-md">Разблокировать за $1.99</span>
-                      </button>
-                      <p class="text-xs text-center text-gray-400 mt-4 flex items-center justify-center gap-1.5 font-medium">
-                        <i data-lucide="shield-check" class="w-3.5 h-3.5 text-green-400"></i> Безопасная оплата 256-bit
-                      </p>
-                    </div>
-                  </div>
-                </div>
-                ` : ''}
-              </div>
-            </div>
+    let relatedReportsHtml = '';
+    if (relatedReports.length > 0) {
+      relatedReportsHtml = `
+        <div class="mt-8 mb-6">
+          <h2 class="text-xl font-bold text-gray-900 dark:text-white mb-4 flex items-center gap-2"><i data-lucide="link" class="w-5 h-5 text-brand"></i> Другие ошибки ${displayBrand} ${displayModel}</h2>
+          <div class="grid grid-cols-2 md:grid-cols-3 gap-3">
+            ${relatedReports.map(r => `
+              <a href="${baseUrl}/diagnostic/${encodeURIComponent(r.brand.toLowerCase())}/${encodeURIComponent(r.model.toLowerCase())}/${encodeURIComponent(r.code.toUpperCase())}" class="bg-white dark:bg-slate-800 p-3 rounded-xl border border-gray-100 dark:border-slate-700 shadow-sm hover:shadow-md hover:border-brand/40 transition-all flex flex-col group">
+                <span class="font-bold text-gray-900 dark:text-white group-hover:text-brand transition-colors text-sm">${r.code.toUpperCase()}</span>
+                <span class="text-xs text-gray-500 dark:text-gray-400 mt-1 line-clamp-2">${(r.summary || '').substring(0, 60)}...</span>
+              </a>
+            `).join('')}
           </div>
         </div>
+      `;
+    }
 
-        <nav class="fixed bottom-0 w-full bg-white border-t border-gray-100 md:hidden z-50">
-          <div class="flex justify-around items-center h-16">
-            <button type="button" class="flex flex-col items-center justify-center w-full h-full text-brand bg-transparent border-0 cursor-pointer">
-              <i data-lucide="activity" class="w-5 h-5 mb-1"></i>
-              <span class="text-[10px] font-medium">Диагноз</span>
-            </button>
-            <button type="button" class="flex flex-col items-center justify-center w-full h-full text-gray-400 hover:text-gray-600 bg-transparent border-0 cursor-pointer">
-              <i data-lucide="history" class="w-5 h-5 mb-1"></i>
-              <span class="text-[10px] font-medium">История</span>
-            </button>
-            <button type="button" class="flex flex-col items-center justify-center w-full h-full text-gray-400 hover:text-gray-600 bg-transparent border-0 cursor-pointer">
-              <i data-lucide="car" class="w-5 h-5 mb-1"></i>
-              <span class="text-[10px] font-medium">Гараж</span>
-            </button>
-            <button type="button" class="flex flex-col items-center justify-center w-full h-full text-gray-400 hover:text-gray-600 bg-transparent border-0 cursor-pointer">
-              <i data-lucide="user" class="w-5 h-5 mb-1"></i>
-              <span class="text-[10px] font-medium">Профиль</span>
-            </button>
-          </div>
-        </nav>
-        <script>
-          lucide.createIcons();
-        </script>
-      </body>
-      </html>
-    `);
+    const schemaHtml = `<script type="application/ld+json">${JSON.stringify(techArticleSchema)}</script>\n        <script type="application/ld+json">${JSON.stringify(breadcrumbSchema)}</script>`;
+
+    res.render('diagnostic', {
+      seoTitle,
+      seoDescription,
+      pageUrl,
+      ogImage,
+      schemaHtml,
+      brand,
+      model,
+      displayBrand,
+      displayModel,
+      displayCode,
+      isUnsupportedReport,
+      severityClass: severityLevel === 'critical' || severityLevel === 'high' ? 'bg-red-100 text-red-800 dark:bg-red-900/30 dark:text-red-300' : severityLevel === 'medium' ? 'bg-yellow-100 text-yellow-800 dark:bg-yellow-900/30 dark:text-yellow-300' : 'bg-green-100 text-green-800 dark:bg-green-900/30 dark:text-green-300',
+      severityText: severity.text.replace(/<[^>]*>?/gm, ''),
+      drivabilityDataClass: drivabilityData.class.replace('bg-green-100', 'bg-green-100 dark:bg-green-900/30').replace('text-green-800', 'text-green-800 dark:text-green-300').replace('bg-orange-100', 'bg-orange-100 dark:bg-orange-900/30').replace('text-orange-800', 'text-orange-800 dark:text-orange-300').replace('bg-red-100', 'bg-red-100 dark:bg-red-900/30').replace('text-red-800', 'text-red-800 dark:text-red-300'),
+      drivabilityData,
+      summaryText,
+      teaserText,
+      reportId: report ? report.id : '',
+      isUnlockedForUser,
+      fullAnalysisHtml,
+      scamProtectionHtml,
+      pricePartsHtml: (report.price_parts && report.price_parts !== 'Уточняется' ? report.price_parts.replace(/\$/g, '').trim() + ' $' : 'Уточняется').replace(/\\n/g, '<br>'),
+      priceLaborHtml: (report.price_labor && report.price_labor !== 'Уточняется' ? report.price_labor.replace(/\$/g, '').trim() + ' $' : 'Уточняется').replace(/\\n/g, '<br>'),
+      report,
+      difficultyScoreHtml: (() => { const m = String(report && report.diy_difficulty_score ? report.diy_difficulty_score : '3/5').match(/(\d+)\s*(?:[\/|из]\s*(\d+))?/i); return m ? `${m[1]} из ${m[2] || '5'}` : '3 из 5'; })(),
+      diyInstructionsHtml,
+      relatedReportsHtml
+    });
 
   } catch (error) {
     console.error('🔴 Ошибка Gemini API:', error.message || error);
@@ -1508,6 +1330,22 @@ app.post('/api/unlock-report', async (req, res) => {
   } catch (err) {
     console.error('Ошибка БД при разблокировке:', err);
     res.status(500).json({ error: 'Внутренняя ошибка сервера' });
+  }
+});
+
+// API для поллинга статуса готовности полного отчета
+app.get('/api/report-status/:id', async (req, res) => {
+  try {
+    const report = await prisma.diagnosticReport.findUnique({
+      where: { id: req.params.id },
+      select: { is_complete: true }
+    });
+    if (!report) {
+      return res.status(404).json({ error: 'Отчет не найден' });
+    }
+    res.json({ is_complete: report.is_complete });
+  } catch (err) {
+    res.status(500).json({ error: 'Ошибка сервера' });
   }
 });
 
