@@ -157,7 +157,7 @@ app.get('/robots.txt', (req, res) => {
 // 3. Главная страница (Landing Page)
 app.get('/', async (req, res) => {
   res.setHeader('Cache-Control', 'no-store, no-cache, must-revalidate, private');
-  
+
   let latestQueriesHtml = '';
   try {
     const latestReports = await prisma.diagnosticReport.findMany({
@@ -178,7 +178,7 @@ app.get('/', async (req, res) => {
       latestQueriesHtml = latestReports.map((report, index) => {
         const icon = icons[index % icons.length];
         const link = `/diagnostic/${encodeURIComponent(report.brand.toLowerCase())}/${encodeURIComponent(report.model.toLowerCase())}/${encodeURIComponent(report.code.toUpperCase())}`;
-        
+
         let summaryText = report.summary || 'Описание ошибки недоступно';
         summaryText = summaryText.replace(/\n/g, ' ').substring(0, 100);
 
@@ -298,16 +298,28 @@ app.get('/', async (req, res) => {
         <!-- Главное содержимое (pSEO структура) -->
         <main class="space-y-12">
           <!-- Hero Секция -->
-          <section class="hero-section bg-white dark:bg-slate-800 rounded-3xl p-6 md:p-12 shadow-sm border border-gray-100 dark:border-slate-700 text-center relative overflow-hidden">
-            <div class="hero-content max-w-3xl mx-auto">
-              <span class="inline-block px-3 py-1 bg-brand/10 dark:bg-brand/20 text-brand dark:text-blue-400 text-xs font-bold rounded-full mb-4 uppercase tracking-wider">ИИ Автоэксперт</span>
-              <h1 class="text-3xl sm:text-4xl md:text-5xl font-black text-gray-900 dark:text-white mb-4 tracking-tight leading-tight">
-                Умная автодиагностика и персональный подбор ТО
-              </h1>
-              <p class="text-gray-500 dark:text-gray-400 text-base md:text-lg mb-8 max-w-2xl mx-auto">
-                Мгновенная расшифровка кодов OBD-II, дилерских ошибок и точный регламент расходников для вашей модификации авто.
-              </p>
+          <section class="hero-section bg-white dark:bg-slate-800 rounded-3xl p-6 md:p-10 shadow-sm border border-gray-100 dark:border-slate-700 relative overflow-hidden">
+            <div class="hero-content max-w-4xl mx-auto flex flex-col items-center">
               
+              <!-- Верхний блок: Картинка слева, текст справа -->
+              <div class="flex flex-col md:flex-row items-center gap-6 md:gap-10 mb-10 w-full">
+                <!-- Картинка -->
+                <div class="shrink-0 flex justify-center w-full md:w-auto">
+                  <img src="/img/auto-7set-pro-480x380-px.png" alt="Auto 7Set Pro" width="260" class="object-contain drop-shadow-md hover:scale-105 transition-transform duration-500">
+                </div>
+                
+                <!-- Текст -->
+                <div class="text-center md:text-left">
+                  <h1 class="text-3xl sm:text-4xl lg:text-5xl font-black text-gray-900 dark:text-white mb-4 tracking-tight leading-tight">
+                    Умная автодиагностика и персональный подбор ТО
+                  </h1>
+                  <p class="text-gray-500 dark:text-gray-400 text-base md:text-lg">
+                    Мгновенная расшифровка кодов OBD-II, дилерских ошибок и точный регламент расходников для вашей модификации авто.
+                  </p>
+                </div>
+              </div>
+              
+              <!-- Нижний блок: Поиск (на всю ширину) -->
               <style>
                 .custom-search-bg {
                   background-color: #f3f4f6 !important;
@@ -317,7 +329,7 @@ app.get('/', async (req, res) => {
                   background-color: #0f172a !important;
                 }
               </style>
-              <div class="search-widget custom-search-bg p-5 md:p-8 border border-gray-200 dark:border-slate-700 shadow-lg max-w-3xl mx-auto relative overflow-hidden">
+              <div class="search-widget custom-search-bg p-5 md:p-8 border border-gray-200 dark:border-slate-700 shadow-lg w-full relative overflow-hidden">
                 <form id="diagnostics-form" action="/search" method="GET" class="search-form">
                   <div class="input-group grid grid-cols-1 sm:grid-cols-3 gap-4 mb-4">
                     <div>
@@ -339,7 +351,6 @@ app.get('/', async (req, res) => {
                     <span class="relative z-10 drop-shadow-md">Диагностировать ошибку</span>
                   </button>
                 </form>
-
               </div>
             </div>
           </section>
@@ -1143,7 +1154,7 @@ app.get('/diagnostic/:brand/:model/:code', async (req, res) => {
     }
 
     const baseUrl = process.env.SITE_URL || 'https://7set.pro';
-    
+
     const breadcrumbSchema = {
       "@context": "https://schema.org",
       "@type": "BreadcrumbList",
