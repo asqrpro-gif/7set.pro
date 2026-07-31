@@ -1121,7 +1121,7 @@ app.get('/diagnostic/:brand/:model/:code', async (req, res) => {
             console.log(`✅ [ФОН] Глубокая генерация для ${code} успешно завершена и сохранена!`);
           } catch (error) {
             if (error.code === 'P2025') {
-              console.log('Запись уже удалена, пропускаем обновление');
+              console.log('Запись удалена, игнорируем');
               return;
             }
             console.error("❌ Ошибка при фоновом обновлении отчета:", error);
