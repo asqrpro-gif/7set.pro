@@ -1102,22 +1102,30 @@ app.get('/diagnostic/:brand/:model/:code', async (req, res) => {
       // 3. ⚡ АСИНХРОННЫЙ ФОНОВЫЙ ЗАПУСК ⚡ (БЕЗ await!)
       if (!isUnsupported) {
         analyzeCarErrorDeep(brand, model, code, baseDescription).then(async (deepData) => {
-          await prisma.diagnosticReport.update({
-            where: { id: newReport.id },
-            data: {
-              full_analysis_markdown: deepData.full_analysis_markdown,
-              sto_protection_tips: deepData.sto_protection_tips,
-              diy_instructions: deepData.diy_instructions,
-              price_parts: deepData.price_parts,
-              price_labor: deepData.price_labor,
-              diy_difficulty_text: deepData.diy_difficulty_text,
-              diy_difficulty_score: deepData.diy_difficulty_score,
-              diy_time: deepData.diy_time,
-              diy_tools: deepData.diy_tools,
-              is_complete: true // Отчет готов!
+          try {
+            await prisma.diagnosticReport.update({
+              where: { id: newReport.id },
+              data: {
+                full_analysis_markdown: deepData.full_analysis_markdown,
+                sto_protection_tips: deepData.sto_protection_tips,
+                diy_instructions: deepData.diy_instructions,
+                price_parts: deepData.price_parts,
+                price_labor: deepData.price_labor,
+                diy_difficulty_text: deepData.diy_difficulty_text,
+                diy_difficulty_score: deepData.diy_difficulty_score,
+                diy_time: deepData.diy_time,
+                diy_tools: deepData.diy_tools,
+                is_complete: true // Отчет готов!
+              }
+            });
+            console.log(`✅ [ФОН] Глубокая генерация для ${code} успешно завершена и сохранена!`);
+          } catch (error) {
+            if (error.code === 'P2025') {
+              console.log('Запись уже удалена, пропускаем обновление');
+              return;
             }
-          });
-          console.log(`✅ [ФОН] Глубокая генерация для ${code} успешно завершена и сохранена!`);
+            console.error("❌ Ошибка при фоновом обновлении отчета:", error);
+          }
         }).catch(err => console.error("❌ Фоновая генерация упала:", err));
       }
     }
