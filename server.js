@@ -117,16 +117,7 @@ const formatReportMarkdown = (text) => {
   str = str.replace(/(?<!#[^\n]*)(?<!Шаг\s*)(?<!Step\s*)([^\n])\s+(\d+\.\s+\S)/ig, '$1\n\n$2');
   str = str.replace(/(?<!#[^\n]*)([^\n])\s+(-\s+\S)/g, '$1\n\n$2');
   // Если первый блок причин идет без ### в начале, делаем его h3
-  str = str.replace(/^(Основные технические причины[^:]*:)/i, '### <i data-lucide="alert-triangle" class="inline-block w-5 h-5 text-amber-500 mr-1.5 align-text-bottom"></i> $1\n\n');
-  // Добавляем иконки Lucide к ключевым заголовкам, если их там еще нет (безопасная проверка через негативный lookahead)
-  str = str.replace(/(#{1,3}\s+)(?!<i|[^<\n]*data-lucide)(Специфика)/g, '$1<i data-lucide="wrench" class="inline-block w-5 h-5 text-brand mr-1.5 align-text-bottom"></i> $2');
-  str = str.replace(/(#{1,3}\s+)(?!<i|[^<\n]*data-lucide)(Как не лохануться)/g, '$1<i data-lucide="shield-alert" class="inline-block w-5 h-5 text-red-500 mr-1.5 align-text-bottom"></i> $2');
-  str = str.replace(/(#{1,3}\s+)(?!<i|[^<\n]*data-lucide)(Основные)/g, '$1<i data-lucide="alert-triangle" class="inline-block w-5 h-5 text-amber-500 mr-1.5 align-text-bottom"></i> $2');
-  // Иконки для шагов в Сделай сам:
-  str = str.replace(/(#{1,3}\s+)(?!<i|[^<\n]*data-lucide)((?:Шаг\s*\d+[\s:.-]*)?[^#\n]*(?:Визуальн|Осмотр)[^#\n]*)/ig, '$1<i data-lucide="eye" class="inline-block w-5 h-5 text-brand mr-1.5 align-text-bottom"></i> $2');
-  str = str.replace(/(#{1,3}\s+)(?!<i|[^<\n]*data-lucide)((?:Шаг\s*\d+[\s:.-]*)?[^#\n]*(?:Сканер|OBD|Live Data|Чтение|Код)[^#\n]*)/ig, '$1<i data-lucide="cpu" class="inline-block w-5 h-5 text-brand mr-1.5 align-text-bottom"></i> $2');
-  str = str.replace(/(#{1,3}\s+)(?!<i|[^<\n]*data-lucide)((?:Шаг\s*\d+[\s:.-]*)?[^#\n]*(?:Мультиметр|Сопротивление|Напряжение|Проводк|Датчик|Электрик)[^#\n]*)/ig, '$1<i data-lucide="gauge" class="inline-block w-5 h-5 text-brand mr-1.5 align-text-bottom"></i> $2');
-  str = str.replace(/(#{1,3}\s+)(?!<i|[^<\n]*data-lucide)((?:Шаг\s*\d+[\s:.-]*)?[^#\n]*(?:Замена|Ремонт|Очистк|Промывк|Сняти|Установк)[^#\n]*)/ig, '$1<i data-lucide="wrench" class="inline-block w-5 h-5 text-brand mr-1.5 align-text-bottom"></i> $2');
+  str = str.replace(/^(Основные технические причины[^:]*:)/i, '### $1\n\n');
   return str;
 };
 
@@ -168,32 +159,54 @@ app.get('/', async (req, res) => {
         brand: true,
         model: true,
         code: true,
+        severity: true,
         summary: true
       }
     });
 
-    const icons = ['cpu', 'alert-triangle', 'wind', 'settings', 'activity', 'flame', 'zap', 'wifi-off'];
-
     if (latestReports.length > 0) {
-      latestQueriesHtml = latestReports.map((report, index) => {
-        const icon = icons[index % icons.length];
+      latestQueriesHtml = latestReports.map((report) => {
         const link = `/diagnostic/${encodeURIComponent(report.brand.toLowerCase())}/${encodeURIComponent(report.model.toLowerCase())}/${encodeURIComponent(report.code.toUpperCase())}`;
 
         let summaryText = report.summary || 'Описание ошибки недоступно';
         summaryText = summaryText.replace(/\n/g, ' ').substring(0, 100);
 
+        const brandMap = {
+          'toyota': 'toyota', 'hyundai': 'hyundai', 'kia': 'kia', 'lada': 'lada',
+          'volkswagen': 'vw', 'vw': 'vw', 'skoda': 'skoda', 'renault': 'renault',
+          'nissan': 'nissan', 'chevrolet': 'chevrolet', 'ford': 'ford', 'bmw': 'bmw',
+          'mercedes-benz': 'mercedes-benz', 'mercedes': 'mercedes-benz', 'audi': 'audi',
+          'mazda': 'mazda', 'geely': 'geely', 'chery': 'chery'
+        };
+        const currentBrandLower = report.brand ? report.brand.toLowerCase() : '';
+        const logoSlug = brandMap[currentBrandLower];
+        
+        let logoHtml;
+        if (logoSlug) {
+            logoHtml = `<div class="w-12 h-12 flex items-center justify-center shrink-0"><img src="/img/logos/${logoSlug}-logo-60x60-px.webp" width="48" height="48" alt="${report.brand}" class="object-contain drop-shadow-sm group-hover:scale-110 transition-transform duration-300" /></div>`;
+        } else {
+            logoHtml = `<div class="w-12 h-12 bg-gray-50 dark:bg-slate-700 text-brand dark:text-blue-400 rounded-2xl flex items-center justify-center group-hover:bg-brand group-hover:text-white transition-colors duration-300 shadow-sm shrink-0"><i data-lucide="car-front" class="w-5 h-5"></i></div>`;
+        }
+
+        const severityMap = {
+          critical: { class: 'bg-red-100 text-red-800 dark:bg-red-900/30 dark:text-red-300', text: 'Критичный' },
+          high: { class: 'bg-red-100 text-red-800 dark:bg-red-900/30 dark:text-red-300', text: 'Высокий' },
+          medium: { class: 'bg-yellow-100 text-yellow-800 dark:bg-yellow-900/30 dark:text-yellow-300', text: 'Средний' },
+          low: { class: 'bg-green-100 text-green-800 dark:bg-green-900/30 dark:text-green-300', text: 'Низкий' }
+        };
+        const sev = severityMap[report.severity] || severityMap.medium;
+        const severityHtml = `<span class="${sev.class} block text-center text-[9px] sm:text-[10px] font-bold px-2 py-1 rounded-b-xl rounded-t-sm uppercase tracking-wider mt-[2px] shadow-sm whitespace-nowrap">Риск: ${sev.text}</span>`;
+
         return `
                 <!-- Карточка -->
                 <a href="${link}" class="bg-white dark:bg-slate-800 p-6 rounded-3xl border border-gray-100 dark:border-slate-700 shadow-sm hover:shadow-xl hover:border-brand/40 dark:hover:border-brand/40 transition-all group flex flex-col h-full relative overflow-hidden duration-300 hover:-translate-y-1">
-                    <div class="absolute -right-6 -top-6 text-gray-50 dark:text-slate-700/30 group-hover:text-brand/5 dark:group-hover:text-brand/10 transition-colors duration-500 rotate-12">
-                        <i data-lucide="${icon}" class="w-32 h-32"></i>
-                    </div>
                     <div class="relative z-10 flex flex-col h-full">
                         <div class="flex items-center justify-between mb-4">
-                            <div class="w-12 h-12 bg-gray-50 dark:bg-slate-700 text-brand dark:text-blue-400 rounded-2xl flex items-center justify-center group-hover:bg-brand group-hover:text-white transition-colors duration-300 shadow-sm">
-                                <i data-lucide="search" class="w-5 h-5"></i>
+                            ${logoHtml}
+                            <div class="flex flex-col items-stretch shrink-0 ml-2">
+                                <span class="text-center text-base md:text-lg font-black px-4 py-1.5 bg-[#0077FF] text-white rounded-t-xl rounded-b-sm shadow-sm transition-colors">${report.code.toUpperCase()}</span>
+                                ${severityHtml}
                             </div>
-                            <span class="text-xs font-bold px-3 py-1.5 bg-gray-100 dark:bg-slate-700 text-gray-600 dark:text-gray-300 rounded-xl group-hover:text-brand dark:group-hover:text-blue-400 transition-colors">${report.code.toUpperCase()}</span>
                         </div>
                         <h3 class="font-bold text-lg text-gray-900 dark:text-white mb-2 group-hover:text-brand transition-colors capitalize">${report.brand} ${report.model}</h3>
                         <p class="text-gray-500 dark:text-gray-400 text-sm line-clamp-2 mt-auto leading-relaxed">${summaryText}</p>

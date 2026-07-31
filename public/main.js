@@ -1,169 +1,196 @@
 document.addEventListener('DOMContentLoaded', () => {
-    // =========================================
-    // 1. Управление Темой (Светлая / Темная)
-    // =========================================
-    const themeToggleBtn = document.getElementById('theme-toggle');
+  // =========================================
+  // 1. Управление Темой (Светлая / Темная)
+  // =========================================
+  const themeToggleBtn = document.getElementById('theme-toggle');
 
-    const updateThemeIcon = () => {
-        if (!themeToggleBtn) return;
-        const isDark = document.documentElement.getAttribute('data-theme') === 'dark';
-        themeToggleBtn.innerHTML = `<i data-lucide="${isDark ? 'sun' : 'moon'}" class="w-5 h-5 text-gray-700"></i>`;
-        if (window.lucide && typeof lucide.createIcons === 'function') {
-            lucide.createIcons();
+  const updateThemeIcon = () => {
+    if (!themeToggleBtn) return;
+    const isDark = document.documentElement.getAttribute('data-theme') === 'dark';
+    themeToggleBtn.innerHTML = `<i data-lucide="${isDark ? 'sun' : 'moon'}" class="w-5 h-5 text-gray-700"></i>`;
+    if (window.lucide && typeof lucide.createIcons === 'function') {
+      lucide.createIcons();
+    }
+  };
+
+  // Инициализация темы из localStorage
+  const savedTheme = localStorage.getItem('theme');
+  if (savedTheme === 'dark') {
+    document.documentElement.setAttribute('data-theme', 'dark');
+    document.documentElement.classList.add('dark');
+  } else if (!savedTheme && window.matchMedia && window.matchMedia('(prefers-color-scheme: dark)').matches) {
+    // Поддержка системной темы по умолчанию
+    document.documentElement.setAttribute('data-theme', 'dark');
+    document.documentElement.classList.add('dark');
+  }
+  updateThemeIcon();
+
+  if (themeToggleBtn) {
+    themeToggleBtn.addEventListener('click', () => {
+      const currentTheme = document.documentElement.getAttribute('data-theme');
+      if (currentTheme === 'dark') {
+        document.documentElement.removeAttribute('data-theme');
+        document.documentElement.classList.remove('dark');
+        localStorage.setItem('theme', 'light');
+      } else {
+        document.documentElement.setAttribute('data-theme', 'dark');
+        document.documentElement.classList.add('dark');
+        localStorage.setItem('theme', 'dark');
+      }
+      updateThemeIcon();
+    });
+  }
+
+  // =========================================
+  // 2. Логика Разблокировки Пейволла
+  // =========================================
+  const unlockBtn = document.getElementById('unlock-btn');
+  const paywallContainer = document.getElementById('paywall-container');
+  const paywallOverlay = document.getElementById('paywall-overlay');
+
+  if (unlockBtn && paywallContainer) {
+    unlockBtn.addEventListener('click', async () => {
+      const reportId = paywallContainer.getAttribute('data-report-id');
+      if (!reportId) return;
+
+      // Эмуляция процесса оплаты (интеграция с Kaspi / эквайрингом)
+      unlockBtn.disabled = true;
+      unlockBtn.innerText = 'Обработка платежа...';
+
+      try {
+        await new Promise(resolve => setTimeout(resolve, 800));
+
+        const response = await fetch('/api/unlock-report', {
+          method: 'POST',
+          headers: { 'Content-Type': 'application/json' },
+          body: JSON.stringify({
+            reportId,
+            paymentToken: 'fake_kaspi_token_123'
+          })
+        });
+
+        const data = await response.json();
+
+        if (!response.ok) {
+          throw new Error(data.error || 'Ошибка разблокировки отчета');
         }
-    };
 
-    // Инициализация темы из localStorage
-    const savedTheme = localStorage.getItem('theme');
-    if (savedTheme === 'dark') {
-        document.documentElement.setAttribute('data-theme', 'dark');
-        document.documentElement.classList.add('dark');
-    } else if (!savedTheme && window.matchMedia && window.matchMedia('(prefers-color-scheme: dark)').matches) {
-        // Поддержка системной темы по умолчанию
-        document.documentElement.setAttribute('data-theme', 'dark');
-        document.documentElement.classList.add('dark');
-    }
-    updateThemeIcon();
+        // Дублируем сохранение в localStorage и cookie на стороне клиента (на 3 дня) для гарантированного доступа после перезагрузки
+        try {
+          let localList = JSON.parse(localStorage.getItem('unlocked_reports') || '[]');
+          if (!Array.isArray(localList)) localList = [];
+          if (!localList.includes(reportId)) localList.push(reportId);
+          localStorage.setItem('unlocked_reports', JSON.stringify(localList));
+          document.cookie = `unlocked_reports=${encodeURIComponent(JSON.stringify(localList))}; max-age=${3 * 24 * 60 * 60}; path=/`;
+        } catch (e) { }
 
-    if (themeToggleBtn) {
-        themeToggleBtn.addEventListener('click', () => {
-            const currentTheme = document.documentElement.getAttribute('data-theme');
-            if (currentTheme === 'dark') {
-                document.documentElement.removeAttribute('data-theme');
-                document.documentElement.classList.remove('dark');
-                localStorage.setItem('theme', 'light');
-            } else {
-                document.documentElement.setAttribute('data-theme', 'dark');
-                document.documentElement.classList.add('dark');
-                localStorage.setItem('theme', 'dark');
-            }
-            updateThemeIcon();
-        });
-    }
+        // Плавное скрытие оверлея
+        if (paywallOverlay) {
+          paywallOverlay.style.opacity = '0';
+        }
 
-    // =========================================
-    // 2. Логика Разблокировки Пейволла
-    // =========================================
-    const unlockBtn = document.getElementById('unlock-btn');
-    const paywallContainer = document.getElementById('paywall-container');
-    const paywallOverlay = document.getElementById('paywall-overlay');
+        setTimeout(() => {
+          // Перезагрузка для отрисовки серверного контента с аккордеонами
+          sessionStorage.setItem('scrollToPaywall', 'true');
+          window.location.reload();
+        }, 300);
 
-    if (unlockBtn && paywallContainer) {
-        unlockBtn.addEventListener('click', async () => {
-            const reportId = paywallContainer.getAttribute('data-report-id');
-            if (!reportId) return;
+      } catch (error) {
+        console.error('Ошибка:', error);
+        alert('Произошла ошибка при разблокировке: ' + error.message);
+        unlockBtn.disabled = false;
+        unlockBtn.innerText = 'Разблокировать за $1.99';
+      }
+    });
+  }
 
-            // Эмуляция процесса оплаты (интеграция с Kaspi / эквайрингом)
-            unlockBtn.disabled = true;
-            unlockBtn.innerText = 'Обработка платежа...';
+  // Проверяем, нужно ли прокрутить к разблокированному контенту
+  if (sessionStorage.getItem('scrollToPaywall') === 'true') {
+    sessionStorage.removeItem('scrollToPaywall');
+    setTimeout(() => {
+      if (paywallContainer) {
+        paywallContainer.scrollIntoView({ behavior: 'smooth', block: 'start' });
+      }
+    }, 100);
+  }
 
-            try {
-                await new Promise(resolve => setTimeout(resolve, 800));
+  // =========================================
+  // 3. Умный ввод (Автокомплит Марки и Модели)
+  // =========================================
+  const inputBrand = document.getElementById('inputBrand');
+  const brandOptions = document.getElementById('brand-options');
+  const inputModel = document.getElementById('inputModel');
+  const modelOptions = document.getElementById('model-options');
 
-                const response = await fetch('/api/unlock-report', {
-                    method: 'POST',
-                    headers: { 'Content-Type': 'application/json' },
-                    body: JSON.stringify({
-                        reportId,
-                        paymentToken: 'fake_kaspi_token_123'
-                    })
-                });
+  if (inputBrand && brandOptions && inputModel && modelOptions) {
+    const carData = {
+        "Toyota": ["Camry", "Corolla", "RAV4", "Land Cruiser", "Yaris", "Highlander", "Land Cruiser Prado", "Prius", "Avensis", "Hilux", "Mark II"],
+        "Hyundai": ["Accent", "Elantra", "Sonata", "Tucson", "Santa Fe", "Creta", "Solaris", "Getz", "Palisade", "H-1", "Staria"],
+        "Kia": ["Rio", "Cerato", "Optima", "K5", "Sportage", "Sorento", "Ceed", "Soul", "Mohave", "Spectra"],
+        "Lada": ["Granta", "Vesta", "Niva", "Priora", "Largus", "Kalina", "2114", "2107", "2110", "XRAY"],
+        "Volkswagen": ["Polo", "Jetta", "Passat", "Tiguan", "Touareg", "Golf", "Transporter", "Caravelle", "Caddy", "Multivan"],
+        "Skoda": ["Rapid", "Octavia", "Superb", "Kodiaq", "Karoq", "Fabia", "Yeti"],
+        "Renault": ["Logan", "Duster", "Sandero", "Kaptur", "Arkana", "Megane", "Fluence", "Stepway", "Kangoo"],
+        "Nissan": ["Almera", "Qashqai", "X-Trail", "Terrano", "Juke", "Teana", "Tiida", "Note", "Patrol", "Primera"],
+        "Chevrolet": ["Nexia", "Cobalt", "Spark", "Tracker", "Cruze", "Tahoe", "Aveo", "Lacetti", "Captiva", "Lanos", "Niva"],
+        "Ford": ["Focus", "Fiesta", "Mondeo", "Kuga", "Transit"],
+        "BMW": ["3-Series", "5-Series", "X3", "X5", "X6"],
+        "Mercedes-Benz": ["C-Class", "E-Class", "S-Class", "GLC", "GLE", "G-Class", "Sprinter", "Vito", "Viano"],
+        "Audi": ["A3", "A4", "A6", "Q5", "Q7", "80", "100", "A8", "Q3"],
+        "Mazda": ["3", "6", "CX-5", "CX-9"],
+        "Geely": ["Coolray", "Atlas", "Monjaro", "Tugella", "Emgrand"],
+        "Chery": ["Tiggo 4", "Tiggo 7", "Tiggo 8", "Omoda C5"],
+    
+        // Новые марки, добавленные для охвата СНГ
+        "Mitsubishi": ["Outlander", "Lancer", "Pajero", "Pajero Sport", "ASX", "L200"],
+        "Honda": ["Civic", "Accord", "CR-V", "Fit", "HR-V", "Odyssey"],
+        "Lexus": ["RX", "LX", "NX", "ES", "GS", "IS"],
+        "Haval": ["Jolion", "F7", "F7x", "Dargo", "H9"],
+        "Subaru": ["Forester", "Outback", "Impreza", "Legacy", "XV"],
+        "Suzuki": ["Grand Vitara", "Vitara", "SX4", "Jimny", "Swift"],
+        "Opel": ["Astra", "Vectra", "Corsa", "Zafira", "Mokka", "Antara"],
+        "Daewoo": ["Matiz", "Nexia", "Lanos"],
+        "Peugeot": ["308", "408", "3008", "Partner", "Boxer"],
+        "UAZ": ["Patriot", "Hunter", "Bukhanka"],
+        "GAZ": ["Gazelle", "Sobol", "Volga"],
+        "Changan": ["CS35 Plus", "CS55 Plus", "UNI-K", "UNI-V", "CS75 Plus"],
+        "Exeed": ["LX", "TXL", "VX", "RX"],
+        "Tank": ["300", "500"]
+      };
 
-                const data = await response.json();
+      // Заполняем список марок
+      Object.keys(carData).forEach(brand => {
+        const option = document.createElement('option');
+        option.value = brand;
+        brandOptions.appendChild(option);
+      });
 
-                if (!response.ok) {
-                    throw new Error(data.error || 'Ошибка разблокировки отчета');
-                }
+      // Слушатель изменения марки
+      inputBrand.addEventListener('input', (e) => {
+        const selectedBrand = e.target.value.trim();
 
-                // Дублируем сохранение в localStorage и cookie на стороне клиента (на 3 дня) для гарантированного доступа после перезагрузки
-                try {
-                    let localList = JSON.parse(localStorage.getItem('unlocked_reports') || '[]');
-                    if (!Array.isArray(localList)) localList = [];
-                    if (!localList.includes(reportId)) localList.push(reportId);
-                    localStorage.setItem('unlocked_reports', JSON.stringify(localList));
-                    document.cookie = `unlocked_reports=${encodeURIComponent(JSON.stringify(localList))}; max-age=${3 * 24 * 60 * 60}; path=/`;
-                } catch(e) {}
+        // Очищаем список моделей
+        modelOptions.innerHTML = '';
 
-                // Плавное скрытие оверлея
-                if (paywallOverlay) {
-                    paywallOverlay.style.opacity = '0';
-                }
+        // Ищем марку (регистронезависимо)
+        const matchedKey = Object.keys(carData).find(k => k.toLowerCase() === selectedBrand.toLowerCase());
 
-                setTimeout(() => {
-                    // Перезагрузка для отрисовки серверного контента с аккордеонами
-                    window.location.reload();
-                }, 300);
-
-            } catch (error) {
-                console.error('Ошибка:', error);
-                alert('Произошла ошибка при разблокировке: ' + error.message);
-                unlockBtn.disabled = false;
-                unlockBtn.innerText = 'Разблокировать за $1.99';
-            }
-        });
-    }
-
-    // =========================================
-    // 3. Умный ввод (Автокомплит Марки и Модели)
-    // =========================================
-    const inputBrand = document.getElementById('inputBrand');
-    const brandOptions = document.getElementById('brand-options');
-    const inputModel = document.getElementById('inputModel');
-    const modelOptions = document.getElementById('model-options');
-
-    if (inputBrand && brandOptions && inputModel && modelOptions) {
-        const carData = {
-            "Toyota": ["Camry", "Corolla", "RAV4", "Land Cruiser", "Yaris", "Highlander"],
-            "Hyundai": ["Accent", "Elantra", "Sonata", "Tucson", "Santa Fe", "Creta"],
-            "Kia": ["Rio", "Cerato", "Optima", "K5", "Sportage", "Sorento"],
-            "Lada": ["Granta", "Vesta", "Niva", "Priora", "Largus", "Kalina"],
-            "Volkswagen": ["Polo", "Jetta", "Passat", "Tiguan", "Touareg", "Golf"],
-            "Skoda": ["Rapid", "Octavia", "Superb", "Kodiaq", "Karoq"],
-            "Renault": ["Logan", "Duster", "Sandero", "Kaptur", "Arkana"],
-            "Nissan": ["Almera", "Qashqai", "X-Trail", "Terrano", "Juke"],
-            "Chevrolet": ["Nexia", "Cobalt", "Spark", "Tracker", "Cruze", "Tahoe"],
-            "Ford": ["Focus", "Fiesta", "Mondeo", "Kuga", "Transit"],
-            "BMW": ["3-Series", "5-Series", "X3", "X5", "X6"],
-            "Mercedes-Benz": ["C-Class", "E-Class", "S-Class", "GLC", "GLE"],
-            "Audi": ["A3", "A4", "A6", "Q5", "Q7"],
-            "Mazda": ["3", "6", "CX-5", "CX-9"],
-            "Geely": ["Coolray", "Atlas", "Monjaro", "Tugella"],
-            "Chery": ["Tiggo 4", "Tiggo 7", "Tiggo 8", "Omoda C5"]
-        };
-
-        // Заполняем список марок
-        Object.keys(carData).forEach(brand => {
+        if (matchedKey) {
+          carData[matchedKey].forEach(model => {
             const option = document.createElement('option');
-            option.value = brand;
-            brandOptions.appendChild(option);
-        });
+            option.value = model;
+            modelOptions.appendChild(option);
+          });
+        }
 
-        // Слушатель изменения марки
-        inputBrand.addEventListener('input', (e) => {
-            const selectedBrand = e.target.value.trim();
-
-            // Очищаем список моделей
-            modelOptions.innerHTML = '';
-
-            // Ищем марку (регистронезависимо)
-            const matchedKey = Object.keys(carData).find(k => k.toLowerCase() === selectedBrand.toLowerCase());
-
-            if (matchedKey) {
-                carData[matchedKey].forEach(model => {
-                    const option = document.createElement('option');
-                    option.value = model;
-                    modelOptions.appendChild(option);
-                });
-            }
-
-            // Включаем поле модели, если марка выбрана корректно
-            if (matchedKey) {
-                inputModel.disabled = false;
-            } else {
-                inputModel.disabled = true;
-                inputModel.value = '';
-            }
-        });
+        // Включаем поле модели, если марка выбрана корректно
+        if (matchedKey) {
+          inputModel.disabled = false;
+        } else {
+          inputModel.disabled = true;
+          inputModel.value = '';
+        }
+      });
     }
 
     // =========================================
@@ -174,51 +201,51 @@ document.addEventListener('DOMContentLoaded', () => {
     const errorHint = document.getElementById('codeErrorHint');
 
     if (searchButton && codeInput && errorHint) {
-        searchButton.addEventListener('click', (e) => {
-            // Очищаем предыдущую ошибку
-            errorHint.style.display = 'none';
-            errorHint.innerText = '';
+      searchButton.addEventListener('click', (e) => {
+        // Очищаем предыдущую ошибку
+        errorHint.style.display = 'none';
+        errorHint.innerText = '';
 
-            let codeValue = codeInput.value.trim().toUpperCase();
+        let codeValue = codeInput.value.trim().toUpperCase();
 
-            // Фикс для пользователей: если ввели ровно 4 цифры (например, "0171"), автодобавляем префикс "P"
-            if (/^[0-9]{4}$/.test(codeValue)) {
-                codeValue = 'P' + codeValue;
-            }
+        // Фикс для пользователей: если ввели ровно 4 цифры (например, "0171"), автодобавляем префикс "P"
+        if (/^[0-9]{4}$/.test(codeValue)) {
+          codeValue = 'P' + codeValue;
+        }
 
-            codeInput.value = codeValue; // Возвращаем отформатированное значение в поле
+        codeInput.value = codeValue; // Возвращаем отформатированное значение в поле
 
-            if (!codeValue) return; // Пустое поле обработает стандартный HTML5 required
+        if (!codeValue) return; // Пустое поле обработает стандартный HTML5 required
 
-            // Проверка формата OBD2 (Буква P, B, C, U и 4 символа шестнадцатеричного кода)
-            const obdRegex = /^[PBUC][0-9A-F]{4}$/;
-            if (!obdRegex.test(codeValue)) {
-                e.preventDefault(); // Останавливаем отправку формы
-                errorHint.innerText = "Неверный формат. Код должен состоять из префикса (P, B, C, U) и 4 символов, например: P0171.";
-                errorHint.style.display = 'block';
-                return;
-            }
+        // Проверка формата OBD2 (Буква P, B, C, U и 4 символа шестнадцатеричного кода)
+        const obdRegex = /^[PBUC][0-9A-F]{4}$/;
+        if (!obdRegex.test(codeValue)) {
+          e.preventDefault(); // Останавливаем отправку формы
+          errorHint.innerText = "Неверный формат. Код должен состоять из префикса (P, B, C, U) и 4 символов, например: P0171.";
+          errorHint.style.display = 'block';
+          return;
+        }
 
-            // Предотвращаем стандартный клик и выполняем программную отправку формы
-            e.preventDefault();
+        // Предотвращаем стандартный клик и выполняем программную отправку формы
+        e.preventDefault();
 
-            // Защита от двойного клика / повторной отправки
-            searchButton.disabled = true;
-            searchButton.innerText = 'Сканируем базу...';
+        // Защита от двойного клика / повторной отправки
+        searchButton.disabled = true;
+        searchButton.innerText = 'Сканируем базу...';
 
-            // Безопасно находим родительскую форму независимо от наличия у неё id
-            const form = searchButton.closest('form') || searchButton.form;
-            if (form) {
-                form.submit();
-            }
-        });
+        // Безопасно находим родительскую форму независимо от наличия у неё id
+        const form = searchButton.closest('form') || searchButton.form;
+        if (form) {
+          form.submit();
+        }
+      });
     }
 
     // Гарантированная отрисовка иконок Lucide для всего Markdown контента ИИ
     if (window.lucide && typeof lucide.createIcons === 'function') {
-        lucide.createIcons();
+      lucide.createIcons();
     }
-});
+  });
 
 // ==========================================
 // Логика добавления авто в Гараж и выбора тарифа
@@ -229,7 +256,7 @@ const resultContainer = document.getElementById('consumables-result');
 if (addCarForm) {
   addCarForm.addEventListener('submit', async (e) => {
     e.preventDefault();
-    
+
     // Показываем загрузку (ИИ думает)
     resultContainer.style.display = 'block';
     resultContainer.innerHTML = '<p class="text-blue-600 font-medium py-4 text-center animate-pulse">⏳ ИИ подбирает допуски и размеры под вашу модификацию...</p>';
@@ -260,8 +287,8 @@ if (addCarForm) {
       }
 
       // Успех! Парсим JSON с расходниками, который вернул ИИ
-      const consumables = typeof data.car.consumablesJson === 'string' 
-        ? JSON.parse(data.car.consumablesJson) 
+      const consumables = typeof data.car.consumablesJson === 'string'
+        ? JSON.parse(data.car.consumablesJson)
         : data.car.consumablesJson;
 
       // Красиво отрисовываем результат
@@ -287,7 +314,7 @@ if (addCarForm) {
   });
 }
 
-window.selectPlan = function(plan) {
+window.selectPlan = function (plan) {
   const titles = {
     single: "1 Автомобиль (Базовый)",
     multi: "До 5 Автомобилей (Семья)",
@@ -296,7 +323,7 @@ window.selectPlan = function(plan) {
   alert(`Выбран тариф: "${titles[plan] || plan}". Переход к шлюзу оплаты подписки...`);
 };
 
-window.deleteCarFromGarage = async function(carId) {
+window.deleteCarFromGarage = async function (carId) {
   if (!confirm("Удалить этот автомобиль из вашего Гаража?")) return;
   try {
     const res = await fetch(`/garage/${carId}`, { method: 'DELETE' });
