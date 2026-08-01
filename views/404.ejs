@@ -1,0 +1,52 @@
+<!DOCTYPE html>
+<html lang="ru">
+
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title><%= seoTitle %></title>
+  <meta name="description" content="<%= seoDescription %>">
+  <link rel="canonical" href="<%= pageUrl %>">
+  <meta name="robots" content="noindex, follow">
+  
+  <script src="https://cdn.tailwindcss.com"></script>
+  <script>
+    tailwind.config = {
+      darkMode: 'class',
+      theme: {
+        extend: {
+          colors: { brand: '#0077FF', surface: '#F5F5F7' }
+        }
+      }
+    }
+  </script>
+  <script src="https://unpkg.com/lucide@latest"></script>
+</head>
+
+<body class="bg-surface dark:bg-slate-900 text-gray-900 dark:text-white font-sans antialiased min-h-screen flex flex-col items-center justify-center p-4">
+  <div class="max-w-md w-full bg-white dark:bg-slate-800 p-8 rounded-3xl shadow-xl border border-gray-100 dark:border-slate-700 text-center">
+    
+    <div class="inline-flex items-center justify-center w-20 h-20 bg-brand/10 dark:bg-brand/20 text-brand rounded-full mb-6">
+      <i data-lucide="map-pin-off" class="w-10 h-10"></i>
+    </div>
+    
+    <h1 class="text-4xl font-extrabold mb-4 text-gray-900 dark:text-white">Ой, 404!</h1>
+    <p class="text-gray-600 dark:text-gray-400 mb-8 text-lg">
+      Похоже, этой страницы не существует. Возможно, вы опечатались в адресе или страница была удалена.
+    </p>
+
+    <a href="/" class="inline-flex items-center justify-center w-full bg-brand text-white font-bold py-4 px-6 rounded-xl shadow-lg shadow-brand/30 hover:bg-blue-600 hover:shadow-brand/40 transition-all active:scale-[0.98]">
+      <i data-lucide="arrow-left" class="w-5 h-5 mr-2"></i> Вернуться на главную
+    </a>
+  </div>
+
+  <script>
+    lucide.createIcons();
+    // Примитивный скрипт для поддержки темной темы, если включена на сайте
+    if (localStorage.theme === 'dark' || (!('theme' in localStorage) && window.matchMedia('(prefers-color-scheme: dark)').matches)) {
+      document.documentElement.classList.add('dark')
+    }
+  </script>
+</body>
+
+</html>

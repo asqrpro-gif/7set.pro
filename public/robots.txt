@@ -1,0 +1,6 @@
+User-agent: *
+Allow: /
+Disallow: /api/
+Disallow: /search
+Disallow: /garage/
+Sitemap: https://7set.pro/sitemap.xml

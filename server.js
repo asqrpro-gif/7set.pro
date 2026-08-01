@@ -7,6 +7,7 @@ import { renderErrorCodePage } from './lib/error_code.js';
 import { marked } from 'marked';
 import fs from 'fs';
 import garageRouter from './routes/garage.js';
+import generateSitemap from './controllers/sitemap.js';
 
 import path from 'path';
 import { fileURLToPath } from 'url';
@@ -20,6 +21,15 @@ const PORT = process.env.PORT || 3005;
 app.set('view engine', 'ejs');
 app.set('views', path.join(__dirname, 'views'));
 
+// SEO-мидлвар: удаляем слеш на конце и делаем 301 редирект (борьба с дублями)
+app.use((req, res, next) => {
+  if (req.path.length > 1 && req.path.endsWith('/')) {
+    const query = req.url.slice(req.path.length);
+    const safePath = req.path.slice(0, -1).replace(/\/+/g, '/');
+    return res.redirect(301, safePath + query);
+  }
+  next();
+});
 
 // Инициализация Prisma Client
 const prisma = new PrismaClient();
@@ -139,11 +149,9 @@ const cleanReportHtml = (html) => {
 // Подключение модуля Гаража
 app.use('/garage', garageRouter);
 
-// Разрешаем индексацию для поисковиков
-app.get('/robots.txt', (req, res) => {
-  res.type('text/plain');
-  res.send("User-agent: *\nAllow: /\nSitemap: https://7set.pro/sitemap.xml");
-});
+
+// Динамический Sitemap
+app.get('/sitemap.xml', generateSitemap);
 
 // 3. Главная страница (Landing Page)
 app.get('/', async (req, res) => {
@@ -1379,6 +1387,15 @@ app.get('/api/report-status/:id', async (req, res) => {
   } catch (err) {
     res.status(500).json({ error: 'Ошибка сервера' });
   }
+});
+
+// Глобальный обработчик 404 (должен быть последним маршрутом)
+app.use((req, res) => {
+  res.status(404).render('404', {
+    seoTitle: 'Страница не найдена (404) | 7Set.Pro',
+    seoDescription: 'Запрашиваемая страница не существует или была удалена.',
+    pageUrl: `${process.env.SITE_URL || 'https://7set.pro'}${req.originalUrl}`
+  });
 });
 
 app.listen(PORT, async () => {
