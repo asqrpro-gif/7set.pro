@@ -8,6 +8,7 @@ import { marked } from 'marked';
 import fs from 'fs';
 import garageRouter from './routes/garage.js';
 import generateSitemap from './controllers/sitemap.js';
+import { seoConfig, getBrandSeo, getModelSeo, formatTitleCase } from './lib/seo_config.js';
 
 import path from 'path';
 import { fileURLToPath } from 'url';
@@ -156,691 +157,19 @@ app.get('/sitemap.xml', generateSitemap);
 // 3. Главная страница (Landing Page)
 app.get('/', async (req, res) => {
   res.setHeader('Cache-Control', 'no-store, no-cache, must-revalidate, private');
-
-  let latestQueriesHtml = '';
   try {
-    const latestReports = await prisma.diagnosticReport.findMany({
+    const brandsData = await prisma.diagnosticReport.groupBy({
+      by: ['brand'],
       where: { is_complete: true, code: { not: "UNSUPPORTED" } },
-      orderBy: { created_at: 'desc' },
-      take: 8,
-      select: {
-        brand: true,
-        model: true,
-        code: true,
-        severity: true,
-        summary: true
-      }
+      _count: { brand: true },
+      orderBy: { _count: { brand: 'desc' } }
     });
-
-    if (latestReports.length > 0) {
-      latestQueriesHtml = latestReports.map((report) => {
-        const link = `/diagnostic/${encodeURIComponent(report.brand.toLowerCase())}/${encodeURIComponent(report.model.toLowerCase())}/${encodeURIComponent(report.code.toUpperCase())}`;
-
-        let summaryText = report.summary || 'Описание ошибки недоступно';
-        summaryText = summaryText.replace(/\n/g, ' ').substring(0, 100);
-
-        const brandMap = {
-          'toyota': 'toyota', 'hyundai': 'hyundai', 'kia': 'kia', 'lada': 'lada',
-          'volkswagen': 'vw', 'vw': 'vw', 'skoda': 'skoda', 'renault': 'renault',
-          'nissan': 'nissan', 'chevrolet': 'chevrolet', 'ford': 'ford', 'bmw': 'bmw',
-          'mercedes-benz': 'mercedes-benz', 'mercedes': 'mercedes-benz', 'audi': 'audi',
-          'mazda': 'mazda', 'geely': 'geely', 'chery': 'chery',
-          'mitsubishi': 'mitsubishi', 'honda': 'honda', 'lexus': 'lexus', 'haval': 'haval',
-          'subaru': 'subaru', 'suzuki': 'suzuki', 'opel': 'opel', 'daewoo': 'daowoo',
-          'peugeot': 'peugeot', 'uaz': 'uaz', 'gaz': 'gaz', 'changan': 'changan',
-          'exeed': 'exeed', 'tank': 'tank'
-        };
-        const currentBrandLower = report.brand ? report.brand.toLowerCase() : '';
-        const logoSlug = brandMap[currentBrandLower];
-        
-        let logoHtml;
-        if (logoSlug) {
-            logoHtml = `<div class="w-12 h-12 flex items-center justify-center shrink-0"><img src="/img/logos/${logoSlug}-logo-60x60-px.webp" width="48" height="48" alt="${report.brand}" class="object-contain drop-shadow-sm group-hover:scale-110 transition-transform duration-300" /></div>`;
-        } else {
-            logoHtml = `<div class="w-12 h-12 bg-gray-50 dark:bg-slate-700 text-brand dark:text-blue-400 rounded-2xl flex items-center justify-center group-hover:bg-brand group-hover:text-white transition-colors duration-300 shadow-sm shrink-0"><i data-lucide="car-front" class="w-5 h-5"></i></div>`;
-        }
-
-        const severityMap = {
-          critical: { class: 'bg-red-100 text-red-800 dark:bg-red-900/30 dark:text-red-300', text: 'Критичный' },
-          high: { class: 'bg-red-100 text-red-800 dark:bg-red-900/30 dark:text-red-300', text: 'Высокий' },
-          medium: { class: 'bg-yellow-100 text-yellow-800 dark:bg-yellow-900/30 dark:text-yellow-300', text: 'Средний' },
-          low: { class: 'bg-green-100 text-green-800 dark:bg-green-900/30 dark:text-green-300', text: 'Низкий' }
-        };
-        const sev = severityMap[report.severity] || severityMap.medium;
-        const severityHtml = `<span class="${sev.class} block text-center text-[9px] sm:text-[10px] font-bold px-2 py-1 rounded-b-xl rounded-t-sm uppercase tracking-wider mt-[2px] shadow-sm whitespace-nowrap">Риск: ${sev.text}</span>`;
-
-        return `
-                <!-- Карточка -->
-                <a href="${link}" class="bg-white dark:bg-slate-800 p-6 rounded-3xl border border-gray-100 dark:border-slate-700 shadow-sm hover:shadow-xl hover:border-brand/40 dark:hover:border-brand/40 transition-all group flex flex-col h-full relative overflow-hidden duration-300 hover:-translate-y-1">
-                    <div class="relative z-10 flex flex-col h-full">
-                        <div class="flex items-center justify-between mb-4">
-                            ${logoHtml}
-                            <div class="flex flex-col items-stretch shrink-0 ml-2">
-                                <span class="text-center text-base md:text-lg font-black px-4 py-1.5 bg-[#0077FF] text-white rounded-t-xl rounded-b-sm shadow-sm transition-colors">${report.code.toUpperCase()}</span>
-                                ${severityHtml}
-                            </div>
-                        </div>
-                        <h3 class="font-bold text-lg text-gray-900 dark:text-white mb-2 group-hover:text-brand transition-colors capitalize">${report.brand} ${report.model}</h3>
-                        <p class="text-gray-500 dark:text-gray-400 text-sm line-clamp-2 mt-auto leading-relaxed">${summaryText}</p>
-                    </div>
-                </a>`;
-      }).join('\n');
-    } else {
-      latestQueriesHtml = `<p class="text-gray-500 text-center col-span-full">Пока нет сохраненных запросов.</p>`;
-    }
+    
+    res.render('index', { brands: brandsData });
   } catch (err) {
-    console.error("Ошибка получения последних запросов:", err);
-    latestQueriesHtml = ``;
+    console.error("Ошибка главной:", err);
+    res.status(500).send("Ошибка сервера");
   }
-
-  res.send(`
-    <!DOCTYPE html>
-    <html lang="ru">
-    <head>
-      <meta charset="UTF-8">
-      <meta name="viewport" content="width=device-width, initial-scale=1.0">
-      <title>7Set.pro — Умная автодиагностика и регламент ТО</title>
-      <meta name="description" content="Умная нейросеть для расшифровки ошибок OBD-II и дилерских кодов. Быстрая диагностика и точный регламент технического обслуживания для вашего автомобиля.">
-      <link rel="canonical" href="https://7set.pro/" />
-      <link rel="icon" type="image/svg+xml" href="/favicon.svg">
-      
-      <!-- Open Graph / Facebook -->
-      <meta property="og:type" content="website">
-      <meta property="og:url" content="https://7set.pro/">
-      <meta property="og:title" content="7Set.pro — Умная автодиагностика и регламент ТО">
-      <meta property="og:description" content="Умная нейросеть для расшифровки ошибок OBD-II и дилерских кодов. Быстрая диагностика и точный регламент технического обслуживания для вашего автомобиля.">
-      <meta property="og:image" content="https://7set.pro/og-default.png">
-      
-      <!-- Twitter -->
-      <meta name="twitter:card" content="summary_large_image">
-      <meta name="twitter:url" content="https://7set.pro/">
-      <meta name="twitter:title" content="7Set.pro — Умная автодиагностика и регламент ТО">
-      <meta name="twitter:description" content="Умная нейросеть для расшифровки ошибок OBD-II и дилерских кодов. Быстрая диагностика и точный регламент технического обслуживания для вашего автомобиля.">
-      <meta name="twitter:image" content="https://7set.pro/og-default.png">
-
-      <!-- Schema.org JSON-LD -->
-      <script type="application/ld+json">
-      {
-        "@context": "https://schema.org",
-        "@type": "WebSite",
-        "name": "7Set.pro",
-        "url": "https://7set.pro/",
-        "potentialAction": {
-          "@type": "SearchAction",
-          "target": "https://7set.pro/search?brand={brand}&code={code}",
-          "query-input": "required name=code"
-        }
-      }
-      </script>
-      <script src="https://cdn.tailwindcss.com?plugins=typography"></script>
-      <script>
-        tailwind.config = { 
-          darkMode: 'class', 
-          theme: { 
-            extend: { 
-              colors: { brand: '#0077FF', surface: '#F5F5F7' },
-              animation: { 'shimmer': 'shimmer 2.5s infinite' },
-              keyframes: { shimmer: { '0%': { transform: 'translateX(-100%)' }, '100%': { transform: 'translateX(100%)' } } }
-            } 
-          } 
-        }
-      </script>
-      <link rel="stylesheet" href="/style.css?v=2">
-      <script src="/main.js?v=2" defer></script>
-      <script src="https://unpkg.com/lucide@latest"></script>
-        <!-- Yandex.Metrika counter -->
-        <script type="text/javascript">
-            (function(m,e,t,r,i,k,a){
-                m[i]=m[i]||function(){(m[i].a=m[i].a||[]).push(arguments)};
-                m[i].l=1*new Date();
-                for (var j = 0; j < document.scripts.length; j++) {if (document.scripts[j].src === r) { return; }}
-                k=e.createElement(t),a=e.getElementsByTagName(t)[0],k.async=1,k.src=r,a.parentNode.insertBefore(k,a)
-            })(window, document,'script','https://mc.yandex.ru/metrika/tag.js?id=111154643', 'ym');
-
-            ym(111154643, 'init', {ssr:true, webvisor:true, clickmap:true, ecommerce:"dataLayer", referrer: document.referrer, url: location.href, accurateTrackBounce:true, trackLinks:true});
-        </script>
-        <noscript><div><img src="https://mc.yandex.ru/watch/111154643" style="position:absolute; left:-9999px;" alt="" /></div></noscript>
-        <!-- /Yandex.Metrika counter -->
-    </head>
-    <body class="bg-surface dark:bg-slate-900 text-gray-900 dark:text-white font-sans antialiased min-h-screen flex flex-col justify-between">
-      <div class="max-w-5xl mx-auto p-4 md:p-6 w-full">
-        <!-- Шапка (Header) -->
-        <header class="flex justify-between items-center mb-8 bg-white dark:bg-slate-800 p-4 rounded-2xl shadow-sm border border-gray-100 dark:border-slate-700">
-          <a href="/" class="flex items-center gap-2 hover:opacity-80 transition-opacity">
-            <i data-lucide="activity" style="color: #007bff;"></i>
-            <span class="font-bold text-xl tracking-tight text-gray-900 dark:text-white">7Set.Pro</span> <span class="font-normal text-sm text-gray-500 dark:text-gray-400 ml-1 hidden md:inline">| Умная автодиагностика</span>
-          </a>
-          <div class="flex items-center gap-3">
-            <a href="/garage" class="text-sm font-semibold bg-brand/10 dark:bg-brand/20 text-brand dark:text-blue-400 px-3.5 py-2 rounded-xl hover:bg-brand hover:text-white dark:hover:bg-brand dark:hover:text-white transition-all flex items-center gap-1.5 shadow-sm">
-              <i data-lucide="car" class="w-4 h-4"></i> Гараж & ТО
-            </a>
-            <button id="theme-toggle" class="p-2 rounded-full hover:bg-gray-100 dark:hover:bg-slate-700 transition-colors" aria-label="Переключить тему">
-              <i data-lucide="moon" class="w-5 h-5 text-gray-700 dark:text-gray-300"></i>
-            </button>
-          </div>
-        </header>
-
-        <!-- Главное содержимое (pSEO структура) -->
-        <main class="space-y-12">
-          <!-- Hero Секция -->
-          <section class="hero-section bg-white dark:bg-slate-800 rounded-3xl p-6 md:p-10 shadow-sm border border-gray-100 dark:border-slate-700 relative overflow-hidden">
-            <div class="hero-content max-w-4xl mx-auto flex flex-col items-center">
-              
-              <!-- Верхний блок: Картинка слева, текст справа -->
-              <div class="flex flex-col md:flex-row items-center gap-6 md:gap-10 mb-10 w-full">
-                <!-- Картинка -->
-                <div class="shrink-0 flex justify-center w-full md:w-auto">
-                  <img src="/img/auto-7set-pro-480x380-px.png" alt="Auto 7Set Pro" width="260" class="object-contain drop-shadow-md hover:scale-105 transition-transform duration-500">
-                </div>
-                
-                <!-- Текст -->
-                <div class="text-center md:text-left">
-                  <h1 class="text-3xl sm:text-4xl lg:text-5xl font-black text-gray-900 dark:text-white mb-4 tracking-tight leading-tight">
-                    Умная автодиагностика и персональный подбор ТО
-                  </h1>
-                  <p class="text-gray-500 dark:text-gray-400 text-base md:text-lg">
-                    Мгновенная расшифровка кодов OBD-II, дилерских ошибок и точный регламент расходников для вашей модификации авто.
-                  </p>
-                </div>
-              </div>
-              
-              <!-- Нижний блок: Поиск (на всю ширину) -->
-              <style>
-                .custom-search-bg {
-                  background-color: #f3f4f6 !important;
-                  border-radius: 24px !important;
-                }
-                .dark .custom-search-bg {
-                  background-color: #0f172a !important;
-                }
-              </style>
-              <div class="search-widget custom-search-bg p-5 md:p-8 border border-gray-200 dark:border-slate-700 shadow-lg w-full relative overflow-hidden">
-                <form id="diagnostics-form" action="/search" method="GET" class="search-form">
-                  <div class="input-group grid grid-cols-1 sm:grid-cols-3 gap-4 mb-4">
-                    <div>
-                      <input list="brand-options" type="text" id="inputBrand" name="brand" placeholder="Марка (напр. Toyota)" class="w-full bg-white dark:bg-slate-700 border-2 border-gray-300 dark:border-slate-500 dark:text-white dark:placeholder-slate-400 rounded-xl px-4 py-3.5 text-base focus:ring-2 focus:ring-brand/50 focus:border-brand outline-none transition-all shadow-md" autocomplete="off" required>
-                      <datalist id="brand-options"></datalist>
-                    </div>
-                    <div>
-                      <input list="model-options" type="text" id="inputModel" name="model" placeholder="Модель (напр. Camry)" class="w-full bg-white dark:bg-slate-700 border-2 border-gray-300 dark:border-slate-500 dark:text-white dark:placeholder-slate-400 rounded-xl px-4 py-3.5 text-base focus:ring-2 focus:ring-brand/50 focus:border-brand outline-none transition-all shadow-md disabled:opacity-50" autocomplete="off" disabled required>
-                      <datalist id="model-options"></datalist>
-                    </div>
-                    <div>
-                      <input type="text" id="inputCode" name="code" placeholder="Код (напр. P0171)" class="w-full bg-white dark:bg-slate-700 border-2 border-gray-300 dark:border-slate-500 dark:text-white dark:placeholder-slate-400 rounded-xl px-4 py-3.5 text-base focus:ring-2 focus:ring-brand/50 focus:border-brand outline-none transition-all shadow-md uppercase" autocomplete="off" required>
-                    </div>
-                  </div>
-                  <div id="codeErrorHint" class="text-red-500 text-sm my-2 px-2 text-left font-medium" style="display: none;"></div>
-                  <button type="submit" id="btnSearch" class="btn-primary relative overflow-hidden w-full bg-brand hover:bg-blue-600 text-white font-bold rounded-xl py-4 text-lg transition-all shadow-[0_0_15px_rgba(0,119,255,0.4)] hover:shadow-[0_0_25px_rgba(0,119,255,0.6)] hover:-translate-y-0.5 active:scale-[0.98] flex justify-center items-center gap-2 group border border-blue-400/50">
-                    <div class="absolute inset-0 -translate-x-full bg-gradient-to-r from-transparent via-white/40 to-transparent group-hover:animate-shimmer"></div>
-                    <i data-lucide="zap" class="w-5 h-5 relative z-10 drop-shadow-md"></i>
-                    <span class="relative z-10 drop-shadow-md">Диагностировать ошибку</span>
-                  </button>
-                </form>
-              </div>
-            </div>
-          </section>
-
-          <!-- Последние запросы (Latest Queries Section) -->
-          <section class="latest-queries-section mb-16 relative">
-            <!-- Декоративные элементы фона -->
-            <div class="absolute top-0 left-1/2 -translate-x-1/2 w-3/4 h-1 bg-gradient-to-r from-transparent via-gray-200 dark:via-slate-700 to-transparent"></div>
-            
-            <div class="text-center mb-10 pt-8">
-              <h2 class="text-2xl md:text-3xl font-black text-gray-900 dark:text-white mb-3">Последние запросы</h2>
-              <p class="text-gray-500 dark:text-gray-400 text-sm md:text-base max-w-xl mx-auto">Изучите реальные случаи поломок, с которыми сталкивались другие автовладельцы за последнее время</p>
-            </div>
-            
-            <div class="grid grid-cols-1 sm:grid-cols-2 md:grid-cols-3 lg:grid-cols-4 gap-5 max-w-6xl mx-auto px-4">
-${latestQueriesHtml}
-            </div>
-          </section>
-
-          <!-- Секция УТП (USP Section) -->
-          <section class="usp-section">
-            <div class="text-center mb-8">
-              <h2 class="text-2xl md:text-3xl font-black text-gray-900 dark:text-white mb-2">Почему выбирают 7Set.pro?</h2>
-              <p class="text-gray-500 dark:text-gray-400 text-sm max-w-xl mx-auto">Инновационные алгоритмы анализа автомобильных данных для точной диагностики без лишних затрат.</p>
-            </div>
-            <div class="usp-grid grid grid-cols-1 md:grid-cols-3 gap-6">
-              <div class="usp-card bg-white dark:bg-slate-800 p-6 rounded-3xl border border-gray-100 dark:border-slate-700 shadow-sm hover:shadow-md transition-shadow">
-                <div class="w-12 h-12 bg-gray-100 dark:bg-slate-700 text-brand dark:text-blue-400 rounded-2xl flex items-center justify-center mb-4 shadow-sm"><i data-lucide="crosshair" class="w-6 h-6"></i></div>
-                <h3 class="font-bold text-lg text-gray-900 dark:text-white mb-2">Точно под ваш мотор</h3>
-                <p class="text-gray-500 dark:text-gray-400 text-sm leading-relaxed">ИИ учитывает не только модель, но и модификацию и индекс двигателя. Никакой «воды» — только конкретные инструкции.</p>
-              </div>
-              <div class="usp-card bg-white dark:bg-slate-800 p-6 rounded-3xl border border-gray-100 dark:border-slate-700 shadow-sm hover:shadow-md transition-shadow">
-                <div class="w-12 h-12 bg-gray-100 dark:bg-slate-700 text-brand dark:text-blue-400 rounded-2xl flex items-center justify-center mb-4 shadow-sm"><i data-lucide="shield-check" class="w-6 h-6"></i></div>
-                <h3 class="font-bold text-lg text-gray-900 dark:text-white mb-2">Защита от СТО</h3>
-                <p class="text-gray-500 dark:text-gray-400 text-sm leading-relaxed">В каждой карточке ошибки есть раздел «Как не дать себя обмануть механикам» с советами по контролю счета и работ.</p>
-              </div>
-              <div class="usp-card bg-white dark:bg-slate-800 p-6 rounded-3xl border border-gray-100 dark:border-slate-700 shadow-sm hover:shadow-md transition-shadow">
-                <div class="w-12 h-12 bg-gray-100 dark:bg-slate-700 text-brand dark:text-blue-400 rounded-2xl flex items-center justify-center mb-4 shadow-sm"><i data-lucide="car-front" class="w-6 h-6"></i></div>
-                <h3 class="font-bold text-lg text-gray-900 dark:text-white mb-2">Личный «Гараж»</h3>
-                <p class="text-gray-500 dark:text-gray-400 text-sm leading-relaxed">Внесите авто один раз и мгновенно получайте размеры щеток, допуски моторных масел и объемы заправочных жидкостей.</p>
-              </div>
-            </div>
-          </section>
-
-          <!-- Секция Тарифов (Pricing Section) -->
-          <section class="pricing-section bg-gradient-to-b from-white to-gray-50/50 dark:from-slate-800 dark:to-slate-900/50 rounded-3xl p-6 md:p-12 border border-gray-100 dark:border-slate-700 shadow-sm">
-            <div class="text-center mb-10">
-              <h2 class="text-2xl md:text-3xl font-black text-gray-900 dark:text-white mb-2">Доступ к Гаражу и Расходникам</h2>
-              <p class="text-gray-500 dark:text-gray-400 text-sm max-w-xl mx-auto">Подключите персональный профиль для автоматизированного ведения регламента технического обслуживания.</p>
-            </div>
-            <div class="pricing-grid grid grid-cols-1 md:grid-cols-3 gap-6 max-w-4xl mx-auto">
-              <div class="price-card bg-white dark:bg-slate-800 border border-gray-200 dark:border-slate-700 rounded-3xl p-6 flex flex-col justify-between hover:border-brand/40 transition-colors">
-                <div>
-                  <h3 class="font-bold text-xl text-gray-900 dark:text-white mb-1">1 Автомобиль</h3>
-                  <p class="price text-2xl font-black text-gray-900 dark:text-white mb-6">$5.99 <span class="text-xs font-normal text-gray-500 dark:text-gray-400">/ мес</span></p>
-                  <ul class="space-y-3 text-sm text-gray-600 dark:text-gray-300 mb-8">
-                    <li class="flex items-center gap-2.5"><i data-lucide="check-circle-2" class="w-4 h-4 text-emerald-500 shrink-0"></i><span>Полный лог ошибок OBD-II</span></li>
-                    <li class="flex items-center gap-2.5"><i data-lucide="check-circle-2" class="w-4 h-4 text-emerald-500 shrink-0"></i><span>Подбор расходников для 1 авто</span></li>
-                    <li class="flex items-center gap-2.5"><i data-lucide="check-circle-2" class="w-4 h-4 text-emerald-500 shrink-0"></i><span>Базовые советы по диагностике</span></li>
-                  </ul>
-                </div>
-                <a href="/garage" class="btn-outline w-full text-center bg-gray-100 dark:bg-slate-700 border-2 border-transparent dark:border-slate-500 hover:bg-gray-200 dark:hover:bg-slate-600 text-gray-900 dark:text-white font-bold py-3 rounded-xl transition-all shadow-sm hover:shadow-md block">Выбрать</a>
-              </div>
-
-              <div class="price-card pro-card bg-white dark:bg-slate-800 border-2 border-brand rounded-3xl p-6 flex flex-col justify-between relative shadow-lg transform md:-translate-y-2">
-                <div class="absolute -top-3.5 left-1/2 -translate-x-1/2 bg-brand text-white text-xs font-black px-4 py-1 rounded-full uppercase tracking-wider shadow-sm">Выбор водителей</div>
-                <div>
-                  <h3 class="font-bold text-xl text-gray-900 dark:text-white mb-1">Семья (до 5 авто)</h3>
-                  <p class="price text-2xl font-black text-gray-900 dark:text-white mb-6">$15.99 <span class="text-xs font-normal text-gray-500 dark:text-gray-400">/ мес</span></p>
-                  <ul class="space-y-3 text-sm text-gray-600 dark:text-gray-300 mb-8">
-                    <li class="flex items-center gap-2.5 font-medium text-gray-900 dark:text-white"><i data-lucide="zap" class="w-4 h-4 text-amber-500 shrink-0 fill-amber-500/20"></i><span>Ведение нескольких машин</span></li>
-                    <li class="flex items-center gap-2.5 font-medium text-gray-900 dark:text-white"><i data-lucide="zap" class="w-4 h-4 text-amber-500 shrink-0 fill-amber-500/20"></i><span>История обслуживания и ТО</span></li>
-                    <li class="flex items-center gap-2.5 font-medium text-gray-900 dark:text-white"><i data-lucide="zap" class="w-4 h-4 text-amber-500 shrink-0 fill-amber-500/20"></i><span>Защита от переплат на СТО</span></li>
-                    <li class="flex items-center gap-2.5 font-medium text-gray-900 dark:text-white"><i data-lucide="zap" class="w-4 h-4 text-amber-500 shrink-0 fill-amber-500/20"></i><span>Приоритетная ИИ генерация</span></li>
-                  </ul>
-                </div>
-                <a href="/garage" class="btn-primary w-full text-center bg-brand hover:bg-blue-600 text-white font-bold py-3.5 rounded-xl transition-all shadow-md hover:shadow-lg hover:-translate-y-0.5 border border-blue-400/50 block">Подключить</a>
-              </div>
-
-              <div class="price-card bg-white dark:bg-slate-800 border border-gray-200 dark:border-slate-700 rounded-3xl p-6 flex flex-col justify-between hover:border-brand/40 transition-colors">
-                <div>
-                  <h3 class="font-bold text-xl text-gray-900 dark:text-white mb-1">СТО (Безлимит)</h3>
-                  <p class="price text-2xl font-black text-gray-900 dark:text-white mb-6">$25.99 <span class="text-xs font-normal text-gray-500 dark:text-gray-400">/ мес</span></p>
-                  <ul class="space-y-3 text-sm text-gray-600 dark:text-gray-300 mb-8">
-                    <li class="flex items-center gap-2.5"><i data-lucide="wrench" class="w-4 h-4 text-blue-600 dark:text-blue-400 shrink-0"></i><span>Безлимитные запросы</span></li>
-                    <li class="flex items-center gap-2.5"><i data-lucide="wrench" class="w-4 h-4 text-blue-600 dark:text-blue-400 shrink-0"></i><span>Доступ к дилерским кодам</span></li>
-                    <li class="flex items-center gap-2.5"><i data-lucide="wrench" class="w-4 h-4 text-blue-600 dark:text-blue-400 shrink-0"></i><span>Коммерческое использование</span></li>
-                  </ul>
-                </div>
-                <a href="/garage" class="btn-outline w-full text-center bg-gray-900 hover:bg-gray-800 dark:bg-slate-700 border-2 border-transparent dark:border-slate-500 dark:hover:bg-slate-600 text-white font-bold py-3 rounded-xl transition-all shadow-sm hover:shadow-md block">Для профи</a>
-              </div>
-            </div>
-          </section>
-        </main>
-
-        <!-- Подвал (Footer) -->
-        <footer class="mt-16 pt-8 border-t border-gray-200/80 dark:border-slate-700 text-xs text-gray-500 dark:text-gray-400">
-          <div class="grid grid-cols-1 md:grid-cols-4 gap-6 mb-8">
-            <div class="md:col-span-2">
-              <a href="/" class="flex items-center gap-2 font-bold text-base text-gray-900 dark:text-white mb-2">
-                <i data-lucide="activity" class="text-brand w-5 h-5"></i> 7Set.pro
-              </a>
-              <p class="max-w-sm text-gray-500 dark:text-gray-400 leading-relaxed">
-                Интеллектуальная система экспресс-диагностики, расшифровки кодов неисправностей и точного регламентного обслуживания автомобилей.
-              </p>
-            </div>
-            <div>
-              <h4 class="font-bold text-gray-900 dark:text-gray-300 mb-2.5 uppercase tracking-wider text-[11px]">Навигация</h4>
-              <ul class="space-y-2 font-medium">
-                <li><a href="/" class="hover:text-brand transition-colors">Каталог ошибок OBD-II</a></li>
-                <li><a href="/garage" class="hover:text-brand transition-colors">Персональный Гараж</a></li>
-                <li><a href="/garage" class="hover:text-brand transition-colors">Подбор расходников</a></li>
-              </ul>
-            </div>
-            <div>
-              <h4 class="font-bold text-gray-900 dark:text-gray-300 mb-2.5 uppercase tracking-wider text-[11px]">Юридическая информация</h4>
-              <ul class="space-y-2 font-medium">
-                <li><a href="/legal/terms" class="hover:text-brand transition-colors">Пользовательское соглашение</a></li>
-                <li><a href="/legal/privacy" class="hover:text-brand transition-colors">Политика конфиденциальности</a></li>
-                <li><a href="/legal/subscription" class="hover:text-brand transition-colors">Условия подписки</a></li>
-              </ul>
-            </div>
-          </div>
-          <div class="flex flex-col sm:flex-row justify-between items-center gap-4 pt-6 text-[11px] bg-transparent">
-            <div>© ${new Date().getFullYear()} 7Set.pro. Все права защищены.</div>
-            <div class="flex gap-4">
-              <span class="flex items-center gap-1.5">Сделано с заботой о водителях <i data-lucide="car-front" class="w-4 h-4 text-brand inline"></i></span>
-            </div>
-          </div>
-        </footer>
-      </div>
-      <script>lucide.createIcons();</script>
-    </body>
-    </html>
-  `);
-});
-
-// 3.5. Страница Пользовательского соглашения
-app.get('/legal/terms', (req, res) => {
-  res.send(`
-    <!DOCTYPE html>
-    <html lang="ru">
-    <head>
-      <meta charset="UTF-8">
-      <meta name="viewport" content="width=device-width, initial-scale=1.0">
-      <title>Пользовательское соглашение — 7Set.pro</title>
-      <script src="https://cdn.tailwindcss.com?plugins=typography"></script>
-      <script>
-        tailwind.config = { 
-          darkMode: 'class', 
-          theme: { extend: { colors: { brand: '#0077FF', surface: '#F5F5F7' } } } 
-        }
-      </script>
-      <link rel="stylesheet" href="/style.css?v=2">
-      <script src="/main.js?v=2" defer></script>
-      <script src="https://unpkg.com/lucide@latest"></script>
-        <!-- Yandex.Metrika counter -->
-        <script type="text/javascript">
-            (function(m,e,t,r,i,k,a){
-                m[i]=m[i]||function(){(m[i].a=m[i].a||[]).push(arguments)};
-                m[i].l=1*new Date();
-                for (var j = 0; j < document.scripts.length; j++) {if (document.scripts[j].src === r) { return; }}
-                k=e.createElement(t),a=e.getElementsByTagName(t)[0],k.async=1,k.src=r,a.parentNode.insertBefore(k,a)
-            })(window, document,'script','https://mc.yandex.ru/metrika/tag.js?id=111154643', 'ym');
-
-            ym(111154643, 'init', {ssr:true, webvisor:true, clickmap:true, ecommerce:"dataLayer", referrer: document.referrer, url: location.href, accurateTrackBounce:true, trackLinks:true});
-        </script>
-        <noscript><div><img src="https://mc.yandex.ru/watch/111154643" style="position:absolute; left:-9999px;" alt="" /></div></noscript>
-        <!-- /Yandex.Metrika counter -->
-    </head>
-    <body class="bg-surface dark:bg-slate-900 text-gray-900 dark:text-white font-sans antialiased min-h-screen flex flex-col justify-between">
-      <div class="max-w-5xl mx-auto p-4 md:p-6 w-full">
-        
-        <!-- Шапка (Header) -->
-        <header class="flex justify-between items-center mb-8 bg-white dark:bg-slate-800 p-4 rounded-2xl shadow-sm border border-gray-100 dark:border-slate-700">
-          <a href="/" class="flex items-center gap-2 hover:opacity-80 transition-opacity">
-            <i data-lucide="activity" style="color: #007bff;"></i>
-            <span class="font-bold text-xl tracking-tight text-gray-900 dark:text-white">7Set.Pro</span> <span class="font-normal text-sm text-gray-500 dark:text-gray-400 ml-1 hidden md:inline">| Умная автодиагностика</span>
-          </a>
-          <div class="flex items-center gap-3">
-            <a href="/garage" class="text-sm font-semibold bg-brand/10 dark:bg-brand/20 text-brand dark:text-blue-400 px-3.5 py-2 rounded-xl hover:bg-brand hover:text-white dark:hover:bg-brand dark:hover:text-white transition-all flex items-center gap-1.5 shadow-sm">
-              <i data-lucide="car" class="w-4 h-4"></i> Гараж & ТО
-            </a>
-            <button id="theme-toggle" class="p-2 rounded-full hover:bg-gray-100 dark:hover:bg-slate-700 transition-colors" aria-label="Переключить тему">
-              <i data-lucide="moon" class="w-5 h-5 text-gray-700 dark:text-gray-300"></i>
-            </button>
-          </div>
-        </header>
-
-        <!-- Главное содержимое -->
-        <main class="mb-12">
-          <article class="prose prose-slate prose-brand dark:prose-invert max-w-4xl mx-auto bg-white dark:bg-slate-800 p-8 md:p-12 rounded-3xl shadow-sm border border-gray-100 dark:border-slate-700">
-            <h1 class="text-center mb-8 text-3xl font-black">Пользовательское соглашение (Публичная оферта)</h1>
-            
-            <h2 class="text-xl font-bold mt-8 mb-4 flex items-center gap-2"><i data-lucide="file-text" class="w-5 h-5 text-brand"></i> 1. Общие положения</h2>
-            <p>1.1. Настоящее Пользовательское соглашение (далее — «Соглашение») является публичной офертой ИП «Штамп Сервис», ИИН 840930402816, юридический адрес: Республика Казахстан, Алматинская область, город Алматы, Алмалинский район, улица Муратбаева 136, 318 офис (далее — «Исполнитель»).</p>
-            <p>1.2. Использование сервиса 7Set.pro (далее — «Сайт») означает полное и безоговорочное согласие Пользователя с условиями настоящего Соглашения. Если вы не согласны с условиями, пожалуйста, прекратите использование Сайта.</p>
-            <p>1.3. Соглашение может быть изменено Исполнителем в одностороннем порядке без специального уведомления. Новая редакция вступает в силу с момента ее публикации на Сайте.</p>
-            
-            <h2 class="text-xl font-bold mt-8 mb-4 flex items-center gap-2"><i data-lucide="monitor" class="w-5 h-5 text-brand"></i> 2. Предмет соглашения</h2>
-            <p>2.1. Исполнитель предоставляет Пользователю доступ к функционалу Сайта 7Set.pro — интеллектуальной системе расшифровки диагностических кодов ошибок (OBD-II) автомобилей.</p>
-            <p>2.2. Сервис предоставляет как бесплатную базовую информацию, так и расширенный платный контент (подробный анализ, финансовый прогноз, инструкции для самостоятельного ремонта, советы по защите от обмана на СТО).</p>
-            <p>2.3. Вся информация на Сайте генерируется с использованием технологий искусственного интеллекта на основе открытых баз данных и алгоритмов машинного обучения.</p>
-            
-            <h2 class="text-xl font-bold mt-8 mb-4 flex items-center gap-2"><i data-lucide="shield-alert" class="w-5 h-5 text-brand"></i> 3. Ограничение ответственности (Отказ от гарантий)</h2>
-            <p>3.1. <strong>Информационный характер.</strong> Все данные, расшифровки, финансовые прогнозы и инструкции (включая раздел «Сделай сам»), предоставляемые Сайтом, носят исключительно информационный и рекомендательный характер.</p>
-            <p>3.2. <strong>Никаких гарантий.</strong> Исполнитель не гарантирует 100% точность, полноту или применимость предоставленной информации к конкретному автомобилю Пользователя. Искусственный интеллект может допускать неточности.</p>
-            <p>3.3. <strong>Риски ремонта.</strong> Пользователь осознает, что самостоятельный ремонт автомобиля сопряжен с рисками для здоровья, жизни и имущества. Любые действия по диагностике и ремонту своего транспортного средства Пользователь осуществляет на свой страх и риск.</p>
-            <p>3.4. <strong>Отказ от претензий.</strong> Исполнитель не несет ответственности за любой прямой или косвенный ущерб, поломки автомобиля, потерю заводской гарантии, упущенную выгоду или расходы на СТО, возникшие в результате использования или невозможности использования информации с Сайта 7Set.pro. Для точной диагностики всегда рекомендуется обращаться к сертифицированным автомеханикам.</p>
-            
-            <h2 class="text-xl font-bold mt-8 mb-4 flex items-center gap-2"><i data-lucide="credit-card" class="w-5 h-5 text-brand"></i> 4. Условия оказания платных услуг</h2>
-            <p>4.1. Доступ к расширенному контенту карточки ошибки (премиум-отчет) предоставляется на платной основе.</p>
-            <p>4.2. Стоимость услуг указана на Сайте на странице оплаты. Оплата производится безналичным расчетом с помощью интегрированных платежных систем (включая, но не ограничиваясь, систему Robokassa).</p>
-            <p>4.3. <strong>Момент оказания услуги:</strong> Услуга считается оказанной в полном объеме и принятой Пользователем в момент предоставления доступа к платному контенту (вывода расширенной информации на экран / отправки на email).</p>
-            <p>4.4. Поскольку продуктом является цифровой контент, доступ к которому предоставляется моментально, возврат денежных средств после успешной генерации и отображения отчета не производится, за исключением случаев технических сбоев на стороне Сайта, из-за которых контент не был доставлен.</p>
-            
-            <h2 class="text-xl font-bold mt-8 mb-4 flex items-center gap-2"><i data-lucide="scale" class="w-5 h-5 text-brand"></i> 5. Права и обязанности сторон</h2>
-            <p>5.1. <strong>Пользователь обязуется:</strong></p>
-            <ul>
-              <li>Предоставлять достоверные данные (например, email) при оформлении платных услуг.</li>
-              <li>Не использовать скрипты, парсеры и боты для массового сбора (парсинга) базы кодов и расшифровок с Сайта.</li>
-              <li>Не использовать Сайт для незаконных целей.</li>
-            </ul>
-            <p>5.2. <strong>Исполнитель имеет право:</strong></p>
-            <ul>
-              <li>Временно приостанавливать работу Сайта для проведения технических работ.</li>
-              <li>Блокировать доступ Пользователя при нарушении им условий данного Соглашения (например, при попытках DdoS-атак или парсинга).</li>
-            </ul>
-            
-            <h2 class="text-xl font-bold mt-8 mb-4 flex items-center gap-2"><i data-lucide="award" class="w-5 h-5 text-brand"></i> 6. Интеллектуальная собственность</h2>
-            <p>6.1. Исключительные права на Сайт 7Set.pro, его интерфейс, дизайн, логотип и сгенерированные базы данных принадлежат Исполнителю.</p>
-            <p>6.2. Пользователь вправе использовать полученные отчеты исключительно для личных, некоммерческих целей. Запрещается перепродажа или массовая публикация платных отчетов сервиса на сторонних ресурсах.</p>
-            
-            <h2 class="text-xl font-bold mt-8 mb-4 flex items-center gap-2"><i data-lucide="gavel" class="w-5 h-5 text-brand"></i> 7. Разрешение споров</h2>
-            <p>7.1. Все споры и разногласия решаются путем переговоров. Претензионный порядок обязателен. Срок ответа на претензию — 30 (тридцать) календарных дней.</p>
-            <p>7.2. В случае невозможности урегулирования спора мирным путем, он подлежит рассмотрению в суде по месту нахождения Исполнителя в соответствии с действующим законодательством Республики Казахстан.</p>
-            
-            <h2 class="text-xl font-bold mt-8 mb-4 flex items-center gap-2"><i data-lucide="building" class="w-5 h-5 text-brand"></i> 8. Реквизиты Исполнителя</h2>
-            <div class="bg-gray-50 dark:bg-slate-700/50 p-6 rounded-2xl not-prose text-sm text-gray-700 dark:text-gray-300">
-              <p class="font-bold mb-2">ИП «Штамп Сервис»</p>
-              <div class="grid grid-cols-1 sm:grid-cols-2 gap-4">
-                <div>
-                  <p><span class="text-gray-500 dark:text-gray-400">Директор:</span> Дюсембаева Н.Р.</p>
-                  <p><span class="text-gray-500 dark:text-gray-400">ИИН:</span> 840930402816</p>
-                  <p><span class="text-gray-500 dark:text-gray-400">Эл. почта:</span> <a href="mailto:support@7set.pro" class="text-brand hover:underline">support@7set.pro</a></p>
-                  <p><span class="text-gray-500 dark:text-gray-400">Телефон:</span> <a href="tel:+77074545202" class="text-brand hover:underline">8(707)4545202</a></p>
-                </div>
-                <div>
-                  <p><span class="text-gray-500 dark:text-gray-400">Фактический адрес:</span> РК, г. Алматы, ул. Муратбаева, 136, 3 этаж, 318 офис</p>
-                  <p><span class="text-gray-500 dark:text-gray-400">Юридический адрес:</span> 050046, Казахстан, г. Алматы, ул. Муратбаева 136, офис 318</p>
-                  <p class="mt-2"><span class="text-gray-500 dark:text-gray-400">Банк:</span> АО "KASPI BANK"</p>
-                  <p><span class="text-gray-500 dark:text-gray-400">БИК:</span> CASPKZKA</p>
-                  <p><span class="text-gray-500 dark:text-gray-400">ИИК:</span> KZ23722S000000721884</p>
-                </div>
-              </div>
-            </div>
-          </article>
-        </main>
-
-        <!-- Подвал (Footer) -->
-        <footer class="mt-8 pt-8 border-t border-gray-200/80 dark:border-slate-700 text-xs text-gray-500 dark:text-gray-400">
-          <div class="grid grid-cols-1 md:grid-cols-4 gap-6 mb-8">
-            <div class="md:col-span-2">
-              <a href="/" class="flex items-center gap-2 font-bold text-base text-gray-900 dark:text-white mb-2">
-                <i data-lucide="activity" class="text-brand w-5 h-5"></i> 7Set.pro
-              </a>
-              <p class="max-w-sm text-gray-500 dark:text-gray-400 leading-relaxed">
-                Интеллектуальная система экспресс-диагностики, расшифровки кодов неисправностей и точного регламентного обслуживания автомобилей.
-              </p>
-            </div>
-            <div>
-              <h4 class="font-bold text-gray-900 dark:text-gray-300 mb-2.5 uppercase tracking-wider text-[11px]">Навигация</h4>
-              <ul class="space-y-2 font-medium">
-                <li><a href="/" class="hover:text-brand transition-colors">Каталог ошибок OBD-II</a></li>
-                <li><a href="/garage" class="hover:text-brand transition-colors">Персональный Гараж</a></li>
-                <li><a href="/garage" class="hover:text-brand transition-colors">Подбор расходников</a></li>
-              </ul>
-            </div>
-            <div>
-              <h4 class="font-bold text-gray-900 dark:text-gray-300 mb-2.5 uppercase tracking-wider text-[11px]">Юридическая информация</h4>
-              <ul class="space-y-2 font-medium">
-                <li><a href="/legal/terms" class="hover:text-brand transition-colors">Пользовательское соглашение</a></li>
-                <li><a href="/legal/privacy" class="hover:text-brand transition-colors">Политика конфиденциальности</a></li>
-                <li><a href="/legal/subscription" class="hover:text-brand transition-colors">Условия подписки</a></li>
-              </ul>
-            </div>
-          </div>
-          <div class="flex flex-col sm:flex-row justify-between items-center gap-4 pt-6 text-[11px] bg-transparent">
-            <div>© ${new Date().getFullYear()} 7Set.pro. Все права защищены.</div>
-            <div class="flex gap-4">
-              <span class="flex items-center gap-1.5">Сделано с заботой о водителях <i data-lucide="car-front" class="w-4 h-4 text-brand inline"></i></span>
-            </div>
-          </div>
-        </footer>
-      </div>
-      <script>lucide.createIcons();</script>
-    </body>
-    </html>
-  `);
-});
-
-// 3.6. Страница Политики конфиденциальности
-app.get('/legal/privacy', (req, res) => {
-  res.send(`
-    <!DOCTYPE html>
-    <html lang="ru">
-    <head>
-      <meta charset="UTF-8">
-      <meta name="viewport" content="width=device-width, initial-scale=1.0">
-      <title>Политика конфиденциальности — 7Set.pro</title>
-      <script src="https://cdn.tailwindcss.com?plugins=typography"></script>
-      <script>
-        tailwind.config = { 
-          darkMode: 'class', 
-          theme: { extend: { colors: { brand: '#0077FF', surface: '#F5F5F7' } } } 
-        }
-      </script>
-      <link rel="stylesheet" href="/style.css?v=2">
-      <script src="/main.js?v=2" defer></script>
-      <script src="https://unpkg.com/lucide@latest"></script>
-        <!-- Yandex.Metrika counter -->
-        <script type="text/javascript">
-            (function(m,e,t,r,i,k,a){
-                m[i]=m[i]||function(){(m[i].a=m[i].a||[]).push(arguments)};
-                m[i].l=1*new Date();
-                for (var j = 0; j < document.scripts.length; j++) {if (document.scripts[j].src === r) { return; }}
-                k=e.createElement(t),a=e.getElementsByTagName(t)[0],k.async=1,k.src=r,a.parentNode.insertBefore(k,a)
-            })(window, document,'script','https://mc.yandex.ru/metrika/tag.js?id=111154643', 'ym');
-
-            ym(111154643, 'init', {ssr:true, webvisor:true, clickmap:true, ecommerce:"dataLayer", referrer: document.referrer, url: location.href, accurateTrackBounce:true, trackLinks:true});
-        </script>
-        <noscript><div><img src="https://mc.yandex.ru/watch/111154643" style="position:absolute; left:-9999px;" alt="" /></div></noscript>
-        <!-- /Yandex.Metrika counter -->
-    </head>
-    <body class="bg-surface dark:bg-slate-900 text-gray-900 dark:text-white font-sans antialiased min-h-screen flex flex-col justify-between">
-      <div class="max-w-5xl mx-auto p-4 md:p-6 w-full">
-        
-        <!-- Шапка (Header) -->
-        <header class="flex justify-between items-center mb-8 bg-white dark:bg-slate-800 p-4 rounded-2xl shadow-sm border border-gray-100 dark:border-slate-700">
-          <a href="/" class="flex items-center gap-2 hover:opacity-80 transition-opacity">
-            <i data-lucide="activity" style="color: #007bff;"></i>
-            <span class="font-bold text-xl tracking-tight text-gray-900 dark:text-white">7Set.Pro</span> <span class="font-normal text-sm text-gray-500 dark:text-gray-400 ml-1 hidden md:inline">| Умная автодиагностика</span>
-          </a>
-          <div class="flex items-center gap-3">
-            <a href="/garage" class="text-sm font-semibold bg-brand/10 dark:bg-brand/20 text-brand dark:text-blue-400 px-3.5 py-2 rounded-xl hover:bg-brand hover:text-white dark:hover:bg-brand dark:hover:text-white transition-all flex items-center gap-1.5 shadow-sm">
-              <i data-lucide="car" class="w-4 h-4"></i> Гараж & ТО
-            </a>
-            <button id="theme-toggle" class="p-2 rounded-full hover:bg-gray-100 dark:hover:bg-slate-700 transition-colors" aria-label="Переключить тему">
-              <i data-lucide="moon" class="w-5 h-5 text-gray-700 dark:text-gray-300"></i>
-            </button>
-          </div>
-        </header>
-
-        <!-- Главное содержимое -->
-        <main class="mb-12">
-          <article class="prose prose-slate prose-brand dark:prose-invert max-w-4xl mx-auto bg-white dark:bg-slate-800 p-8 md:p-12 rounded-3xl shadow-sm border border-gray-100 dark:border-slate-700">
-            <h1 class="text-center mb-8 text-3xl font-black">Политика конфиденциальности сервиса 7Set.pro</h1>
-            
-            <h2 class="text-xl font-bold mt-8 mb-4 flex items-center gap-2"><i data-lucide="file-text" class="w-5 h-5 text-brand"></i> 1. Общие положения</h2>
-            <p>1.1. Настоящая Политика конфиденциальности (далее — «Политика») определяет порядок сбора, обработки, хранения и защиты персональных данных пользователей сервиса 7Set.pro (далее — «Сайт»).</p>
-            <p>1.2. Оператором персональных данных является ИП «Штамп Сервис», ИИН 840930402816, адрес: РК, г. Алматы, ул. Муратбаева 136, 318 (далее — «Оператор»).</p>
-            <p>1.3. Обработка персональных данных осуществляется в соответствии с Законом Республики Казахстан от 21 мая 2013 года № 94-V «О персональных данных и их защите».</p>
-            <p>1.4. Использование Сайта означает безоговорочное согласие Пользователя с настоящей Политикой и указанными в ней условиями обработки данных. В случае несогласия Пользователь должен воздержаться от использования Сайта.</p>
-
-            <h2 class="text-xl font-bold mt-8 mb-4 flex items-center gap-2"><i data-lucide="database" class="w-5 h-5 text-brand"></i> 2. Какие данные мы собираем</h2>
-            <p>Мы собираем минимально необходимый объем данных для работы сервиса и улучшения его функционала:</p>
-            <p><strong>2.1. Технические данные (собираются автоматически):</strong></p>
-            <ul>
-              <li>IP-адрес устройства;</li>
-              <li>Информация о браузере и операционной системе;</li>
-              <li>Данные файлов Cookie;</li>
-              <li>Дата и время посещения, адреса запрашиваемых страниц;</li>
-              <li>Данные о поведении на Сайте (клики, время на странице).</li>
-            </ul>
-            <p><strong>2.2. Пользовательские данные (предоставляются добровольно):</strong></p>
-            <ul>
-              <li>Вводимые диагностические коды ошибок (OBD-II), марки и модели автомобилей;</li>
-              <li>Адрес электронной почты (в случае регистрации на Сайте, подписки на рассылку или запроса отчета на email);</li>
-              <li>Имя (если применимо).</li>
-            </ul>
-
-            <h2 class="text-xl font-bold mt-8 mb-4 flex items-center gap-2"><i data-lucide="target" class="w-5 h-5 text-brand"></i> 3. Цели сбора и обработки данных</h2>
-            <p>Собранные данные используются исключительно для следующих целей:</p>
-            <p>3.1. Обеспечение бесперебойной работы Сайта и генерации корректных отчетов об ошибках автомобилей с помощью алгоритмов искусственного интеллекта.</p>
-            <p>3.2. Сбор анонимной статистической информации для анализа поведения пользователей, улучшения интерфейса и алгоритмов сервиса (в период бета-тестирования и далее).</p>
-            <p>3.3. Обратная связь с Пользователем, предоставление клиентской поддержки.</p>
-            <p>3.4. В будущем: создание учетной записи, оформление подписки, обработка платежей и предоставление доступа к платным функциям Сайта.</p>
-
-            <h2 class="text-xl font-bold mt-8 mb-4 flex items-center gap-2"><i data-lucide="cookie" class="w-5 h-5 text-brand"></i> 4. Использование файлов Cookie и систем аналитики</h2>
-            <p>4.1. Сайт использует файлы Cookie — небольшие текстовые файлы, которые сохраняются на устройстве Пользователя для улучшения пользовательского опыта (сохранение настроек, анализ трафика).</p>
-            <p>4.2. На Сайте могут использоваться сторонние системы веб-аналитики (например, Google Analytics, Яндекс.Метрика). Эти системы собирают обезличенные данные о посещаемости. Пользователь может отключить сохранение Cookie в настройках своего браузера.</p>
-
-            <h2 class="text-xl font-bold mt-8 mb-4 flex items-center gap-2"><i data-lucide="users" class="w-5 h-5 text-brand"></i> 5. Передача данных третьим лицам</h2>
-            <p>5.1. Оператор обязуется не передавать персональные данные Пользователей третьим лицам, за исключением случаев, прямо предусмотренных законодательством Республики Казахстан.</p>
-            <p>5.2. Для обеспечения работы Сайта данные могут передаваться доверенным партнерам на условиях строгой конфиденциальности:</p>
-            <ul>
-              <li>Провайдерам аналитических сервисов (исключительно в обезличенном виде).</li>
-              <li>Платежным системам (например, Robokassa) — только в будущем, при совершении Пользователем оплаты, для проведения транзакции.</li>
-              <li>Провайдерам API (искусственного интеллекта) передаются только технические запросы (коды ошибок, марка авто) без привязки к личности Пользователя.</li>
-            </ul>
-
-            <h2 class="text-xl font-bold mt-8 mb-4 flex items-center gap-2"><i data-lucide="shield-check" class="w-5 h-5 text-brand"></i> 6. Защита и хранение данных</h2>
-            <p>6.1. Оператор принимает необходимые организационные и технические меры (включая SSL-шифрование) для защиты персональных данных от неправомерного доступа, уничтожения, изменения, блокирования, копирования и распространения.</p>
-            <p>6.2. Данные хранятся ровно столько, сколько необходимо для достижения целей их обработки, либо до момента отзыва согласия Пользователем.</p>
-
-            <h2 class="text-xl font-bold mt-8 mb-4 flex items-center gap-2"><i data-lucide="user-check" class="w-5 h-5 text-brand"></i> 7. Права Пользователя</h2>
-            <p>Пользователь имеет право:</p>
-            <p>7.1. Запрашивать информацию о том, какие именно его данные хранятся у Оператора.</p>
-            <p>7.2. Требовать уточнения, обновления или уничтожения своих персональных данных, отправив соответствующий запрос на электронную почту Оператора.</p>
-            <p>7.3. Отозвать согласие на обработку данных (в этом случае дальнейшее использование полного функционала Сайта может стать невозможным).</p>
-
-            <h2 class="text-xl font-bold mt-8 mb-4 flex items-center gap-2"><i data-lucide="refresh-cw" class="w-5 h-5 text-brand"></i> 8. Изменение Политики конфиденциальности</h2>
-            <p>8.1. Оператор оставляет за собой право вносить изменения в настоящую Политику без персонального уведомления Пользователей.</p>
-            <p>8.2. Новая редакция Политики вступает в силу с момента ее размещения на Сайте. Пользователям рекомендуется регулярно проверять данную страницу на предмет изменений.</p>
-
-            <h2 class="text-xl font-bold mt-8 mb-4 flex items-center gap-2"><i data-lucide="building" class="w-5 h-5 text-brand"></i> 9. Контакты</h2>
-            <p>По всем вопросам, связанным с настоящей Политикой и обработкой персональных данных, Пользователь может обращаться по следующим контактам:</p>
-            <div class="bg-gray-50 dark:bg-slate-700/50 p-6 rounded-2xl not-prose text-sm text-gray-700 dark:text-gray-300">
-              <p class="font-bold mb-2">ИП «Штамп Сервис»</p>
-              <p><span class="text-gray-500 dark:text-gray-400">Эл. почта:</span> <a href="mailto:support@7set.pro" class="text-brand hover:underline">support@7set.pro</a></p>
-              <p><span class="text-gray-500 dark:text-gray-400">Фактический адрес:</span> РК, г. Алматы, ул. Муратбаева, 136, 3 этаж, 318 офис</p>
-            </div>
-          </article>
-        </main>
-
-        <!-- Подвал (Footer) -->
-        <footer class="mt-8 pt-8 border-t border-gray-200/80 dark:border-slate-700 text-xs text-gray-500 dark:text-gray-400">
-          <div class="grid grid-cols-1 md:grid-cols-4 gap-6 mb-8">
-            <div class="md:col-span-2">
-              <a href="/" class="flex items-center gap-2 font-bold text-base text-gray-900 dark:text-white mb-2">
-                <i data-lucide="activity" class="text-brand w-5 h-5"></i> 7Set.pro
-              </a>
-              <p class="max-w-sm text-gray-500 dark:text-gray-400 leading-relaxed">
-                Интеллектуальная система экспресс-диагностики, расшифровки кодов неисправностей и точного регламентного обслуживания автомобилей.
-              </p>
-            </div>
-            <div>
-              <h4 class="font-bold text-gray-900 dark:text-gray-300 mb-2.5 uppercase tracking-wider text-[11px]">Навигация</h4>
-              <ul class="space-y-2 font-medium">
-                <li><a href="/" class="hover:text-brand transition-colors">Каталог ошибок OBD-II</a></li>
-                <li><a href="/garage" class="hover:text-brand transition-colors">Персональный Гараж</a></li>
-                <li><a href="/garage" class="hover:text-brand transition-colors">Подбор расходников</a></li>
-              </ul>
-            </div>
-            <div>
-              <h4 class="font-bold text-gray-900 dark:text-gray-300 mb-2.5 uppercase tracking-wider text-[11px]">Юридическая информация</h4>
-              <ul class="space-y-2 font-medium">
-                <li><a href="/legal/terms" class="hover:text-brand transition-colors">Пользовательское соглашение</a></li>
-                <li><a href="/legal/privacy" class="hover:text-brand transition-colors">Политика конфиденциальности</a></li>
-                <li><a href="/legal/subscription" class="hover:text-brand transition-colors">Условия подписки</a></li>
-              </ul>
-            </div>
-          </div>
-          <div class="flex flex-col sm:flex-row justify-between items-center gap-4 pt-6 text-[11px] bg-transparent">
-            <div>© ${new Date().getFullYear()} 7Set.pro. Все права защищены.</div>
-            <div class="flex gap-4">
-              <span class="flex items-center gap-1.5">Сделано с заботой о водителях <i data-lucide="car-front" class="w-4 h-4 text-brand inline"></i></span>
-            </div>
-          </div>
-        </footer>
-      </div>
-      <script>lucide.createIcons();</script>
-    </body>
-    </html>
-  `);
 });
 
 // 3.7. Страница Условий подписки
@@ -996,15 +325,90 @@ app.get('/legal/subscription', (req, res) => {
   `);
 });
 
+
+// 3.1. Страница марки (Catalog Level 2)
+app.get('/catalog/:make', async (req, res) => {
+  const make = req.params.make.toLowerCase().trim();
+  const brandName = formatTitleCase(make);
+  try {
+    const modelsData = await prisma.diagnosticReport.groupBy({
+      by: ['model'],
+      where: { brand: make, is_complete: true, code: { not: "UNSUPPORTED" } },
+      _count: { model: true },
+      orderBy: { _count: { model: 'desc' } }
+    });
+    
+    const brandMap = {
+      'toyota': 'toyota', 'hyundai': 'hyundai', 'kia': 'kia', 'lada': 'lada',
+      'volkswagen': 'vw', 'vw': 'vw', 'skoda': 'skoda', 'renault': 'renault',
+      'nissan': 'nissan', 'chevrolet': 'chevrolet', 'ford': 'ford', 'bmw': 'bmw',
+      'mercedes-benz': 'mercedes-benz', 'mercedes': 'mercedes-benz', 'audi': 'audi',
+      'mazda': 'mazda', 'geely': 'geely', 'chery': 'chery',
+      'mitsubishi': 'mitsubishi', 'honda': 'honda', 'lexus': 'lexus', 'haval': 'haval',
+      'subaru': 'subaru', 'suzuki': 'suzuki', 'opel': 'opel', 'daewoo': 'daowoo',
+      'peugeot': 'peugeot', 'uaz': 'uaz', 'gaz': 'gaz', 'changan': 'changan',
+      'exeed': 'exeed', 'tank': 'tank', 'jac': 'jac', 'jetour': 'jetour',
+      'omoda': 'omoda', 'faw': 'faw', 'dongfeng': 'dongfeng', 'gwm': 'gwm',
+      'gac': 'gac', 'byd': 'byd', 'zeekr': 'zeekr', 'voyah': 'voyah'
+    };
+    const logoSlug = brandMap[make] || null;
+    const seoData = getBrandSeo(make);
+
+    res.render('catalog_brand', { 
+      brandName: brandName, 
+      models: modelsData, 
+      logoSlug,
+      seoTitle: seoData?.title || null,
+      seoDescription: seoData?.description || null 
+    });
+  } catch (err) {
+    console.error("Ошибка catalog brand:", err);
+    res.status(500).send("Ошибка сервера");
+  }
+});
+
+// 3.2. Страница модели (Catalog Level 3)
+app.get('/catalog/:make/:model', async (req, res) => {
+  const make = req.params.make.toLowerCase().trim();
+  const model = req.params.model.toLowerCase().trim();
+  const brandName = formatTitleCase(make);
+  const modelName = formatTitleCase(model);
+  try {
+    const codesData = await prisma.diagnosticReport.findMany({
+      where: { brand: make, model: model, is_complete: true, code: { not: "UNSUPPORTED" } },
+      select: { code: true, summary: true, severity: true },
+      orderBy: { code: 'asc' }
+    });
+    
+    const seoData = getModelSeo(make, model);
+
+    res.render('catalog_model', { 
+      brandName: brandName, 
+      modelName: modelName, 
+      codes: codesData,
+      seoTitle: seoData?.title || null,
+      seoDescription: seoData?.description || null
+    });
+  } catch (err) {
+    console.error("Ошибка catalog model:", err);
+    res.status(500).send("Ошибка сервера");
+  }
+});
+
+// 3.3. 301 Redirect со старых ссылок
+app.get('/diagnostic/:make/:model/:code', (req, res) => {
+  res.redirect(301, `/catalog/${req.params.make}/${req.params.model}/${req.params.code}`);
+});
+
 // 4. Обработчик формы -> Редирект на SEO URL
 app.get('/search', (req, res) => {
   const { brand, model, code } = req.query;
   if (!brand || !model || !code) return res.redirect('/');
-  res.redirect(`/diagnostic/${brand.toLowerCase().trim()}/${model.toLowerCase().trim()}/${code.toUpperCase().trim()}`);
+  res.redirect(`/catalog/${brand.toLowerCase().trim()}/${model.toLowerCase().trim()}/${code.toUpperCase().trim()}`);
 });
 
 // 5. Публичная SEO-страница диагностики
-app.get('/diagnostic/:brand/:model/:code', async (req, res) => {
+app.get('/catalog/:brand/:model/:code', async (req, res) => {
   const brand = req.params.brand.toLowerCase().trim();
   const model = req.params.model.toLowerCase().trim();
   const code = req.params.code.toLowerCase().trim();
@@ -1201,12 +605,12 @@ app.get('/diagnostic/:brand/:model/:code', async (req, res) => {
       "@type": "BreadcrumbList",
       "itemListElement": [
         { "@type": "ListItem", "position": 1, "name": "Главная", "item": baseUrl },
-        { "@type": "ListItem", "position": 2, "name": displayBrand, "item": `${baseUrl}/search?brand=${encodeURIComponent(brand)}` },
-        { "@type": "ListItem", "position": 3, "name": displayModel, "item": `${baseUrl}/search?brand=${encodeURIComponent(brand)}&model=${encodeURIComponent(model)}` },
+        { "@type": "ListItem", "position": 2, "name": displayBrand, "item": `${baseUrl}/catalog/${encodeURIComponent(brand.toLowerCase())}` },
+        { "@type": "ListItem", "position": 3, "name": displayModel, "item": `${baseUrl}/catalog/${encodeURIComponent(brand.toLowerCase())}/${encodeURIComponent(model.toLowerCase())}` },
         { "@type": "ListItem", "position": 4, "name": isUnsupportedReport ? 'Неизвестный' : displayCode }
       ]
     };
-    const pageUrl = isUnsupportedReport ? `${baseUrl}/diagnostic/unknown-code` : `${baseUrl}/diagnostic/${brand.toLowerCase()}/${model.toLowerCase()}/${code.toUpperCase()}`;
+    const pageUrl = isUnsupportedReport ? `${baseUrl}/catalog/unknown-code` : `${baseUrl}/catalog/${brand.toLowerCase()}/${model.toLowerCase()}/${code.toUpperCase()}`;
     const ogImage = isUnsupportedReport ? `${baseUrl}/og-default.png` : `${baseUrl}/og-images/${brand.toLowerCase()}-${model.toLowerCase()}-${code.toLowerCase()}.png`;
     let seoTitle = report.seoTitle || (isUnsupportedReport ? "Неизвестный код ошибки автомобиля: причины и проверка" : `Ошибка ${displayCode} ${displayBrand} ${displayModel}: расшифровка, причины и ремонт`);
     if (!isUnsupportedReport && seoTitle && !seoTitle.toLowerCase().includes(displayModel.toLowerCase())) {

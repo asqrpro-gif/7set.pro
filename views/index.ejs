@@ -1,0 +1,291 @@
+<!DOCTYPE html>
+<html lang="ru">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>7Set.pro — Умная автодиагностика и регламент ТО</title>
+  <meta name="description" content="Умная нейросеть для расшифровки ошибок OBD-II и дилерских кодов. Быстрая диагностика и точный регламент технического обслуживания для вашего автомобиля.">
+  <link rel="canonical" href="https://7set.pro/" />
+  <link rel="icon" type="image/svg+xml" href="/favicon.svg">
+  
+  <!-- Open Graph / Facebook -->
+  <meta property="og:type" content="website">
+  <meta property="og:url" content="https://7set.pro/">
+  <meta property="og:title" content="7Set.pro — Умная автодиагностика и регламент ТО">
+  <meta property="og:description" content="Умная нейросеть для расшифровки ошибок OBD-II и дилерских кодов. Быстрая диагностика и точный регламент технического обслуживания для вашего автомобиля.">
+  <meta property="og:image" content="https://7set.pro/og-default.png">
+  
+  <!-- Twitter -->
+  <meta name="twitter:card" content="summary_large_image">
+  <meta name="twitter:url" content="https://7set.pro/">
+  <meta name="twitter:title" content="7Set.pro — Умная автодиагностика и регламент ТО">
+  <meta name="twitter:description" content="Умная нейросеть для расшифровки ошибок OBD-II и дилерских кодов. Быстрая диагностика и точный регламент технического обслуживания для вашего автомобиля.">
+  <meta name="twitter:image" content="https://7set.pro/og-default.png">
+
+  <!-- Schema.org JSON-LD -->
+  <script type="application/ld+json">
+  {
+    "@context": "https://schema.org",
+    "@type": "WebSite",
+    "name": "7Set.pro",
+    "url": "https://7set.pro/",
+    "potentialAction": {
+      "@type": "SearchAction",
+      "target": "https://7set.pro/search?brand={brand}&code={code}",
+      "query-input": "required name=code"
+    }
+  }
+  </script>
+  <script src="https://cdn.tailwindcss.com?plugins=typography"></script>
+  <script>
+    tailwind.config = { 
+      darkMode: 'class', 
+      theme: { 
+        extend: { 
+          colors: { brand: '#0077FF', surface: '#F5F5F7' },
+          animation: { 'shimmer': 'shimmer 2.5s infinite' },
+          keyframes: { shimmer: { '0%': { transform: 'translateX(-100%)' }, '100%': { transform: 'translateX(100%)' } } }
+        } 
+      } 
+    }
+  </script>
+  <link rel="stylesheet" href="/style.css?v=2">
+  <script src="/main.js?v=2" defer></script>
+  <script src="https://unpkg.com/lucide@latest"></script>
+    <!-- Yandex.Metrika counter -->
+    <script type="text/javascript">
+        (function(m,e,t,r,i,k,a){
+            m[i]=m[i]||function(){(m[i].a=m[i].a||[]).push(arguments)};
+            m[i].l=1*new Date();
+            for (var j = 0; j < document.scripts.length; j++) {if (document.scripts[j].src === r) { return; }}
+            k=e.createElement(t),a=e.getElementsByTagName(t)[0],k.async=1,k.src=r,a.parentNode.insertBefore(k,a)
+        })(window, document,'script','https://mc.yandex.ru/metrika/tag.js?id=111154643', 'ym');
+
+        ym(111154643, 'init', {ssr:true, webvisor:true, clickmap:true, ecommerce:"dataLayer", referrer: document.referrer, url: location.href, accurateTrackBounce:true, trackLinks:true});
+    </script>
+    <noscript><div><img src="https://mc.yandex.ru/watch/111154643" style="position:absolute; left:-9999px;" alt="" /></div></noscript>
+    <!-- /Yandex.Metrika counter -->
+</head>
+<body class="bg-surface dark:bg-slate-900 text-gray-900 dark:text-white font-sans antialiased min-h-screen flex flex-col justify-between">
+  <div class="max-w-5xl mx-auto p-4 md:p-6 w-full">
+    <!-- Шапка (Header) -->
+    <header class="flex justify-between items-center mb-8 bg-white dark:bg-slate-800 p-4 rounded-2xl shadow-sm border border-gray-100 dark:border-slate-700">
+      <a href="/" class="flex items-center gap-2 hover:opacity-80 transition-opacity">
+        <i data-lucide="activity" style="color: #007bff;"></i>
+        <span class="font-bold text-xl tracking-tight text-gray-900 dark:text-white">7Set.Pro</span> <span class="font-normal text-sm text-gray-500 dark:text-gray-400 ml-1 hidden md:inline">| Умная автодиагностика</span>
+      </a>
+      <div class="flex items-center gap-3">
+        <a href="/garage" class="text-sm font-semibold bg-brand/10 dark:bg-brand/20 text-brand dark:text-blue-400 px-3.5 py-2 rounded-xl hover:bg-brand hover:text-white dark:hover:bg-brand dark:hover:text-white transition-all flex items-center gap-1.5 shadow-sm">
+          <i data-lucide="car" class="w-4 h-4"></i> Гараж & ТО
+        </a>
+        <button id="theme-toggle" class="p-2 rounded-full hover:bg-gray-100 dark:hover:bg-slate-700 transition-colors" aria-label="Переключить тему">
+          <i data-lucide="moon" class="w-5 h-5 text-gray-700 dark:text-gray-300"></i>
+        </button>
+      </div>
+    </header>
+
+    <!-- Главное содержимое (pSEO структура) -->
+    <main class="space-y-12">
+      <!-- Hero Секция -->
+      <section class="hero-section bg-white dark:bg-slate-800 rounded-3xl p-6 md:p-10 shadow-sm border border-gray-100 dark:border-slate-700 relative overflow-hidden">
+        <div class="hero-content max-w-4xl mx-auto flex flex-col items-center">
+          
+          <!-- Верхний блок: Картинка слева, текст справа -->
+          <div class="flex flex-col md:flex-row items-center gap-6 md:gap-10 mb-10 w-full">
+            <!-- Картинка -->
+            <div class="shrink-0 flex justify-center w-full md:w-auto">
+              <img src="/img/auto-7set-pro-480x380-px.png" alt="Auto 7Set Pro" width="260" class="object-contain drop-shadow-md hover:scale-105 transition-transform duration-500">
+            </div>
+            
+            <!-- Текст -->
+            <div class="text-center md:text-left">
+              <h1 class="text-3xl sm:text-4xl lg:text-5xl font-black text-gray-900 dark:text-white mb-4 tracking-tight leading-tight">
+                Умная автодиагностика и персональный подбор ТО
+              </h1>
+              <p class="text-gray-500 dark:text-gray-400 text-base md:text-lg">
+                Мгновенная расшифровка кодов OBD-II, дилерских ошибок и точный регламент расходников для вашей модификации авто.
+              </p>
+            </div>
+          </div>
+          
+          <!-- Нижний блок: Поиск (на всю ширину) -->
+          <style>
+            .custom-search-bg {
+              background-color: #f3f4f6 !important;
+              border-radius: 24px !important;
+            }
+            .dark .custom-search-bg {
+              background-color: #0f172a !important;
+            }
+          </style>
+          <div class="search-widget custom-search-bg p-5 md:p-8 border border-gray-200 dark:border-slate-700 shadow-lg w-full relative overflow-hidden">
+            <form id="diagnostics-form" action="/search" method="GET" class="search-form">
+              <div class="input-group grid grid-cols-1 sm:grid-cols-3 gap-4 mb-4">
+                <div>
+                  <input list="brand-options" type="text" id="inputBrand" name="brand" placeholder="Марка (напр. Toyota)" class="w-full bg-white dark:bg-slate-700 border-2 border-gray-300 dark:border-slate-500 dark:text-white dark:placeholder-slate-400 rounded-xl px-4 py-3.5 text-base focus:ring-2 focus:ring-brand/50 focus:border-brand outline-none transition-all shadow-md" autocomplete="off" required>
+                  <datalist id="brand-options"></datalist>
+                </div>
+                <div>
+                  <input list="model-options" type="text" id="inputModel" name="model" placeholder="Модель (напр. Camry)" class="w-full bg-white dark:bg-slate-700 border-2 border-gray-300 dark:border-slate-500 dark:text-white dark:placeholder-slate-400 rounded-xl px-4 py-3.5 text-base focus:ring-2 focus:ring-brand/50 focus:border-brand outline-none transition-all shadow-md disabled:opacity-50" autocomplete="off" disabled required>
+                  <datalist id="model-options"></datalist>
+                </div>
+                <div>
+                  <input type="text" id="inputCode" name="code" placeholder="Код (напр. P0171)" class="w-full bg-white dark:bg-slate-700 border-2 border-gray-300 dark:border-slate-500 dark:text-white dark:placeholder-slate-400 rounded-xl px-4 py-3.5 text-base focus:ring-2 focus:ring-brand/50 focus:border-brand outline-none transition-all shadow-md uppercase" autocomplete="off" required>
+                </div>
+              </div>
+              <div id="codeErrorHint" class="text-red-500 text-sm my-2 px-2 text-left font-medium" style="display: none;"></div>
+              <button type="submit" id="btnSearch" class="btn-primary relative overflow-hidden w-full bg-brand hover:bg-blue-600 text-white font-bold rounded-xl py-4 text-lg transition-all shadow-[0_0_15px_rgba(0,119,255,0.4)] hover:shadow-[0_0_25px_rgba(0,119,255,0.6)] hover:-translate-y-0.5 active:scale-[0.98] flex justify-center items-center gap-2 group border border-blue-400/50">
+                <div class="absolute inset-0 -translate-x-full bg-gradient-to-r from-transparent via-white/40 to-transparent group-hover:animate-shimmer"></div>
+                <i data-lucide="zap" class="w-5 h-5 relative z-10 drop-shadow-md"></i>
+                <span class="relative z-10 drop-shadow-md">Диагностировать ошибку</span>
+              </button>
+            </form>
+          </div>
+        </div>
+      </section>
+
+      <!-- Каталог Марок -->
+      <section class="mb-16 relative">
+        <div class="text-center mb-10 pt-8">
+          <h2 class="text-2xl md:text-3xl font-black text-gray-900 dark:text-white mb-3">Каталог ошибок по маркам</h2>
+          <p class="text-gray-500 dark:text-gray-400 text-sm md:text-base max-w-xl mx-auto">Выберите вашу марку автомобиля для просмотра доступных расшифровок</p>
+        </div>
+        
+        <div class="grid grid-cols-2 sm:grid-cols-3 md:grid-cols-4 lg:grid-cols-5 gap-4 max-w-6xl mx-auto px-4">
+          <% brands.forEach(function(item) { 
+              const brandMap = {
+                'toyota': 'toyota', 'hyundai': 'hyundai', 'kia': 'kia', 'lada': 'lada',
+                'volkswagen': 'vw', 'vw': 'vw', 'skoda': 'skoda', 'renault': 'renault',
+                'nissan': 'nissan', 'chevrolet': 'chevrolet', 'ford': 'ford', 'bmw': 'bmw',
+                'mercedes-benz': 'mercedes-benz', 'mercedes': 'mercedes-benz', 'audi': 'audi',
+                'mazda': 'mazda', 'geely': 'geely', 'chery': 'chery',
+                'mitsubishi': 'mitsubishi', 'honda': 'honda', 'lexus': 'lexus', 'haval': 'haval',
+                'subaru': 'subaru', 'suzuki': 'suzuki', 'opel': 'opel', 'daewoo': 'daowoo',
+                'peugeot': 'peugeot', 'uaz': 'uaz', 'gaz': 'gaz', 'changan': 'changan',
+                'exeed': 'exeed', 'tank': 'tank', 'jac': 'jac', 'jetour': 'jetour',
+                'omoda': 'omoda', 'faw': 'faw', 'dongfeng': 'dongfeng', 'gwm': 'gwm',
+                'gac': 'gac', 'byd': 'byd', 'zeekr': 'zeekr', 'voyah': 'voyah'
+              };
+              const brandLower = item.brand.toLowerCase();
+              const logoSlug = brandMap[brandLower];
+          %>
+            <a href="/catalog/<%= encodeURIComponent(brandLower) %>" class="bg-white dark:bg-slate-800 p-4 rounded-2xl border border-gray-100 dark:border-slate-700 shadow-sm hover:shadow-lg hover:border-brand/40 dark:hover:border-brand/40 transition-all group flex flex-col items-center justify-center text-center duration-300 hover:-translate-y-1">
+              <% if(logoSlug) { %>
+                <img src="/img/logos/<%= logoSlug %>-logo-60x60-px.webp" alt="Коды ошибок <%= item.brand %>" width="48" height="48" class="object-contain mb-3 drop-shadow-sm group-hover:scale-110 transition-transform duration-300">
+              <% } else { %>
+                <div class="w-12 h-12 mb-3 bg-gray-50 dark:bg-slate-700 text-brand dark:text-blue-400 rounded-full flex items-center justify-center group-hover:bg-brand group-hover:text-white transition-colors duration-300 shadow-sm">
+                  <i data-lucide="car-front" class="w-6 h-6"></i>
+                </div>
+              <% } %>
+              <h3 class="font-bold text-gray-900 dark:text-white capitalize group-hover:text-brand transition-colors"><%= item.brand %></h3>
+              <span class="text-xs font-semibold text-gray-500 bg-gray-100 dark:bg-slate-700 dark:text-gray-400 px-2 py-0.5 rounded-full mt-2"><%= item._count.brand %> кодов</span>
+            </a>
+          <% }); %>
+          <% if(brands.length === 0) { %>
+             <p class="text-gray-500 text-center col-span-full">База данных наполняется...</p>
+          <% } %>
+        </div>
+      </section>
+
+      <!-- Секция УТП (USP Section) -->
+      <section class="usp-section">
+        <div class="text-center mb-8">
+          <h2 class="text-2xl md:text-3xl font-black text-gray-900 dark:text-white mb-2">Почему выбирают 7Set.pro?</h2>
+          <p class="text-gray-500 dark:text-gray-400 text-sm max-w-xl mx-auto">Инновационные алгоритмы анализа автомобильных данных для точной диагностики без лишних затрат.</p>
+        </div>
+        <div class="usp-grid grid grid-cols-1 md:grid-cols-3 gap-6">
+          <div class="usp-card bg-white dark:bg-slate-800 p-6 rounded-3xl border border-gray-100 dark:border-slate-700 shadow-sm hover:shadow-md transition-shadow">
+            <div class="w-12 h-12 bg-gray-100 dark:bg-slate-700 text-brand dark:text-blue-400 rounded-2xl flex items-center justify-center mb-4 shadow-sm"><i data-lucide="crosshair" class="w-6 h-6"></i></div>
+            <h3 class="font-bold text-lg text-gray-900 dark:text-white mb-2">Точно под ваш мотор</h3>
+            <p class="text-gray-500 dark:text-gray-400 text-sm leading-relaxed">ИИ учитывает не только модель, но и модификацию и индекс двигателя. Никакой «воды» — только конкретные инструкции.</p>
+          </div>
+          <div class="usp-card bg-white dark:bg-slate-800 p-6 rounded-3xl border border-gray-100 dark:border-slate-700 shadow-sm hover:shadow-md transition-shadow">
+            <div class="w-12 h-12 bg-gray-100 dark:bg-slate-700 text-brand dark:text-blue-400 rounded-2xl flex items-center justify-center mb-4 shadow-sm"><i data-lucide="shield-check" class="w-6 h-6"></i></div>
+            <h3 class="font-bold text-lg text-gray-900 dark:text-white mb-2">Защита от СТО</h3>
+            <p class="text-gray-500 dark:text-gray-400 text-sm leading-relaxed">В каждой карточке ошибки есть раздел «Как не дать себя обмануть механикам» с советами по контролю счета и работ.</p>
+          </div>
+          <div class="usp-card bg-white dark:bg-slate-800 p-6 rounded-3xl border border-gray-100 dark:border-slate-700 shadow-sm hover:shadow-md transition-shadow">
+            <div class="w-12 h-12 bg-gray-100 dark:bg-slate-700 text-brand dark:text-blue-400 rounded-2xl flex items-center justify-center mb-4 shadow-sm"><i data-lucide="car-front" class="w-6 h-6"></i></div>
+            <h3 class="font-bold text-lg text-gray-900 dark:text-white mb-2">Личный «Гараж»</h3>
+            <p class="text-gray-500 dark:text-gray-400 text-sm leading-relaxed">Внесите авто один раз и мгновенно получайте размеры щеток, допуски моторных масел и объемы заправочных жидкостей.</p>
+          </div>
+        </div>
+      </section>
+
+      <!-- Секция Тарифов (Pricing Section) -->
+      <section class="pricing-section bg-gradient-to-b from-white to-gray-50/50 dark:from-slate-800 dark:to-slate-900/50 rounded-3xl p-6 md:p-12 border border-gray-100 dark:border-slate-700 shadow-sm">
+        <div class="text-center mb-10">
+          <h2 class="text-2xl md:text-3xl font-black text-gray-900 dark:text-white mb-2">Доступ к Гаражу и Расходникам</h2>
+          <p class="text-gray-500 dark:text-gray-400 text-sm max-w-xl mx-auto">Подключите персональный профиль для автоматизированного ведения регламента технического обслуживания.</p>
+        </div>
+        <div class="pricing-grid grid grid-cols-1 md:grid-cols-3 gap-6 max-w-4xl mx-auto">
+          <div class="price-card bg-white dark:bg-slate-800 border border-gray-200 dark:border-slate-700 rounded-3xl p-6 flex flex-col justify-between hover:border-brand/40 transition-colors">
+            <div>
+              <h3 class="font-bold text-xl text-gray-900 dark:text-white mb-1">1 Автомобиль</h3>
+              <p class="price text-2xl font-black text-gray-900 dark:text-white mb-6">$5.99 <span class="text-xs font-normal text-gray-500 dark:text-gray-400">/ мес</span></p>
+              <ul class="space-y-3 text-sm text-gray-600 dark:text-gray-300 mb-8">
+                <li class="flex items-center gap-2.5"><i data-lucide="check-circle-2" class="w-4 h-4 text-emerald-500 shrink-0"></i><span>Полный лог ошибок OBD-II</span></li>
+                <li class="flex items-center gap-2.5"><i data-lucide="check-circle-2" class="w-4 h-4 text-emerald-500 shrink-0"></i><span>Подбор расходников для 1 авто</span></li>
+                <li class="flex items-center gap-2.5"><i data-lucide="check-circle-2" class="w-4 h-4 text-emerald-500 shrink-0"></i><span>Базовые советы по диагностике</span></li>
+              </ul>
+            </div>
+            <a href="/garage" class="btn-outline w-full text-center bg-gray-100 dark:bg-slate-700 border-2 border-transparent dark:border-slate-500 hover:bg-gray-200 dark:hover:bg-slate-600 text-gray-900 dark:text-white font-bold py-3 rounded-xl transition-all shadow-sm hover:shadow-md block">Выбрать</a>
+          </div>
+
+          <div class="price-card pro-card bg-white dark:bg-slate-800 border-2 border-brand rounded-3xl p-6 flex flex-col justify-between relative shadow-lg transform md:-translate-y-2">
+            <div class="absolute -top-3.5 left-1/2 -translate-x-1/2 bg-brand text-white text-xs font-black px-4 py-1 rounded-full uppercase tracking-wider shadow-sm">Выбор водителей</div>
+            <div>
+              <h3 class="font-bold text-xl text-gray-900 dark:text-white mb-1">Семья (до 5 авто)</h3>
+              <p class="price text-2xl font-black text-gray-900 dark:text-white mb-6">$15.99 <span class="text-xs font-normal text-gray-500 dark:text-gray-400">/ мес</span></p>
+              <ul class="space-y-3 text-sm text-gray-600 dark:text-gray-300 mb-8">
+                <li class="flex items-center gap-2.5 font-medium text-gray-900 dark:text-white"><i data-lucide="zap" class="w-4 h-4 text-amber-500 shrink-0 fill-amber-500/20"></i><span>Ведение нескольких машин</span></li>
+                <li class="flex items-center gap-2.5 font-medium text-gray-900 dark:text-white"><i data-lucide="zap" class="w-4 h-4 text-amber-500 shrink-0 fill-amber-500/20"></i><span>История обслуживания и ТО</span></li>
+                <li class="flex items-center gap-2.5"><i data-lucide="check-circle-2" class="w-4 h-4 text-emerald-500 shrink-0"></i><span>Доступ к каталогам масел и жидкостей</span></li>
+                <li class="flex items-center gap-2.5"><i data-lucide="check-circle-2" class="w-4 h-4 text-emerald-500 shrink-0"></i><span>Экспорт отчетов в PDF</span></li>
+              </ul>
+            </div>
+            <a href="/garage" class="btn-primary w-full text-center bg-brand hover:bg-blue-600 text-white font-bold py-3 rounded-xl transition-all shadow-[0_0_15px_rgba(0,119,255,0.4)] hover:shadow-[0_0_20px_rgba(0,119,255,0.5)] block">Оформить PRO</a>
+          </div>
+        </div>
+      </section>
+    </main>
+
+    <!-- Подвал (Footer) -->
+    <footer class="mt-8 pt-8 border-t border-gray-200/80 dark:border-slate-700 text-xs text-gray-500 dark:text-gray-400">
+      <div class="grid grid-cols-1 md:grid-cols-4 gap-6 mb-8">
+        <div class="md:col-span-2">
+          <a href="/" class="flex items-center gap-2 font-bold text-base text-gray-900 dark:text-white mb-2">
+            <i data-lucide="activity" class="text-brand w-5 h-5"></i> 7Set.pro
+          </a>
+          <p class="max-w-sm text-gray-500 dark:text-gray-400 leading-relaxed">
+            Интеллектуальная система экспресс-диагностики, расшифровки кодов неисправностей и точного регламентного обслуживания автомобилей.
+          </p>
+        </div>
+        <div>
+          <h4 class="font-bold text-gray-900 dark:text-gray-300 mb-2.5 uppercase tracking-wider text-[11px]">Навигация</h4>
+          <ul class="space-y-2 font-medium">
+            <li><a href="/" class="hover:text-brand transition-colors">Каталог ошибок OBD-II</a></li>
+            <li><a href="/garage" class="hover:text-brand transition-colors">Персональный Гараж</a></li>
+            <li><a href="/garage" class="hover:text-brand transition-colors">Подбор расходников</a></li>
+          </ul>
+        </div>
+        <div>
+          <h4 class="font-bold text-gray-900 dark:text-gray-300 mb-2.5 uppercase tracking-wider text-[11px]">Юридическая информация</h4>
+          <ul class="space-y-2 font-medium">
+            <li><a href="/legal/terms" class="hover:text-brand transition-colors">Пользовательское соглашение</a></li>
+            <li><a href="/legal/privacy" class="hover:text-brand transition-colors">Политика конфиденциальности</a></li>
+            <li><a href="/legal/subscription" class="hover:text-brand transition-colors">Условия подписки</a></li>
+          </ul>
+        </div>
+      </div>
+      <div class="flex flex-col sm:flex-row justify-between items-center gap-4 pt-6 text-[11px] bg-transparent">
+        <div>© <%= new Date().getFullYear() %> 7Set.pro. Все права защищены.</div>
+        <div class="flex gap-4">
+          <span class="flex items-center gap-1.5">Сделано с заботой о водителях <i data-lucide="car-front" class="w-4 h-4 text-brand inline"></i></span>
+        </div>
+      </div>
+    </footer>
+  </div>
+  <script>lucide.createIcons();</script>
+</body>
+</html>
