@@ -1,28 +1,31 @@
-import 'dotenv/config'; // Обязательно загружаем переменные окружения, чтобы скрипт видел GEMINI_API_KEY и DATABASE_URL
+import 'dotenv/config';
 import { PrismaClient } from '@prisma/client';
-// Импортируем готовые функции для обращения к ИИ из вашего файла lib
-import { analyzeCarErrorFast, analyzeCarErrorDeep } from '../lib/gemini_clean.js';
+import { analyzeCarErrorFast, analyzeCarErrorDeep, getFactFromDB } from '../lib/gemini_clean.js';
 
 const prisma = new PrismaClient();
 
-// 1. ИСТОЧНИК ДАННЫХ
-// Массив целевых автомобилей для генерации карточек
+// ==========================================
+// 1. ИСТОЧНИК ДАННЫХ (Целевые машины и коды)
+// ==========================================
+
 const TARGET_CARS = [
   { brand: 'Chevrolet', model: 'Cobalt' },
   { brand: 'Hyundai', model: 'Tucson' },
   { brand: 'Kia', model: 'Sportage' },
   { brand: 'Hyundai', model: 'Elantra' },
-  { brand: 'Chery', model: 'Tiggo 2' },
-  { brand: 'Haval', model: 'M6' },
-  { brand: 'Chery', model: 'Tiggo 7 Pro' },
-  { brand: 'Jac', model: 'J7' },
+  { brand: 'Toyota', model: 'Camry' },     // Новинка
+  { brand: 'Toyota', model: 'Corolla' },   // Новинка
+  { brand: 'Toyota', model: 'RAV4' },      // Новинка
+  { brand: 'Volkswagen', model: 'Polo' },  // Новинка (суперпопулярна в СНГ)     
   { brand: 'Hyundai', model: 'Santa Fe' },
   { brand: 'Kia', model: 'Sorento' }
 ];
 
-// Массив из 100 популярных кодов ошибок для массовой генерации
+// Массив на 121 код (Дает 1210 комбинаций. После фильтров выйдет ~1000-1100 чистых карточек)
 const POPULAR_ERRORS = [
-  'P0100', 'P0101', 'P0102', 'P0103', 'P0106', 'P0113', 'P0115', 'P0117', 'P0118', 'P0121',
+  'P0008', 'P0010', 'P0011', 'P0012', 'P0013', 'P0014', 'P0016', 'P0017', 'P0030', 'P0031',
+  'P0032', 'P0050', 'P0053', 'P0100', 'P0101', 'P0102', 'P0103', 'P0104', 'P0105', 'P0106',
+  'P0107', 'P0108', 'P0112', 'P0113', 'P0114', 'P0115', 'P0116', 'P0117', 'P0118', 'P0121',
   'P0122', 'P0123', 'P0128', 'P0130', 'P0131', 'P0132', 'P0133', 'P0134', 'P0135', 'P0136',
   'P0137', 'P0138', 'P0141', 'P0155', 'P0171', 'P0172', 'P0174', 'P0175', 'P0191', 'P0193',
   'P0201', 'P0202', 'P0203', 'P0204', 'P0222', 'P0223', 'P0234', 'P0243', 'P0299', 'P0300',
@@ -34,111 +37,122 @@ const POPULAR_ERRORS = [
   'P2119', 'P2135', 'P2138', 'P2293', 'P2509', 'P2610', 'U0073', 'U0100', 'U0101', 'U0121', 'U0140'
 ];
 
-// Вспомогательная функция для создания пауз (sleep). Возвращает Promise, который резолвится через заданное количество мс.
+// Вспомогательные функции
 const sleep = (ms) => new Promise(resolve => setTimeout(resolve, ms));
+const getRandomInt = (min, max) => Math.floor(Math.random() * (max - min + 1)) +
+  min;
 
-// Вспомогательная функция для генерации случайного целого числа в заданном диапазоне (min-max)
-function getRandomInt(min, max) {
-  return Math.floor(Math.random() * (max - min + 1)) + min;
-}
-
-// 4. ОТЛОЖЕННАЯ ПУБЛИКАЦИЯ
-// Функция для расчета даты отложенной публикации (с учетом рабочего времени редакции)
+// ==========================================
+// 2. УМНЫЙ РАСЧЕТ ДАТЫ ПУБЛИКАЦИИ
+// ==========================================
 async function getNextPublishDate() {
-  // Находим самую последнюю дату создания (created_at) карточки в базе
   const latestReport = await prisma.diagnosticReport.findFirst({
     orderBy: { created_at: 'desc' },
     select: { created_at: true }
   });
 
-  // Если в БД есть записи, берем самую позднюю дату, иначе — текущее время
   let nextDate = latestReport?.created_at ? new Date(latestReport.created_at) : new Date();
-  
-  // Если последняя запись была создана в прошлом, берем текущее время как отправную точку
+
   if (nextDate < new Date()) {
     nextDate = new Date();
   }
 
-  // Прибавляем к найденному времени случайное количество минут от 15 до 35
-  const minutesToAdd = getRandomInt(15, 35);
+  // Хаотичный интервал 12-28 минут (~3 публикации в час)
+  const minutesToAdd = getRandomInt(12, 28);
   nextDate.setMinutes(nextDate.getMinutes() + minutesToAdd);
 
-  // Проверяем, в какой час попадает рассчитанное время
   const hour = nextDate.getHours();
-  // Если время попадает в нерабочий диапазон (>= 22 или < 8)
-  if (hour >= 22 || hour < 8) {
-    // Если время вечернее (после 22), переносим дату на следующий день
-    if (hour >= 22) {
-      nextDate.setDate(nextDate.getDate() + 1);
+
+  // Рабочее время редакции: с 08:00 до 20:00
+  if (hour >= 20 || hour < 8) {
+    if (hour >= 20) {
+      nextDate.setDate(nextDate.getDate() + 1); // Перенос на завтра
     }
-    // Устанавливаем время строго на 08:00 утра
     nextDate.setHours(8, 0, 0, 0);
-    
-    // Чтобы публикации не выходили ровно в 8:00:00, добавляем случайные 5-25 минут
-    const morningOffset = getRandomInt(5, 25);
+
+    // Утренняя хаотичность (первая статья выйдет с 08:03 до 08:24)
+    const morningOffset = getRandomInt(3, 24);
     nextDate.setMinutes(nextDate.getMinutes() + morningOffset);
   }
 
   return nextDate;
 }
 
+// ==========================================
+// 3. ОСНОВНОЙ КОНВЕЙЕР ГЕНЕРАЦИИ
+// ==========================================
 async function main() {
-  console.log('🚀 Запуск массовой генерации SEO-карточек...');
+  console.log('🚀 Запуск автономного SEO-конвейера (отложенная публикация)...');
 
-  // Перебираем каждый автомобиль из массива
+  let dailyGeneratedCount = 0;
+  let currentDay = new Date().getDate();
+
   for (const car of TARGET_CARS) {
-    // Для каждого автомобиля перебираем все коды ошибок
     for (const code of POPULAR_ERRORS) {
       
-      // 2. РАБОЧИЙ ГРАФИК СКРИПТА (НОЧНАЯ СМЕНА)
-      // Бесконечный цикл, чтобы проверять время. Выйдет из цикла, только если наступит "ночь"
-      while (true) {
-        const currentHour = new Date().getHours();
-        // Дневное время (с 10:00 до 17:59). Скрипт отдыхает.
-        if (currentHour >= 10 && currentHour < 18) {
-          console.log(`[${new Date().toLocaleTimeString()}] Наступил день. Ухожу в спячку до 18:00`);
-          // Засыпаем на 30 минут, после чего проверяем время снова
-          await sleep(30 * 60 * 1000); 
-        } else {
-          // Время подходящее (>= 18 или < 10), выходим из цикла сна и идем дальше
-          break; 
+      // Лимит генерации: не более 120 успешных карточек в сутки
+      if (dailyGeneratedCount >= 120) {
+        console.log(`\n🛑 Достигнут суточный лимит (120 карточек). Засыпаем до наступления новых суток...`);
+        while (new Date().getDate() === currentDay) {
+          await sleep(10 * 60 * 1000); // проверяем каждые 10 минут
         }
+        currentDay = new Date().getDate();
+        dailyGeneratedCount = 0;
+        console.log(`\n🌅 Наступили новые сутки! Продолжаем генерацию...`);
       }
 
-      // 3. ПРОВЕРКА НА ДУБЛИКАТ
-      // Ищем в БД запись с такой же маркой, моделью и кодом ошибки
+      // ФИЛЬТР 1: Предварительная проверка кода на подлинность OBD-II
+      const obdRegex = /^[PBUC][0-9A-F]{4}$/i;
+      const baseDescription = getFactFromDB(code);
+
+      if (!obdRegex.test(code) || !baseDescription) {
+        console.log(`[ПРОПУСК] Код ${code} не прошел первичную валидацию.`);
+        continue;
+      }
+
+      // ПРОВЕРКА НА ДУБЛИКАТ В БД
       const existingReport = await prisma.diagnosticReport.findFirst({
         where: { brand: car.brand, model: car.model, code: code }
       });
 
-      // Если карточка найдена, пропускаем её генерацию
       if (existingReport) {
-        console.log(`⏩ Пропуск: ${car.brand} ${car.model} ${code} уже существует.`);
+        console.log(`⏩ Пропуск: ${car.brand} ${car.model} ${code} уже в базе.`);
         continue;
       }
 
       console.log(`\n⏳ Генерация карточки: ${car.brand} ${car.model} ошибка ${code}...`);
-      
-      // 5. ОБРАБОТКА ОШИБОК (try/catch блок)
-      try {
-        // Шаг 1: Запрашиваем быструю генерацию (seo, summary, drivability)
-        const fastData = await analyzeCarErrorFast(car.brand, car.model, code, '');
-        
-        // Шаг 2: Сразу запрашиваем глубокую генерацию (markdown, цены, инструкции)
-        const deepData = await analyzeCarErrorDeep(car.brand, car.model, code, '');
 
-        // Шаг 3: Высчитываем дату отложенной публикации
+      try {
+        // Шаг 1: Быстрая генерация
+        const fastData = await analyzeCarErrorFast(car.brand, car.model, code, '');
+
+        // ФИЛЬТР 2: Детектор мусора от ИИ (проверка, применим ли код к этой машине)
+        const summaryText = fastData.summary || '';
+        const isUnsupportedByAI =
+          summaryText.includes('не зарегистрирован') ||
+          summaryText.includes('Сбой по коду') ||
+          summaryText.toLowerCase().includes('не существует') ||
+          (fastData.seoTitle || '').includes('Неизвестный') ||
+          fastData.severity === 'universal';
+
+        if (isUnsupportedByAI) {
+          console.log(`⛔ [ОТКАЗ ИИ] Ошибка ${code} не встречается на ${car.brand} ${car.model}. Брак отсеян.`);
+          continue;
+        }
+
+        // Шаг 2: Глубокая генерация (если фильтры пройдены)
+        const deepData = await analyzeCarErrorDeep(car.brand, car.model, code, '');
         const publishDate = await getNextPublishDate();
 
-        // Защита поля drivability на основе разрешенных значений, чтобы база не выдала ошибку
+        // Защита поля drivability
         let safeDrivability = fastData.drivability;
         if (!['safe', 'caution', 'tow'].includes(safeDrivability)) {
           if (fastData.severity === 'low') safeDrivability = 'safe';
-          else if (fastData.severity === 'critical') safeDrivability = 'tow';
+          else if (fastData.severity === 'critical') safeDrivability = 'tow';    
           else safeDrivability = 'caution';
         }
 
-        // Шаг 4: Сохраняем итоговую карточку в базу данных, заполняя все поля
+        // Шаг 3: Сохранение чистового варианта в базу
         await prisma.diagnosticReport.create({
           data: {
             brand: car.brand,
@@ -150,9 +164,9 @@ async function main() {
             drivability: safeDrivability,
             seoTitle: fastData.seoTitle,
             seoDescription: fastData.seoDescription,
-            is_paid: false, 
-            is_complete: true, // Помечаем, что это полностью готовая карточка
-            
+            is_paid: false,
+            is_complete: true,
+
             full_analysis_markdown: deepData.full_analysis_markdown,
             sto_protection_tips: deepData.sto_protection_tips,
             diy_instructions: deepData.diy_instructions,
@@ -164,42 +178,31 @@ async function main() {
             diy_tools: deepData.diy_tools,
             popular_engine_codes: deepData.popular_engine_codes || [],
             related_obd_codes: deepData.related_obd_codes || [],
-            
-            // Используем поле created_at для отложенной публикации
+
             created_at: publishDate
           }
         });
 
-        console.log(`✅ Сохранено: ${car.brand} ${car.model} ${code}. Дата публикации: ${publishDate.toLocaleString()}`);
-        console.log(`💤 Успешная генерация. Пауза 1 минута перед следующим кодом для обхода лимитов API...`);
-        
-        // 3. ПАУЗА ПОСЛЕ УСПЕХА
-        // Пауза ровно 1 минуту (60 000 мс)
-        await sleep(60000);
+        console.log(`✅ Сохранено: ${car.brand} ${car.model} ${code}`);
+        console.log(`📅 В очереди на: ${publishDate.toLocaleString()}`);
+        console.log(`💤 Остываем 2 минуты...`);
+
+        dailyGeneratedCount++; // Увеличиваем счетчик успешных генераций
+
+        // Интервал генерации — ровно 2 минуты (120 000 мс)
+        await sleep(120000);
 
       } catch (error) {
-        // Если API отвалилось или произошла другая ошибка — ловим её здесь
-        console.error(`❌ Ошибка при генерации ${car.brand} ${car.model} ${code}:`, error.message);
-        console.log('💤 Ожидание 2 минуты перед следующей попыткой из-за ошибки...');
-        // Делаем штрафную паузу в 2 минуты (120 000 мс) перед продолжением
+        console.error(`❌ Сбой API для ${car.brand} ${car.model} ${code}:`, error.message);
+        console.log('💤 Штрафная пауза 2 минуты перед новой попыткой...');       
         await sleep(120000);
       }
     }
   }
 
-  console.log('\n🎉 Все целевые автомобили и ошибки успешно обработаны!');
-  // Обязательно отключаем клиент базы данных
+  console.log('\n🎉 Конвейер завершил работу! База заполнена.');
   await prisma.$disconnect();
-  // Корректно завершаем процесс скрипта
   process.exit(0);
 }
 
-// Запускаем основную логику скрипта
 main();
-
-/**
- * КОМАНДА ДЛЯ ЗАПУСКА ЭТОГО СКРИПТА В ТЕРМИНАЛЕ:
- * 
- * node scripts/generate_seo_cards.js
- * 
- */

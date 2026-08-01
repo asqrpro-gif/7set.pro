@@ -184,7 +184,11 @@ app.get('/', async (req, res) => {
           'volkswagen': 'vw', 'vw': 'vw', 'skoda': 'skoda', 'renault': 'renault',
           'nissan': 'nissan', 'chevrolet': 'chevrolet', 'ford': 'ford', 'bmw': 'bmw',
           'mercedes-benz': 'mercedes-benz', 'mercedes': 'mercedes-benz', 'audi': 'audi',
-          'mazda': 'mazda', 'geely': 'geely', 'chery': 'chery'
+          'mazda': 'mazda', 'geely': 'geely', 'chery': 'chery',
+          'mitsubishi': 'mitsubishi', 'honda': 'honda', 'lexus': 'lexus', 'haval': 'haval',
+          'subaru': 'subaru', 'suzuki': 'suzuki', 'opel': 'opel', 'daewoo': 'daowoo',
+          'peugeot': 'peugeot', 'uaz': 'uaz', 'gaz': 'gaz', 'changan': 'changan',
+          'exeed': 'exeed', 'tank': 'tank'
         };
         const currentBrandLower = report.brand ? report.brand.toLowerCase() : '';
         const logoSlug = brandMap[currentBrandLower];
@@ -1046,10 +1050,18 @@ app.get('/diagnostic/:brand/:model/:code', async (req, res) => {
         (existingReport.seoTitle || '').includes('Неизвестный');
 
       // Если со старых тестов в БД лежит заглушка, но сам код является рабочим (!isUnsupported), удаляем этот ошибочный кэш!
+      // Защита от бесконечного цикла (лимиты Gemini): не удаляем свежие заглушки (созданные менее 1 часа назад)
+      const oneHourAgo = new Date(Date.now() - 60 * 60 * 1000);
+      const isRecentStub = existingReport.created_at && new Date(existingReport.created_at) > oneHourAgo;
+
       if (isCachedStub && !isUnsupported) {
-        console.log('🔄 [ОЧИСТКА КЭША] В БД обнаружен старый ошибочный кэш заглушки для реального кода! Удаляем и запрашиваем свежий ИИ-отчет...');
-        await prisma.diagnosticReport.delete({ where: { id: existingReport.id } }).catch(() => { });
-        existingReport = null;
+        if (isRecentStub) {
+          console.log('⏳ [АВТО-БЛОКИРОВКА] Обнаружена свежая заглушка (менее 1 часа). Оставляем кэш, чтобы не спамить ИИ при исчерпанных лимитах.');
+        } else {
+          console.log('🔄 [ОЧИСТКА КЭША] В БД обнаружен старый ошибочный кэш заглушки для реального кода! Удаляем и запрашиваем свежий ИИ-отчет...');
+          await prisma.diagnosticReport.delete({ where: { id: existingReport.id } }).catch(() => { });
+          existingReport = null;
+        }
       } else {
         console.log('⚡ Отчет найден в БД (кэш)!');
         report = existingReport;
