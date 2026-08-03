@@ -90,7 +90,7 @@
           <% models.forEach(function(item) { %>
             <a href="/catalog/<%= encodeURIComponent(brandName.toLowerCase()) %>/<%= encodeURIComponent(item.model.toLowerCase()) %>" class="bg-gradient-to-b from-[#ffffff] to-slate-50 dark:from-slate-700/50 dark:to-slate-800/50 backdrop-blur-md p-5 rounded-2xl border border-slate-200 dark:border-slate-600/80 shadow-sm hover:shadow-[0_8px_20px_-6px_rgba(0,119,255,0.25)] dark:hover:shadow-[0_8px_20px_-6px_rgba(0,119,255,0.4)] hover:border-brand/50 dark:hover:border-brand/50 transition-all group flex flex-col items-center text-center duration-300 hover:-translate-y-1.5">
               <h2 class="font-bold text-lg text-gray-900 dark:text-white capitalize group-hover:text-brand transition-colors mb-2"><%= item.model %></h2>
-              <span class="text-xs font-semibold text-brand bg-brand/10 px-2.5 py-1 rounded-full"><%= item._count.model %> ошибок</span>
+              <span class="text-xs font-semibold text-brand bg-brand/10 px-2.5 py-1 rounded-full"><%= item._count.model %> кодов</span>
             </a>
           <% }); %>
           <% if(models.length === 0) { %>
