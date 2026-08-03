@@ -165,7 +165,9 @@ app.get('/', async (req, res) => {
       orderBy: { _count: { brand: 'desc' } }
     });
 
-    res.render('index', { brands: brandsData });
+    const totalDeciphered = await prisma.diagnosticReport.count();
+
+    res.render('index', { brands: brandsData, totalDeciphered });
   } catch (err) {
     console.error("Ошибка главной:", err);
     res.status(500).send("Ошибка сервера");
@@ -603,8 +605,8 @@ app.get('/catalog/:brand/:model/:code', async (req, res) => {
   } catch (error) {
     console.error('🔴 Ошибка Gemini API:', error.message || error);
     res.status(500).send(`
-      <div style="font-family: sans-serif; padding: 20px; color: #721c24; background: #f8d7da; border-radius: 8px; margin: 20px;">
-        <h2 style="display: flex; items-center; gap: 8px;"><i data-lucide="alert-triangle" style="width:24px; height:24px;"></i> Сбой получения ответа от ИИ</h2>
+      <div class="ai-error-container">
+        <h2 class="ai-error-title"><i data-lucide="alert-triangle" class="ai-error-icon"></i> Сбой получения ответа от ИИ</h2>
         <p>${error.message || 'Ошибка подключения к API'}</p>
       </div>
       <script src="https://unpkg.com/lucide@latest"></script>

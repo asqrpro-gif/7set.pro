@@ -101,8 +101,7 @@
               </div>
               
               <input type="text" name="code" placeholder="Поиск или анализ кода (напр. P0158)" required
-                     class="w-full bg-transparent border-none outline-none focus:ring-0 px-3 md:px-4 py-3 md:py-4 text-gray-900 dark:text-white placeholder-gray-400 uppercase font-bold md:text-lg min-w-0"
-                     style="background-color: transparent !important; border: none !important;">
+                     class="w-full bg-transparent border-none outline-none focus:ring-0 px-3 md:px-4 py-3 md:py-4 text-gray-900 dark:text-white placeholder-gray-400 uppercase font-bold md:text-lg min-w-0 bg-transparent-noborder">
               
               <button type="submit" class="bg-brand hover:bg-blue-600 text-white px-5 md:px-8 py-3 md:py-4 rounded-xl font-bold transition-all flex items-center justify-center gap-2 shrink-0">
                 <span class="hidden sm:inline">Искать</span>
@@ -170,7 +169,7 @@
                     %>
                       <a href="<%= link %>" class="bg-[#ffffff] dark:bg-slate-800 p-5 rounded-2xl border border-slate-200 dark:border-slate-600/80 shadow-sm hover:shadow-[0_8px_20px_-6px_rgba(0,119,255,0.25)] dark:hover:shadow-[0_8px_20px_-6px_rgba(0,119,255,0.4)] hover:border-brand/50 dark:hover:border-brand/50 transition-all flex flex-col h-full relative overflow-hidden duration-300 hover:-translate-y-1.5">
                         <div class="flex items-center justify-between mb-3">
-                            <h3 class="font-black text-lg bg-brand text-white px-3 py-1 rounded-lg shadow-sm m-0"><%= report.code.toUpperCase() %></h3>
+                            <h3 class="font-black font-mono text-lg bg-brand text-white px-3 py-1 rounded-lg shadow-sm m-0"><%= report.code.toUpperCase() %></h3>
                             <span class="<%= sev.class %> text-[10px] font-bold px-2 py-1 rounded-md uppercase tracking-wider"><%= sev.text %></span>
                         </div>
                         <p class="text-sm text-gray-500 dark:text-gray-400 mt-2 line-clamp-3 leading-relaxed flex-grow">

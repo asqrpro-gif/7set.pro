@@ -63,7 +63,7 @@
 
         ym(111154643, 'init', {ssr:true, webvisor:true, clickmap:true, ecommerce:"dataLayer", referrer: document.referrer, url: location.href, accurateTrackBounce:true, trackLinks:true});
     </script>
-    <noscript><div><img src="https://mc.yandex.ru/watch/111154643" style="position:absolute; left:-9999px;" alt="" /></div></noscript>
+    <noscript><div><img src="https://mc.yandex.ru/watch/111154643" class="yandex-pixel" alt="" /></div></noscript>
     <!-- /Yandex.Metrika counter -->
 </head>
 <body class="bg-surface dark:bg-slate-900 text-gray-900 dark:text-white font-sans antialiased min-h-screen flex flex-col justify-between">
@@ -86,45 +86,37 @@
             
             <!-- Текст -->
             <div class="text-center md:text-left">
-              <h1 class="text-3xl sm:text-4xl lg:text-5xl font-black text-gray-900 dark:text-white mb-4 tracking-tight leading-tight">
-                Умная автодиагностика и персональный подбор ТО
+              <h1 class="text-2xl sm:text-3xl lg:text-4xl font-semibold text-gray-900 dark:text-white mb-4 tracking-tight leading-tight">
+                Независимая автодиагностика: точный разбор кодов OBD-II
               </h1>
               <p class="text-gray-500 dark:text-gray-400 text-base md:text-lg">
-                Мгновенная расшифровка кодов OBD-II, дилерских ошибок и точный регламент расходников для вашей модификации авто.
+                Переводим сложный технический язык автосканеров на человеческий. Введите код ошибки и модель машины, чтобы понять реальную причину поломки, оценить стоимость запчастей и избежать переплат на СТО.
               </p>
             </div>
           </div>
           
           <!-- Нижний блок: Поиск (на всю ширину) -->
-          <style>
-            .custom-search-bg {
-              background-color: #f3f4f6 !important;
-              border-radius: 24px !important;
-            }
-            .dark .custom-search-bg {
-              background-color: #0f172a !important;
-            }
-          </style>
-          <div class="search-widget custom-search-bg p-5 md:p-8 border border-gray-200 dark:border-slate-700 shadow-lg w-full relative overflow-hidden">
-            <form id="diagnostics-form" action="/search" method="GET" class="search-form">
-              <div class="input-group grid grid-cols-1 sm:grid-cols-3 gap-4 mb-4">
+
+          <div class="diagnostic-widget">
+            <form id="diagnostics-form" action="/search" method="GET" class="diagnostic-form">
+              <div class="diagnostic-input-group">
                 <div>
-                  <input list="brand-options" type="text" id="inputBrand" name="brand" placeholder="Марка (напр. Toyota)" class="w-full bg-white dark:bg-slate-700 border-2 border-gray-300 dark:border-slate-500 dark:text-white dark:placeholder-slate-400 rounded-xl px-4 py-3.5 text-base focus:ring-2 focus:ring-brand/50 focus:border-brand outline-none transition-all shadow-md" autocomplete="off" required>
+                  <input list="brand-options" type="text" id="inputBrand" name="brand" placeholder="Марка (напр. Toyota)" class="diagnostic-input" autocomplete="off" required>
                   <datalist id="brand-options"></datalist>
                 </div>
                 <div>
-                  <input list="model-options" type="text" id="inputModel" name="model" placeholder="Модель (напр. Camry)" class="w-full bg-white dark:bg-slate-700 border-2 border-gray-300 dark:border-slate-500 dark:text-white dark:placeholder-slate-400 rounded-xl px-4 py-3.5 text-base focus:ring-2 focus:ring-brand/50 focus:border-brand outline-none transition-all shadow-md disabled:opacity-50" autocomplete="off" disabled required>
+                  <input list="model-options" type="text" id="inputModel" name="model" placeholder="Модель (напр. Camry)" class="diagnostic-input" autocomplete="off" disabled required>
                   <datalist id="model-options"></datalist>
                 </div>
                 <div>
-                  <input type="text" id="inputCode" name="code" placeholder="Код (напр. P0171)" class="w-full bg-white dark:bg-slate-700 border-2 border-gray-300 dark:border-slate-500 dark:text-white dark:placeholder-slate-400 rounded-xl px-4 py-3.5 text-base focus:ring-2 focus:ring-brand/50 focus:border-brand outline-none transition-all shadow-md uppercase" autocomplete="off" required>
+                  <input type="text" id="inputCode" name="code" placeholder="Код (напр. P0171)" class="diagnostic-input uppercase-input" autocomplete="off" required>
                 </div>
               </div>
-              <div id="codeErrorHint" class="text-red-500 text-sm my-2 px-2 text-left font-medium" style="display: none;"></div>
-              <button type="submit" id="btnSearch" class="btn-primary relative overflow-hidden w-full bg-brand hover:bg-blue-600 text-white font-bold rounded-xl py-4 text-lg transition-all shadow-[0_0_15px_rgba(0,119,255,0.4)] hover:shadow-[0_0_25px_rgba(0,119,255,0.6)] hover:-translate-y-0.5 active:scale-[0.98] flex justify-center items-center gap-2 group border border-blue-400/50">
-                <div class="absolute inset-0 -translate-x-full bg-gradient-to-r from-transparent via-white/40 to-transparent group-hover:animate-shimmer"></div>
-                <i data-lucide="zap" class="w-5 h-5 relative z-10 drop-shadow-md"></i>
-                <span class="relative z-10 drop-shadow-md">Диагностировать ошибку</span>
+              <div id="codeErrorHint" class="diagnostic-error d-none"></div>
+              <button type="submit" id="btnSearch" class="diagnostic-btn group">
+                <div class="diagnostic-btn-shimmer group-hover:animate-shimmer"></div>
+                <i data-lucide="zap" class="w-5 h-5 diagnostic-btn-icon"></i>
+                <span class="diagnostic-btn-text">Диагностировать ошибку</span>
               </button>
             </form>
           </div>
@@ -134,11 +126,18 @@
       <!-- Каталог Марок -->
       <section class="mb-16 relative">
         <div class="text-center mb-10 pt-8">
-          <h2 class="text-2xl md:text-3xl font-black text-gray-900 dark:text-white mb-3">Каталог ошибок по маркам</h2>
-          <p class="text-gray-500 dark:text-gray-400 text-sm md:text-base max-w-xl mx-auto">Выберите вашу марку автомобиля для просмотра доступных расшифровок</p>
+          <h2 class="text-2xl md:text-3xl font-black text-gray-900 dark:text-white mb-3">Архив расшифрованных кодов OBD-II</h2>
+          <p class="text-gray-500 dark:text-gray-400 text-sm md:text-base max-w-2xl mx-auto leading-relaxed">Сотни автовладельцев уже нашли причины загоревшегося Check Engine с помощью 7Set.pro. Выберите марку, чтобы посмотреть готовые инструкции. Вашего кода нет? Наш ИИ создаст новый разбор за 5 секунд!</p>
+          <div class="inline-flex items-center gap-2.5 px-4 py-2 bg-white dark:bg-slate-800 border-[1.5px] border-blue-100 dark:border-slate-700 rounded-full mt-6 shadow-sm hover:shadow-md transition-shadow cursor-default group">
+            <span class="relative flex h-3 w-3">
+              <span class="animate-ping absolute inline-flex h-full w-full rounded-full bg-brand opacity-75"></span>
+              <span class="relative inline-flex rounded-full h-3 w-3 bg-brand"></span>
+            </span>
+            <span class="text-sm md:text-base font-bold text-gray-700 dark:text-gray-300">Расшифровано: <span class="text-brand font-black group-hover:text-blue-600 transition-colors"><%= typeof totalDeciphered !== 'undefined' ? totalDeciphered.toLocaleString('ru-RU') : 0 %></span></span>
+          </div>
         </div>
         
-        <div class="grid grid-cols-2 sm:grid-cols-3 md:grid-cols-4 lg:grid-cols-5 gap-4 max-w-6xl mx-auto px-4">
+        <div class="grid grid-cols-3 sm:grid-cols-4 md:grid-cols-5 lg:grid-cols-6 gap-2 sm:gap-3 max-w-6xl mx-auto px-4">
           <% brands.forEach(function(item) { 
               const brandMap = {
                 'toyota': 'toyota', 'hyundai': 'hyundai', 'kia': 'kia', 'lada': 'lada',
@@ -156,16 +155,16 @@
               const brandLower = item.brand.toLowerCase();
               const logoSlug = brandMap[brandLower];
           %>
-            <a href="/catalog/<%= encodeURIComponent(brandLower) %>" class="bg-white dark:bg-slate-800 p-4 rounded-2xl border border-gray-100 dark:border-slate-700 shadow-sm hover:shadow-lg hover:border-brand/40 dark:hover:border-brand/40 transition-all group flex flex-col items-center justify-center text-center duration-300 hover:-translate-y-1">
+            <a href="/catalog/<%= encodeURIComponent(brandLower) %>" class="bg-white dark:bg-slate-800 p-2 sm:p-3 rounded-2xl border-[1.5px] border-[#0077FF] dark:border-[#0077FF] shadow-none hover:shadow-[0_0_25px_rgba(0,119,255,0.5)] transition-all group flex flex-col items-center justify-center text-center duration-300 hover:-translate-y-1">
               <% if(logoSlug) { %>
-                <img src="/img/logos/<%= logoSlug %>-logo-60x60-px.webp" alt="Коды ошибок <%= item.brand %>" width="48" height="48" class="object-contain mb-3 drop-shadow-sm group-hover:scale-110 transition-transform duration-300">
+                <img src="/img/logos/<%= logoSlug %>-logo-60x60-px.webp" alt="Коды ошибок <%= item.brand %>" width="40" height="40" class="object-contain mb-2 drop-shadow-sm group-hover:scale-110 transition-transform duration-300">
               <% } else { %>
-                <div class="w-12 h-12 mb-3 bg-gray-50 dark:bg-slate-700 text-brand dark:text-blue-400 rounded-full flex items-center justify-center group-hover:bg-brand group-hover:text-white transition-colors duration-300 shadow-sm">
-                  <i data-lucide="car-front" class="w-6 h-6"></i>
+                <div class="w-10 h-10 mb-2 bg-blue-500/10 text-brand dark:text-blue-400 rounded-full flex items-center justify-center group-hover:bg-brand group-hover:text-white transition-colors duration-300 shadow-sm">
+                  <i data-lucide="car-front" class="w-5 h-5"></i>
                 </div>
               <% } %>
-              <h3 class="font-bold text-gray-900 dark:text-white capitalize group-hover:text-brand transition-colors"><%= item.brand %></h3>
-              <span class="text-xs font-semibold text-gray-500 bg-gray-100 dark:bg-slate-700 dark:text-gray-400 px-2 py-0.5 rounded-full mt-2"><%= item._count.brand %> кодов</span>
+              <h3 class="font-bold text-sm sm:text-base text-gray-900 dark:text-white capitalize group-hover:text-brand transition-colors"><%= item.brand %></h3>
+              <span class="text-[10px] sm:text-xs font-semibold text-blue-700 dark:text-blue-300 bg-blue-500/10 dark:bg-blue-500/20 px-2 py-0.5 rounded-full mt-1"><%= item._count.brand %> кодов</span>
             </a>
           <% }); %>
           <% if(brands.length === 0) { %>
@@ -177,61 +176,128 @@
       <!-- Секция УТП (USP Section) -->
       <section class="usp-section">
         <div class="text-center mb-8">
-          <h2 class="text-2xl md:text-3xl font-black text-gray-900 dark:text-white mb-2">Почему выбирают 7Set.pro?</h2>
-          <p class="text-gray-500 dark:text-gray-400 text-sm max-w-xl mx-auto">Инновационные алгоритмы анализа автомобильных данных для точной диагностики без лишних затрат.</p>
+          <h2 class="text-2xl md:text-3xl font-black text-gray-900 dark:text-white mb-3">Почему водители выбирают 7Set.pro?</h2>
+          <p class="text-gray-500 dark:text-gray-400 text-base max-w-2xl mx-auto leading-relaxed">Превращаем сложный язык автомобильных сканеров в понятный план действий. Экономим ваши нервы, время и деньги при загоревшемся Check Engine.</p>
         </div>
-        <div class="usp-grid grid grid-cols-1 md:grid-cols-3 gap-6">
-          <div class="usp-card bg-white dark:bg-slate-800 p-6 rounded-3xl border border-gray-100 dark:border-slate-700 shadow-sm hover:shadow-md transition-shadow">
-            <div class="w-12 h-12 bg-gray-100 dark:bg-slate-700 text-brand dark:text-blue-400 rounded-2xl flex items-center justify-center mb-4 shadow-sm"><i data-lucide="crosshair" class="w-6 h-6"></i></div>
-            <h3 class="font-bold text-lg text-gray-900 dark:text-white mb-2">Точно под ваш мотор</h3>
-            <p class="text-gray-500 dark:text-gray-400 text-sm leading-relaxed">ИИ учитывает не только модель, но и модификацию и индекс двигателя. Никакой «воды» — только конкретные инструкции.</p>
+        <div class="usp-grid grid grid-cols-1 md:grid-cols-3 gap-3 sm:gap-4 max-w-6xl mx-auto px-4">
+          <div class="usp-card bg-white dark:bg-slate-800 p-5 sm:p-6 rounded-2xl border-[1.5px] border-[#0077FF] dark:border-[#0077FF] shadow-none hover:shadow-[0_0_25px_rgba(0,119,255,0.3)] transition-all duration-300 hover:-translate-y-1 group">
+            <div class="w-12 h-12 bg-blue-50 dark:bg-blue-900/20 text-brand dark:text-blue-400 rounded-xl flex items-center justify-center mb-4 group-hover:scale-110 group-hover:bg-brand group-hover:text-white transition-all duration-300">
+              <i data-lucide="scan" class="w-6 h-6"></i>
+            </div>
+            <h3 class="font-bold text-lg text-gray-900 dark:text-white mb-2 group-hover:text-brand transition-colors">Точно под ваш автомобиль</h3>
+            <p class="text-gray-500 dark:text-gray-400 text-sm leading-relaxed">Алгоритм анализирует код ошибки с учетом «болячек» конкретно вашей марки и модели. Никакой сухой теории из старых справочников — только реальные причины поломки на человеческом языке.</p>
           </div>
-          <div class="usp-card bg-white dark:bg-slate-800 p-6 rounded-3xl border border-gray-100 dark:border-slate-700 shadow-sm hover:shadow-md transition-shadow">
-            <div class="w-12 h-12 bg-gray-100 dark:bg-slate-700 text-brand dark:text-blue-400 rounded-2xl flex items-center justify-center mb-4 shadow-sm"><i data-lucide="shield-check" class="w-6 h-6"></i></div>
-            <h3 class="font-bold text-lg text-gray-900 dark:text-white mb-2">Защита от СТО</h3>
-            <p class="text-gray-500 dark:text-gray-400 text-sm leading-relaxed">В каждой карточке ошибки есть раздел «Как не дать себя обмануть механикам» с советами по контролю счета и работ.</p>
+          <div class="usp-card bg-white dark:bg-slate-800 p-5 sm:p-6 rounded-2xl border-[1.5px] border-[#0077FF] dark:border-[#0077FF] shadow-none hover:shadow-[0_0_25px_rgba(0,119,255,0.3)] transition-all duration-300 hover:-translate-y-1 group">
+            <div class="w-12 h-12 bg-blue-50 dark:bg-blue-900/20 text-brand dark:text-blue-400 rounded-xl flex items-center justify-center mb-4 group-hover:scale-110 group-hover:bg-brand group-hover:text-white transition-all duration-300">
+              <i data-lucide="shield-check" class="w-6 h-6"></i>
+            </div>
+            <h3 class="font-bold text-lg text-gray-900 dark:text-white mb-2 group-hover:text-brand transition-colors">Защита от развода на СТО</h3>
+            <p class="text-gray-500 dark:text-gray-400 text-sm leading-relaxed">В каждом отчете есть обязательный раздел для общения с автосервисом. Мы подскажем, что нужно проверить в первую очередь и как не дать механикам навязать вам замену лишних деталей.</p>
           </div>
-          <div class="usp-card bg-white dark:bg-slate-800 p-6 rounded-3xl border border-gray-100 dark:border-slate-700 shadow-sm hover:shadow-md transition-shadow">
-            <div class="w-12 h-12 bg-gray-100 dark:bg-slate-700 text-brand dark:text-blue-400 rounded-2xl flex items-center justify-center mb-4 shadow-sm"><i data-lucide="car-front" class="w-6 h-6"></i></div>
-            <h3 class="font-bold text-lg text-gray-900 dark:text-white mb-2">Личный «Гараж»</h3>
-            <p class="text-gray-500 dark:text-gray-400 text-sm leading-relaxed">Внесите авто один раз и мгновенно получайте размеры щеток, допуски моторных масел и объемы заправочных жидкостей.</p>
+          <div class="usp-card bg-white dark:bg-slate-800 p-5 sm:p-6 rounded-2xl border-[1.5px] border-[#0077FF] dark:border-[#0077FF] shadow-none hover:shadow-[0_0_25px_rgba(0,119,255,0.3)] transition-all duration-300 hover:-translate-y-1 group">
+            <div class="w-12 h-12 bg-blue-50 dark:bg-blue-900/20 text-brand dark:text-blue-400 rounded-xl flex items-center justify-center mb-4 group-hover:scale-110 group-hover:bg-brand group-hover:text-white transition-all duration-300">
+              <i data-lucide="wrench" class="w-6 h-6"></i>
+            </div>
+            <h3 class="font-bold text-lg text-gray-900 dark:text-white mb-2 group-hover:text-brand transition-colors">Оценка стоимости и DIY</h3>
+            <p class="text-gray-500 dark:text-gray-400 text-sm leading-relaxed">Вы заранее узнаете примерную стоимость запчастей и работ. А для простых поломок ИИ выдаст уровень сложности и пошаговую инструкцию формата «Сделай сам» для ремонта в гаражных условиях.</p>
           </div>
         </div>
       </section>
 
-      <!-- Секция Тарифов (Pricing Section) -->
-      <section class="pricing-section bg-gradient-to-b from-white to-gray-50/50 dark:from-slate-800 dark:to-slate-900/50 rounded-3xl p-6 md:p-12 border border-gray-100 dark:border-slate-700 shadow-sm">
-        <div class="text-center mb-10">
-          <h2 class="text-2xl md:text-3xl font-black text-gray-900 dark:text-white mb-2">Доступ к Гаражу и Расходникам</h2>
-          <p class="text-gray-500 dark:text-gray-400 text-sm max-w-xl mx-auto">Подключите персональный профиль для автоматизированного ведения регламента технического обслуживания.</p>
-        </div>
-        <div class="pricing-grid grid grid-cols-1 md:grid-cols-3 gap-6 max-w-4xl mx-auto">
-          <div class="price-card bg-white dark:bg-slate-800 border border-gray-200 dark:border-slate-700 rounded-3xl p-6 flex flex-col justify-between hover:border-brand/40 transition-colors">
-            <div>
-              <h3 class="font-bold text-xl text-gray-900 dark:text-white mb-1">1 Автомобиль</h3>
-              <p class="price text-2xl font-black text-gray-900 dark:text-white mb-6">$5.99 <span class="text-xs font-normal text-gray-500 dark:text-gray-400">/ мес</span></p>
-              <ul class="space-y-3 text-sm text-gray-600 dark:text-gray-300 mb-8">
-                <li class="flex items-center gap-2.5"><i data-lucide="check-circle-2" class="w-4 h-4 text-emerald-500 shrink-0"></i><span>Полный лог ошибок OBD-II</span></li>
-                <li class="flex items-center gap-2.5"><i data-lucide="check-circle-2" class="w-4 h-4 text-emerald-500 shrink-0"></i><span>Подбор расходников для 1 авто</span></li>
-                <li class="flex items-center gap-2.5"><i data-lucide="check-circle-2" class="w-4 h-4 text-emerald-500 shrink-0"></i><span>Базовые советы по диагностике</span></li>
-              </ul>
-            </div>
-            <a href="/garage" class="btn-outline w-full text-center bg-gray-100 dark:bg-slate-700 border-2 border-transparent dark:border-slate-500 hover:bg-gray-200 dark:hover:bg-slate-600 text-gray-900 dark:text-white font-bold py-3 rounded-xl transition-all shadow-sm hover:shadow-md block">Выбрать</a>
-          </div>
+      <!-- Секция О Сервисе (SEO / Description) -->
+      <section class="seo-section bg-white dark:bg-slate-800 rounded-3xl p-6 md:p-10 lg:p-12 border border-gray-100 dark:border-slate-700 shadow-sm relative overflow-hidden">
+        <div class="absolute top-0 right-0 -mt-10 -mr-10 w-64 h-64 bg-blue-500/10 dark:bg-blue-500/5 rounded-full blur-3xl pointer-events-none"></div>
+        <div class="absolute bottom-0 left-0 -mb-10 -ml-10 w-64 h-64 bg-brand/10 dark:bg-brand/5 rounded-full blur-3xl pointer-events-none"></div>
+        
+        <div class="max-w-4xl mx-auto relative z-10">
+          <p class="text-lg md:text-xl text-gray-700 dark:text-gray-300 font-medium mb-12 leading-relaxed text-center sm:text-left border-l-4 border-brand pl-4 sm:pl-6">
+            Мы создали инновационный сервис онлайн-диагностики автомобиля, который не просто выдает сухую выдержку из старых справочников. Наш искусственный интеллект анализирует неисправность с учетом специфических «болячек» конкретно вашей марки и модели авто.
+          </p>
 
-          <div class="price-card pro-card bg-white dark:bg-slate-800 border-2 border-brand rounded-3xl p-6 flex flex-col justify-between relative shadow-lg transform md:-translate-y-2">
-            <div class="absolute -top-3.5 left-1/2 -translate-x-1/2 bg-brand text-white text-xs font-black px-4 py-1 rounded-full uppercase tracking-wider shadow-sm">Выбор водителей</div>
+          <div class="space-y-12">
+            <!-- Блок 1 -->
             <div>
-              <h3 class="font-bold text-xl text-gray-900 dark:text-white mb-1">Семья (до 5 авто)</h3>
-              <p class="price text-2xl font-black text-gray-900 dark:text-white mb-6">$15.99 <span class="text-xs font-normal text-gray-500 dark:text-gray-400">/ мес</span></p>
-              <ul class="space-y-3 text-sm text-gray-600 dark:text-gray-300 mb-8">
-                <li class="flex items-center gap-2.5 font-medium text-gray-900 dark:text-white"><i data-lucide="zap" class="w-4 h-4 text-amber-500 shrink-0 fill-amber-500/20"></i><span>Ведение нескольких машин</span></li>
-                <li class="flex items-center gap-2.5 font-medium text-gray-900 dark:text-white"><i data-lucide="zap" class="w-4 h-4 text-amber-500 shrink-0 fill-amber-500/20"></i><span>История обслуживания и ТО</span></li>
-                <li class="flex items-center gap-2.5"><i data-lucide="check-circle-2" class="w-4 h-4 text-emerald-500 shrink-0"></i><span>Доступ к каталогам масел и жидкостей</span></li>
-                <li class="flex items-center gap-2.5"><i data-lucide="check-circle-2" class="w-4 h-4 text-emerald-500 shrink-0"></i><span>Экспорт отчетов в PDF</span></li>
+              <h3 class="text-xl md:text-2xl font-bold text-gray-900 dark:text-white mb-4 flex items-center gap-4">
+                <div class="w-12 h-12 rounded-2xl bg-blue-50 dark:bg-blue-900/30 flex items-center justify-center text-brand shrink-0 shadow-sm">
+                  <i data-lucide="book-x" class="w-6 h-6"></i>
+                </div>
+                Забудьте про устаревшие каталоги кодов
+              </h3>
+              <div class="text-gray-600 dark:text-gray-400 space-y-3 leading-relaxed text-sm md:text-base pl-0 sm:pl-[64px]">
+                <p>Обычно водители ищут значение кода (например, P0171 или P0420) на форумах и получают десятки противоречивых советов. Базовые расшифровки стандарта OBD-II / OBD2 (ошибки двигателя, трансмиссии, кузовной электроники и ходовой части) слишком обобщены.</p>
+                <p class="font-medium text-gray-800 dark:text-gray-200">Алгоритмы 7Set.pro работают иначе. Мы объединили официальные технические регламенты автопроизводителей, дилерские базы данных и мощь ИИ, чтобы выдать вам точный диагноз.</p>
+              </div>
+            </div>
+
+            <!-- Блок 2 -->
+            <div>
+              <h3 class="text-xl md:text-2xl font-bold text-gray-900 dark:text-white mb-4 flex items-center gap-4">
+                <div class="w-12 h-12 rounded-2xl bg-blue-50 dark:bg-blue-900/30 flex items-center justify-center text-brand shrink-0 shadow-sm">
+                  <i data-lucide="file-search" class="w-6 h-6"></i>
+                </div>
+                Что вы узнаете из персонального отчета?
+              </h3>
+              <p class="text-gray-600 dark:text-gray-400 mb-6 pl-0 sm:pl-[64px] text-sm md:text-base">Введя марку, модель и код неисправности в нашу систему, вы мгновенно получаете детальную диагностическую карту:</p>
+              <ul class="space-y-4 pl-0 sm:pl-[64px] text-sm md:text-base">
+                <li class="flex items-start gap-3 bg-gray-50/50 dark:bg-slate-900/30 p-3 rounded-xl">
+                  <i data-lucide="alert-triangle" class="w-5 h-5 text-amber-500 shrink-0 mt-0.5"></i>
+                  <span class="text-gray-600 dark:text-gray-400"><strong class="text-gray-900 dark:text-white">Суть поломки и критичность (Severity):</strong> Узнайте, можно ли продолжать движение или автомобиль нужно срочно глушить и вызывать эвакуатор.</span>
+                </li>
+                <li class="flex items-start gap-3 bg-gray-50/50 dark:bg-slate-900/30 p-3 rounded-xl">
+                  <i data-lucide="activity" class="w-5 h-5 text-rose-500 shrink-0 mt-0.5"></i>
+                  <span class="text-gray-600 dark:text-gray-400"><strong class="text-gray-900 dark:text-white">Симптомы и скрытые причины:</strong> Почему машина дергается, вырос расход топлива, плавают обороты или не заводится двигатель.</span>
+                </li>
+                <li class="flex items-start gap-3 bg-gray-50/50 dark:bg-slate-900/30 p-3 rounded-xl">
+                  <i data-lucide="shield-alert" class="w-5 h-5 text-emerald-500 shrink-0 mt-0.5"></i>
+                  <span class="text-gray-600 dark:text-gray-400"><strong class="text-gray-900 dark:text-white">Защита от развода на СТО:</strong> Наша эксклюзивная фича. Мы расскажем, что именно обязаны проверить механики, чтобы вам не навязали замену дорогостоящих (но исправных) деталей: катализатора, лямбда-зонда и т.д.</span>
+                </li>
+                <li class="flex items-start gap-3 bg-gray-50/50 dark:bg-slate-900/30 p-3 rounded-xl">
+                  <i data-lucide="wrench" class="w-5 h-5 text-blue-500 shrink-0 mt-0.5"></i>
+                  <span class="text-gray-600 dark:text-gray-400"><strong class="text-gray-900 dark:text-white">DIY-инструкции для ремонта:</strong> Если поломка простая, ИИ выдаст уровень сложности, список инструментов и пошаговый алгоритм действий для ремонта в гараже.</span>
+                </li>
+                <li class="flex items-start gap-3 bg-gray-50/50 dark:bg-slate-900/30 p-3 rounded-xl">
+                  <i data-lucide="coins" class="w-5 h-5 text-yellow-500 shrink-0 mt-0.5"></i>
+                  <span class="text-gray-600 dark:text-gray-400"><strong class="text-gray-900 dark:text-white">Оценка стоимости:</strong> Вы заранее будете знать примерную цену на запчасти (аналоги и оригинал) и стоимость работ на станции.</span>
+                </li>
               </ul>
             </div>
-            <a href="/garage" class="btn-primary w-full text-center bg-brand hover:bg-blue-600 text-white font-bold py-3 rounded-xl transition-all shadow-[0_0_15px_rgba(0,119,255,0.4)] hover:shadow-[0_0_20px_rgba(0,119,255,0.5)] block">Оформить PRO</a>
+
+            <!-- Блок 3 -->
+            <div>
+              <h3 class="text-xl md:text-2xl font-bold text-gray-900 dark:text-white mb-4 flex items-center gap-4">
+                <div class="w-12 h-12 rounded-2xl bg-blue-50 dark:bg-blue-900/30 flex items-center justify-center text-brand shrink-0 shadow-sm">
+                  <i data-lucide="users" class="w-6 h-6"></i>
+                </div>
+                Для кого создан 7Set.pro?
+              </h3>
+              <div class="grid grid-cols-1 md:grid-cols-3 gap-4 pl-0 sm:pl-[64px] text-sm md:text-base mt-6">
+                <div class="bg-gray-50 dark:bg-slate-900/50 p-5 rounded-2xl border border-gray-100 dark:border-slate-700">
+                  <p class="text-gray-600 dark:text-gray-400">Для <strong class="text-gray-900 dark:text-white">новичков и опытных водителей</strong>, которые купили бюджетный Bluetooth-автосканер (ELM327, OBDLink и др.) и хотят сами читать ошибки через телефон.</p>
+                </div>
+                <div class="bg-gray-50 dark:bg-slate-900/50 p-5 rounded-2xl border border-gray-100 dark:border-slate-700">
+                  <p class="text-gray-600 dark:text-gray-400">Для <strong class="text-gray-900 dark:text-white">тех, кто собирается в автосервис</strong>, но хочет приехать туда подкованным, зная реальную причину «чека» (Check Engine) и порядок цен.</p>
+                </div>
+                <div class="bg-gray-50 dark:bg-slate-900/50 p-5 rounded-2xl border border-gray-100 dark:border-slate-700">
+                  <p class="text-gray-600 dark:text-gray-400">Для <strong class="text-gray-900 dark:text-white">автоподборщиков</strong>, которым нужно быстро оценить стоимость устранения найденных неисправностей перед покупкой машины с пробегом.</p>
+                </div>
+              </div>
+            </div>
+
+            <!-- Блок 4 -->
+            <div>
+              <h3 class="text-xl md:text-2xl font-bold text-gray-900 dark:text-white mb-4 flex items-center gap-4">
+                <div class="w-12 h-12 rounded-2xl bg-blue-50 dark:bg-blue-900/30 flex items-center justify-center text-brand shrink-0 shadow-sm">
+                  <i data-lucide="globe-2" class="w-6 h-6"></i>
+                </div>
+                Поддерживаем все популярные марки
+              </h3>
+              <div class="text-gray-600 dark:text-gray-400 space-y-3 leading-relaxed text-sm md:text-base pl-0 sm:pl-[64px]">
+                <p>Наша база данных умеет работать со специфическими дилерскими протоколами и стандартными кодами (P, B, C, U) для всех популярных брендов: Toyota, Kia, Hyundai, Volkswagen (VAG), BMW, Mercedes-Benz, Ford, Nissan, Lada (ВАЗ) и многих других автомобилей рынка СНГ, Европы, США и Азии.</p>
+                <div class="mt-8 p-6 bg-brand/5 dark:bg-brand/10 border border-brand/20 rounded-2xl text-center">
+                  <p class="font-bold text-gray-900 dark:text-white mb-0 text-base md:text-lg">Не гадайте на кофейной гуще — введите ваш код ошибки в форму выше и получите профессиональную расшифровку прямо сейчас!</p>
+                </div>
+              </div>
+            </div>
           </div>
         </div>
       </section>

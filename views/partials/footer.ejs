@@ -1,8 +1,8 @@
     <footer class="mt-8 pt-8 border-t border-gray-200/80 dark:border-slate-700 text-xs text-gray-500 dark:text-gray-400">
       <div class="grid grid-cols-1 md:grid-cols-4 gap-6 mb-8">
         <div class="md:col-span-2">
-          <a href="/" class="flex items-center gap-2 font-bold text-base text-gray-900 dark:text-white mb-2">
-            <i data-lucide="activity" class="text-brand w-5 h-5"></i> 7Set.pro
+          <a href="/" class="flex items-center gap-2 mb-4 hover:opacity-80 transition-opacity">
+            <img src="/img/logo_7set_pro_152x22_px.webp" alt="7Set.Pro" width="152" height="22" class="h-5 w-auto object-contain">
           </a>
           <p class="max-w-sm text-gray-500 dark:text-gray-400 leading-relaxed">
             Интеллектуальная система экспресс-диагностики, расшифровки кодов неисправностей и точного регламентного обслуживания автомобилей.
@@ -32,3 +32,35 @@
         </div>
       </div>
     </footer>
+
+<!-- Сквозная кнопка "Наверх" -->
+<button id="scrollToTopBtn" aria-label="Вернуться наверх" class="fixed bottom-6 right-6 md:bottom-8 md:right-8 z-[100] p-3.5 rounded-2xl bg-[#0077FF] text-white shadow-[0_4px_15px_rgba(0,119,255,0.4)] border border-blue-400/50 transition-all duration-300 transform translate-y-16 opacity-0 pointer-events-none hover:bg-blue-600 hover:shadow-[0_6px_20px_rgba(0,119,255,0.6)] hover:-translate-y-1 active:scale-95 flex items-center justify-center">
+  <i data-lucide="arrow-up" class="w-6 h-6"></i>
+</button>
+
+<script>
+  document.addEventListener('DOMContentLoaded', () => {
+    const scrollBtn = document.getElementById('scrollToTopBtn');
+    
+    if (scrollBtn) {
+      // Показываем кнопку после прокрутки на 400px
+      window.addEventListener('scroll', () => {
+        if (window.scrollY > 400) {
+          scrollBtn.classList.remove('translate-y-16', 'opacity-0', 'pointer-events-none');
+          scrollBtn.classList.add('translate-y-0', 'opacity-100', 'pointer-events-auto');
+        } else {
+          scrollBtn.classList.add('translate-y-16', 'opacity-0', 'pointer-events-none');
+          scrollBtn.classList.remove('translate-y-0', 'opacity-100', 'pointer-events-auto');
+        }
+      });
+
+      // Плавная прокрутка наверх при клике
+      scrollBtn.addEventListener('click', () => {
+        window.scrollTo({
+          top: 0,
+          behavior: 'smooth'
+        });
+      });
+    }
+  });
+</script>

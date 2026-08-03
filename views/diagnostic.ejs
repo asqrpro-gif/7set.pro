@@ -56,18 +56,7 @@
         }
       }
     </script>
-    <style>
-      ::-webkit-details-marker {
-        display: none;
-      }
 
-      .paywall-blur-container {
-        filter: blur(6px);
-        user-select: none;
-        pointer-events: none;
-        position: relative;
-      }
-    </style>
     <link rel="stylesheet" href="/style.css?v=2">
     <script src="https://cdn.jsdelivr.net/npm/marked/marked.min.js"></script>
     <script src="/main.js?v=2" defer></script>
@@ -84,7 +73,7 @@
       ym(111154643, 'init', { ssr: true, webvisor: true, clickmap: true, ecommerce: "dataLayer", referrer: document.referrer, url: location.href, accurateTrackBounce: true, trackLinks: true });
     </script>
     <noscript>
-      <div><img src="https://mc.yandex.ru/watch/111154643" style="position:absolute; left:-9999px;" alt="" /></div>
+      <div><img src="https://mc.yandex.ru/watch/111154643" class="yandex-pixel" alt="" /></div>
     </noscript>
     <!-- /Yandex.Metrika counter -->
 </head>
@@ -341,16 +330,13 @@
 
             <!-- Сама карточка пейволла в нормальном потоке, прижатая к низу -->
             <div id="paywall-overlay"
-              class="relative z-20 w-full flex flex-col items-center p-4 pb-8"
-              style="pointer-events: none;">
+              class="relative z-20 w-full flex flex-col items-center p-4 pb-8 pe-none">
 
               <div
-                class="bg-slate-900 bg-gradient-to-br from-slate-900 via-blue-950 to-slate-900 animate-gradient-xy border border-white/10 shadow-[0_20px_60px_-10px_rgba(0,119,255,0.5)] animate-pulse-glow rounded-3xl p-6 md:p-8 w-full max-w-md transform transition-all mx-auto relative overflow-hidden"
-                style="pointer-events: auto;">
+                class="bg-slate-900 bg-gradient-to-br from-slate-900 via-blue-950 to-slate-900 animate-gradient-xy border border-white/10 shadow-[0_20px_60px_-10px_rgba(0,119,255,0.5)] animate-pulse-glow rounded-3xl p-6 md:p-8 w-full max-w-md transform transition-all mx-auto relative overflow-hidden pe-auto">
 
                 <!-- Декоративные партиклы/сетка на фоне карточки -->
-                <div class="absolute inset-0 opacity-20"
-                  style="background-image: radial-gradient(rgba(255, 255, 255, 0.15) 1px, transparent 1px); background-size: 20px 20px;">
+                <div class="absolute inset-0 opacity-20 bg-dots-pattern">
                 </div>
 
                 <div class="relative z-10">
