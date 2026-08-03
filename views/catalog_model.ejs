@@ -92,21 +92,18 @@
               База расшифрованных кодов неисправностей (OBD2) для <%= brandName %> <%= modelName %>. Нажмите на код ошибки для просмотра причины, стоимости ремонта и инструкций.
             </p>
 
-            <form action="/search" method="GET" class="mt-8 relative w-full bg-[#f8fafc] dark:bg-slate-900/40 p-2 rounded-2xl flex items-center border border-slate-200 dark:border-slate-700/80 focus-within:border-brand/50 focus-within:ring-4 focus-within:ring-brand/10 transition-all shadow-sm group">
+            <form action="/search" method="GET" class="mt-8 relative w-full flex items-center bg-[#f8fafc] dark:bg-slate-900/40 border-[1.5px] border-slate-200 dark:border-slate-700/80 rounded-2xl p-1.5 focus-within:border-brand/50 focus-within:ring-4 focus-within:ring-brand/10 transition-all shadow-sm">
               <input type="hidden" name="brand" value="<%= brandName %>">
               <input type="hidden" name="model" value="<%= modelName %>">
               
-              <div class="pl-3 md:pl-4 text-gray-400 group-focus-within:text-brand transition-colors shrink-0">
-                <i data-lucide="search" class="w-5 h-5 md:w-6 md:h-6"></i>
-              </div>
+              <!-- Поле ввода (с очисткой от глобальных стилей) -->
+              <input type="text" name="code" placeholder="Поиск кода (напр. P0158)" required
+                     class="w-full flex-1 outline-none focus:ring-0 text-gray-900 dark:text-white placeholder-gray-400 uppercase font-bold text-base md:text-lg min-w-0"
+                     style="background-color: transparent !important; border: none !important; box-shadow: none !important; padding: 0 16px 0 20px !important; height: 48px !important; min-height: 48px !important; margin: 0 !important; width: 100% !important;">
               
-              <input type="text" name="code" placeholder="Поиск или анализ кода (напр. P0158)" required
-                     class="w-full bg-transparent border-none outline-none focus:ring-0 px-3 md:px-4 py-3 md:py-4 text-gray-900 dark:text-white placeholder-gray-400 uppercase font-bold md:text-lg min-w-0 bg-transparent-noborder">
-              
-              <button type="submit" class="bg-brand hover:bg-blue-600 text-white px-5 md:px-8 py-3 md:py-4 rounded-xl font-bold transition-all flex items-center justify-center gap-2 shrink-0">
-                <span class="hidden sm:inline">Искать</span>
-                <i data-lucide="zap" class="w-5 h-5 fill-white/20 hidden sm:inline"></i>
-                <i data-lucide="arrow-right" class="w-5 h-5 sm:hidden"></i>
+              <!-- Компактная кнопка поиска -->
+              <button type="submit" aria-label="Искать" class="shrink-0 flex items-center justify-center bg-brand hover:bg-blue-600 text-white rounded-xl transition-all shadow-sm border-none cursor-pointer hover:-translate-y-0.5 active:scale-95" style="width: 48px !important; height: 48px !important; min-width: 48px !important;">
+                <i data-lucide="search" class="w-5 h-5"></i>
               </button>
             </form>
         </div>
