@@ -164,7 +164,7 @@ app.get('/', async (req, res) => {
       _count: { brand: true },
       orderBy: { _count: { brand: 'desc' } }
     });
-    
+
     res.render('index', { brands: brandsData });
   } catch (err) {
     console.error("Ошибка главной:", err);
@@ -188,7 +188,7 @@ app.get('/catalog', async (req, res) => {
       _count: { brand: true },
       orderBy: { _count: { brand: 'desc' } }
     });
-    
+
     res.render('catalog_main', { brands: brandsData });
   } catch (err) {
     console.error("Ошибка каталога:", err);
@@ -207,7 +207,7 @@ app.get('/catalog/:make', async (req, res) => {
       _count: { model: true },
       orderBy: { _count: { model: 'desc' } }
     });
-    
+
     const brandMap = {
       'toyota': 'toyota', 'hyundai': 'hyundai', 'kia': 'kia', 'lada': 'lada',
       'volkswagen': 'vw', 'vw': 'vw', 'skoda': 'skoda', 'renault': 'renault',
@@ -224,12 +224,12 @@ app.get('/catalog/:make', async (req, res) => {
     const logoSlug = brandMap[make] || null;
     const seoData = getBrandSeo(make);
 
-    res.render('catalog_brand', { 
-      brandName: brandName, 
-      models: modelsData, 
+    res.render('catalog_brand', {
+      brandName: brandName,
+      models: modelsData,
       logoSlug,
       seoTitle: seoData?.title || null,
-      seoDescription: seoData?.description || null 
+      seoDescription: seoData?.description || null
     });
   } catch (err) {
     console.error("Ошибка catalog brand:", err);
@@ -249,12 +249,12 @@ app.get('/catalog/:make/:model', async (req, res) => {
       select: { code: true, summary: true, severity: true },
       orderBy: { code: 'asc' }
     });
-    
+
     const seoData = getModelSeo(make, model);
 
-    res.render('catalog_model', { 
-      brandName: brandName, 
-      modelName: modelName, 
+    res.render('catalog_model', {
+      brandName: brandName,
+      modelName: modelName,
       codes: codesData,
       seoTitle: seoData?.title || null,
       seoDescription: seoData?.description || null
@@ -312,7 +312,7 @@ app.get('/catalog/:brand/:model/:code', async (req, res) => {
 
     // Ищем в кэше (для ложных кодов ищем единую универсальную карточку)
     let existingReport = await prisma.diagnosticReport.findFirst({
-      where: { brand: targetBrand, model: targetModel, code: targetCode }
+      where: { brand: targetBrand, model: targetModel, code: targetCode, created_at: { lte: new Date() } }
     });
 
     if (existingReport) {

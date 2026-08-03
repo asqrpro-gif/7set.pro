@@ -46,6 +46,13 @@ const getRandomInt = (min, max) => Math.floor(Math.random() * (max - min + 1)) +
 // 2. УМНЫЙ РАСЧЕТ ДАТЫ ПУБЛИКАЦИИ
 // ==========================================
 async function getNextPublishDate() {
+  const totalCount = await prisma.diagnosticReport.count();
+
+  // Пул первых 350 карточек публикуется сразу без отложки
+  if (totalCount < 350) {
+    return new Date();
+  }
+
   const latestReport = await prisma.diagnosticReport.findFirst({
     orderBy: { created_at: 'desc' },
     select: { created_at: true }
@@ -89,7 +96,7 @@ async function main() {
 
   for (const car of TARGET_CARS) {
     for (const code of POPULAR_ERRORS) {
-      
+
       // Лимит генерации: не более 120 успешных карточек в сутки
       if (dailyGeneratedCount >= 120) {
         console.log(`\n🛑 Достигнут суточный лимит (120 карточек). Засыпаем до наступления новых суток...`);
@@ -148,7 +155,7 @@ async function main() {
         let safeDrivability = fastData.drivability;
         if (!['safe', 'caution', 'tow'].includes(safeDrivability)) {
           if (fastData.severity === 'low') safeDrivability = 'safe';
-          else if (fastData.severity === 'critical') safeDrivability = 'tow';    
+          else if (fastData.severity === 'critical') safeDrivability = 'tow';
           else safeDrivability = 'caution';
         }
 
@@ -194,7 +201,7 @@ async function main() {
 
       } catch (error) {
         console.error(`❌ Сбой API для ${car.brand} ${car.model} ${code}:`, error.message);
-        console.log('💤 Штрафная пауза 2 минуты перед новой попыткой...');       
+        console.log('💤 Штрафная пауза 2 минуты перед новой попыткой...');
         await sleep(120000);
       }
     }
