@@ -174,157 +174,27 @@ app.get('/', async (req, res) => {
 
 // 3.7. Страница Условий подписки
 app.get('/legal/subscription', (req, res) => {
-  res.send(`
-    <!DOCTYPE html>
-    <html lang="ru">
-    <head>
-      <meta charset="UTF-8">
-      <meta name="viewport" content="width=device-width, initial-scale=1.0">
-      <title>Условия подписки — 7Set.pro</title>
-      <script src="https://cdn.tailwindcss.com?plugins=typography"></script>
-      <script>
-        tailwind.config = { 
-          darkMode: 'class', 
-          theme: { extend: { colors: { brand: '#0077FF', surface: '#F5F5F7' } } } 
-        }
-      </script>
-      <link rel="stylesheet" href="/style.css?v=2">
-      <script src="/main.js?v=2" defer></script>
-      <script src="https://unpkg.com/lucide@latest"></script>
-        <!-- Yandex.Metrika counter -->
-        <script type="text/javascript">
-            (function(m,e,t,r,i,k,a){
-                m[i]=m[i]||function(){(m[i].a=m[i].a||[]).push(arguments)};
-                m[i].l=1*new Date();
-                for (var j = 0; j < document.scripts.length; j++) {if (document.scripts[j].src === r) { return; }}
-                k=e.createElement(t),a=e.getElementsByTagName(t)[0],k.async=1,k.src=r,a.parentNode.insertBefore(k,a)
-            })(window, document,'script','https://mc.yandex.ru/metrika/tag.js?id=111154643', 'ym');
-
-            ym(111154643, 'init', {ssr:true, webvisor:true, clickmap:true, ecommerce:"dataLayer", referrer: document.referrer, url: location.href, accurateTrackBounce:true, trackLinks:true});
-        </script>
-        <noscript><div><img src="https://mc.yandex.ru/watch/111154643" style="position:absolute; left:-9999px;" alt="" /></div></noscript>
-        <!-- /Yandex.Metrika counter -->
-    </head>
-    <body class="bg-surface dark:bg-slate-900 text-gray-900 dark:text-white font-sans antialiased min-h-screen flex flex-col justify-between">
-      <div class="max-w-5xl mx-auto p-4 md:p-6 w-full">
-        
-        <!-- Шапка (Header) -->
-        <header class="flex justify-between items-center mb-8 bg-white dark:bg-slate-800 p-4 rounded-2xl shadow-sm border border-gray-100 dark:border-slate-700">
-          <a href="/" class="flex items-center gap-2 hover:opacity-80 transition-opacity">
-            <i data-lucide="activity" style="color: #007bff;"></i>
-            <span class="font-bold text-xl tracking-tight text-gray-900 dark:text-white">7Set.Pro</span> <span class="font-normal text-sm text-gray-500 dark:text-gray-400 ml-1 hidden md:inline">| Умная автодиагностика</span>
-          </a>
-          <div class="flex items-center gap-3">
-            <a href="/garage" class="text-sm font-semibold bg-brand/10 dark:bg-brand/20 text-brand dark:text-blue-400 px-3.5 py-2 rounded-xl hover:bg-brand hover:text-white dark:hover:bg-brand dark:hover:text-white transition-all flex items-center gap-1.5 shadow-sm">
-              <i data-lucide="car" class="w-4 h-4"></i> Гараж & ТО
-            </a>
-            <button id="theme-toggle" class="p-2 rounded-full hover:bg-gray-100 dark:hover:bg-slate-700 transition-colors" aria-label="Переключить тему">
-              <i data-lucide="moon" class="w-5 h-5 text-gray-700 dark:text-gray-300"></i>
-            </button>
-          </div>
-        </header>
-
-        <!-- Главное содержимое -->
-        <main class="mb-12">
-          <article class="prose prose-slate prose-brand dark:prose-invert max-w-4xl mx-auto bg-white dark:bg-slate-800 p-8 md:p-12 rounded-3xl shadow-sm border border-gray-100 dark:border-slate-700">
-            <h1 class="text-center mb-8 text-3xl font-black">Условия предоставления платных услуг и подписки</h1>
-            
-            <h2 class="text-xl font-bold mt-8 mb-4 flex items-center gap-2"><i data-lucide="file-text" class="w-5 h-5 text-brand"></i> 1. Общие положения</h2>
-            <p>1.1. Настоящий документ (далее — «Условия») регулирует порядок и условия предоставления платных цифровых услуг и сервисов на сайте 7Set.pro (далее — «Сайт»).</p>
-            <p>1.2. Оплачивая услуги Сайта, Пользователь подтверждает, что ознакомился с настоящими Условиями, Пользовательским соглашением и Политикой конфиденциальности, и полностью с ними согласен.</p>
-            <p>1.3. Исполнителем услуг выступает ИП «Штамп Сервис», ИИН/БИН 840930402816.</p>
-            
-            <h2 class="text-xl font-bold mt-8 mb-4 flex items-center gap-2"><i data-lucide="unlock" class="w-5 h-5 text-brand"></i> 2. Описание платных услуг</h2>
-            <p>Сайт предоставляет пользователям доступ к цифровому контенту двух типов:</p>
-            <p><strong>2.1. Разовая разблокировка Премиум-отчета (Единоразовый платеж):</strong></p>
-            <ul>
-              <li>Предоставление расширенной информации по конкретному коду ошибки OBD-II (детальное описание, инструкции по ремонту «сделай сам», финансовый прогноз, советы по защите от обмана на СТО).</li>
-              <li>Доступ к оплаченному отчету предоставляется бессрочно в рамках работы Сайта.</li>
-            </ul>
-            <p><strong>2.2. Сервисная подписка (в разработке):</strong></p>
-            <ul>
-              <li>Периодическое (ежемесячное/ежегодное) предоставление доступа к расширенному функционалу Сайта (например, «Умная сервисная книжка», хранение истории автомобиля, персональные рекомендации).</li>
-            </ul>
-            <p><strong>2.3. Режим Бета-тестирования (Soft Launch):</strong></p>
-            <ul>
-              <li>На период проведения открытого бета-тестирования Сайта Исполнитель оставляет за собой право предоставлять доступ к платному контенту (Премиум-отчетам) на безвозмездной основе. Об окончании периода бесплатного доступа Пользователи будут уведомлены интерфейсом Сайта (появлением окна оплаты).</li>
-            </ul>
-            
-            <h2 class="text-xl font-bold mt-8 mb-4 flex items-center gap-2"><i data-lucide="credit-card" class="w-5 h-5 text-brand"></i> 3. Порядок оплаты и безопасность</h2>
-            <p>3.1. Стоимость разового Премиум-отчета составляет эквивалент 1,99 USD (или иную сумму, указанную на странице оплаты).</p>
-            <p>3.2. Все расчеты производятся в национальной валюте (тенге / рублях / и т.д.) по курсу банка-эмитента или платежной системы на день совершения транзакции.</p>
-            <p>3.3. Прием платежей осуществляется через безопасный интегрированный платежный шлюз (включая систему Robokassa). Сайт 7Set.pro не собирает, не обрабатывает и не хранит данные банковских карт Пользователей. Ввод реквизитов карты происходит на защищенной стороне платежной системы.</p>
-            <p>3.4. При оформлении регулярной подписки (при наличии такого функционала) Пользователь дает согласие на автоматическое рекуррентное списание средств со своей банковской карты в начале каждого расчетного периода.</p>
-            
-            <h2 class="text-xl font-bold mt-8 mb-4 flex items-center gap-2"><i data-lucide="zap" class="w-5 h-5 text-brand"></i> 4. Условия доставки цифрового контента</h2>
-            <p>4.1. Услуга считается оказанной в полном объеме в момент предоставления Пользователю электронного доступа к Премиум-отчету или функционалу подписки (мгновенно после успешного подтверждения транзакции платежной системой).</p>
-            <p>4.2. Доступ к контенту осуществляется путем вывода информации на экран устройства Пользователя и/или отправки ссылки на указанный Пользователем адрес электронной почты.</p>
-            
-            <h2 class="text-xl font-bold mt-8 mb-4 flex items-center gap-2"><i data-lucide="refresh-ccw" class="w-5 h-5 text-brand"></i> 5. Политика возврата денежных средств (Refund Policy)</h2>
-            <p>5.1. Поскольку Сайт предоставляет услуги по доставке цифрового контента, который предоставляется Пользователю моментально, возврат денежных средств за успешно сгенерированные и предоставленные Премиум-отчеты не осуществляется (в соответствии с законодательством о защите прав потребителей в отношении цифровых товаров).</p>
-            <p>5.2. <strong>Исключения:</strong> Возврат средств возможен исключительно в следующих случаях технического сбоя на стороне Исполнителя:</p>
-            <ul>
-              <li>Оплата была списана, но доступ к Премиум-отчету не был предоставлен в течение 24 часов;</li>
-              <li>Произошло ошибочное двойное списание средств за один и тот же запрос.</li>
-            </ul>
-            <p>5.3. Для оформления возврата Пользователь должен обратиться в службу поддержки по адресу <a href="mailto:support@7set.pro" class="text-brand hover:underline">support@7set.pro</a> в течение 3 (трех) календарных дней с момента списания средств, приложив квитанцию об оплате и описание технической ошибки. Срок рассмотрения заявки — до 5 рабочих дней.</p>
-            <p>5.4. В случае одобрения возврата, средства возвращаются на ту же банковскую карту, с которой была произведена оплата.</p>
-            
-            <h2 class="text-xl font-bold mt-8 mb-4 flex items-center gap-2"><i data-lucide="x-circle" class="w-5 h-5 text-brand"></i> 6. Отмена регулярной подписки</h2>
-            <p>6.1. Пользователь имеет право в любой момент отменить автопродление регулярной подписки (если она активирована) в настройках своего Личного кабинета на Сайте.</p>
-            <p>6.2. При отмене подписки доступ к платному функционалу сохраняется до конца уже оплаченного расчетного периода. Пропорциональный возврат средств за неиспользованные дни не производится.</p>
-            
-            <h2 class="text-xl font-bold mt-8 mb-4 flex items-center gap-2"><i data-lucide="building" class="w-5 h-5 text-brand"></i> 7. Контактные данные</h2>
-            <div class="bg-gray-50 dark:bg-slate-700/50 p-6 rounded-2xl not-prose text-sm text-gray-700 dark:text-gray-300">
-              <p class="font-bold mb-2">ИП «Штамп Сервис»</p>
-              <p><span class="text-gray-500 dark:text-gray-400">Эл. почта:</span> <a href="mailto:support@7set.pro" class="text-brand hover:underline">support@7set.pro</a></p>
-              <p><span class="text-gray-500 dark:text-gray-400">Фактический адрес:</span> РК, г. Алматы, ул. Муратбаева, 136, 3 этаж, 318 офис</p>
-            </div>
-          </article>
-        </main>
-
-        <!-- Подвал (Footer) -->
-        <footer class="mt-8 pt-8 border-t border-gray-200/80 dark:border-slate-700 text-xs text-gray-500 dark:text-gray-400">
-          <div class="grid grid-cols-1 md:grid-cols-4 gap-6 mb-8">
-            <div class="md:col-span-2">
-              <a href="/" class="flex items-center gap-2 font-bold text-base text-gray-900 dark:text-white mb-2">
-                <i data-lucide="activity" class="text-brand w-5 h-5"></i> 7Set.pro
-              </a>
-              <p class="max-w-sm text-gray-500 dark:text-gray-400 leading-relaxed">
-                Интеллектуальная система экспресс-диагностики, расшифровки кодов неисправностей и точного регламентного обслуживания автомобилей.
-              </p>
-            </div>
-            <div>
-              <h4 class="font-bold text-gray-900 dark:text-gray-300 mb-2.5 uppercase tracking-wider text-[11px]">Навигация</h4>
-              <ul class="space-y-2 font-medium">
-                <li><a href="/" class="hover:text-brand transition-colors">Каталог ошибок OBD-II</a></li>
-                <li><a href="/garage" class="hover:text-brand transition-colors">Персональный Гараж</a></li>
-                <li><a href="/garage" class="hover:text-brand transition-colors">Подбор расходников</a></li>
-              </ul>
-            </div>
-            <div>
-              <h4 class="font-bold text-gray-900 dark:text-gray-300 mb-2.5 uppercase tracking-wider text-[11px]">Юридическая информация</h4>
-              <ul class="space-y-2 font-medium">
-                <li><a href="/legal/terms" class="hover:text-brand transition-colors">Пользовательское соглашение</a></li>
-                <li><a href="/legal/privacy" class="hover:text-brand transition-colors">Политика конфиденциальности</a></li>
-                <li><a href="/legal/subscription" class="hover:text-brand transition-colors">Условия подписки</a></li>
-              </ul>
-            </div>
-          </div>
-          <div class="flex flex-col sm:flex-row justify-between items-center gap-4 pt-6 text-[11px] bg-transparent">
-            <div>© ${new Date().getFullYear()} 7Set.pro. Все права защищены.</div>
-            <div class="flex gap-4">
-              <span class="flex items-center gap-1.5">Сделано с заботой о водителях <i data-lucide="car-front" class="w-4 h-4 text-brand inline"></i></span>
-            </div>
-          </div>
-        </footer>
-      </div>
-      <script>lucide.createIcons();</script>
-    </body>
-    </html>
-  `);
+  res.render('subscription');
 });
 
+
+// 3.0. Страница каталога марок (Catalog Main)
+app.get('/catalog', async (req, res) => {
+  res.setHeader('Cache-Control', 'no-store, no-cache, must-revalidate, private');
+  try {
+    const brandsData = await prisma.diagnosticReport.groupBy({
+      by: ['brand'],
+      where: { is_complete: true, code: { not: "UNSUPPORTED" } },
+      _count: { brand: true },
+      orderBy: { _count: { brand: 'desc' } }
+    });
+    
+    res.render('catalog_main', { brands: brandsData });
+  } catch (err) {
+    console.error("Ошибка каталога:", err);
+    res.status(500).send("Ошибка сервера");
+  }
+});
 
 // 3.1. Страница марки (Catalog Level 2)
 app.get('/catalog/:make', async (req, res) => {

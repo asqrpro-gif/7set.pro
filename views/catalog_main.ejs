@@ -1,0 +1,96 @@
+<!DOCTYPE html>
+<html lang="ru">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>Каталог ошибок OBD-II — 7Set.pro</title>
+  <meta name="description" content="Полный каталог марок автомобилей для расшифровки кодов неисправностей OBD-II.">
+  <link rel="canonical" href="https://7set.pro/catalog" />
+  <link rel="icon" type="image/svg+xml" href="/favicon.svg">
+  
+  <script src="https://cdn.tailwindcss.com?plugins=typography"></script>
+  <script>
+    tailwind.config = { 
+      darkMode: 'class', 
+      theme: { 
+        extend: { 
+          colors: { brand: '#0077FF', surface: '#F5F5F7' }
+        } 
+      } 
+    }
+  </script>
+  <link rel="stylesheet" href="/style.css?v=2">
+  <script src="/main.js?v=2" defer></script>
+  <script src="https://unpkg.com/lucide@latest"></script>
+</head>
+<body class="bg-surface dark:bg-slate-900 text-gray-900 dark:text-white font-sans antialiased min-h-screen flex flex-col justify-between">
+  <div class="max-w-5xl mx-auto p-4 md:p-6 w-full flex-grow">
+    <!-- Шапка (Header) -->
+    <%- include('partials/header') %>
+
+    <!-- Хлебные крошки -->
+    <nav aria-label="Breadcrumb" class="mb-4">
+      <ol class="flex items-center space-x-2 text-sm text-gray-500 dark:text-gray-400 overflow-x-auto whitespace-nowrap pb-2">
+        <li>
+          <a href="/" class="hover:text-brand flex items-center transition-colors">
+            <i data-lucide="home" class="w-4 h-4 mr-1"></i> Главная
+          </a>
+        </li>
+        <li class="flex items-center space-x-2" aria-current="page">
+          <i data-lucide="chevron-right" class="w-4 h-4 text-gray-400"></i>
+          <span class="font-semibold text-gray-900 dark:text-white">Каталог</span>
+        </li>
+      </ol>
+    </nav>
+
+    <!-- Каталог Марок -->
+    <main class="mb-16 relative bg-white dark:bg-slate-800 rounded-3xl p-6 md:p-10 shadow-sm border border-gray-100 dark:border-slate-700">
+      <div class="text-center mb-10 pt-2">
+        <h1 class="text-3xl md:text-4xl font-black text-gray-900 dark:text-white mb-3">Каталог ошибок по маркам</h1>
+        <p class="text-gray-500 dark:text-gray-400 text-sm md:text-base max-w-xl mx-auto">Выберите вашу марку автомобиля для просмотра доступных расшифровок</p>
+      </div>
+      
+      <div class="grid grid-cols-2 sm:grid-cols-3 md:grid-cols-4 lg:grid-cols-5 gap-4 max-w-6xl mx-auto px-2">
+        <% brands.forEach(function(item) { 
+            const brandMap = {
+              'toyota': 'toyota', 'hyundai': 'hyundai', 'kia': 'kia', 'lada': 'lada',
+              'volkswagen': 'vw', 'vw': 'vw', 'skoda': 'skoda', 'renault': 'renault',
+              'nissan': 'nissan', 'chevrolet': 'chevrolet', 'ford': 'ford', 'bmw': 'bmw',
+              'mercedes-benz': 'mercedes-benz', 'mercedes': 'mercedes-benz', 'audi': 'audi',
+              'mazda': 'mazda', 'geely': 'geely', 'chery': 'chery',
+              'mitsubishi': 'mitsubishi', 'honda': 'honda', 'lexus': 'lexus', 'haval': 'haval',
+              'subaru': 'subaru', 'suzuki': 'suzuki', 'opel': 'opel', 'daewoo': 'daowoo',
+              'peugeot': 'peugeot', 'uaz': 'uaz', 'gaz': 'gaz', 'changan': 'changan',
+              'exeed': 'exeed', 'tank': 'tank', 'jac': 'jac', 'jetour': 'jetour',
+              'omoda': 'omoda', 'faw': 'faw', 'dongfeng': 'dongfeng', 'gwm': 'gwm',
+              'gac': 'gac', 'byd': 'byd', 'zeekr': 'zeekr', 'voyah': 'voyah'
+            };
+            const brandLower = item.brand.toLowerCase();
+            const logoSlug = brandMap[brandLower];
+        %>
+          <a href="/catalog/<%= encodeURIComponent(brandLower) %>" class="bg-gradient-to-b from-[#ffffff] to-slate-50 dark:from-slate-700/50 dark:to-slate-800/50 backdrop-blur-md p-4 rounded-2xl border border-slate-200 dark:border-slate-600/80 shadow-sm hover:shadow-[0_8px_20px_-6px_rgba(0,119,255,0.25)] dark:hover:shadow-[0_8px_20px_-6px_rgba(0,119,255,0.4)] hover:border-brand/50 dark:hover:border-brand/50 transition-all group flex flex-col items-center justify-center text-center duration-300 hover:-translate-y-1.5">
+            <% if(logoSlug) { %>
+              <img src="/img/logos/<%= logoSlug %>-logo-60x60-px.webp" alt="Коды ошибок <%= item.brand %>" width="48" height="48" class="object-contain mb-3 drop-shadow-sm group-hover:scale-110 transition-transform duration-300">
+            <% } else { %>
+              <div class="w-12 h-12 mb-3 bg-white dark:bg-slate-600 text-brand dark:text-blue-400 rounded-full flex items-center justify-center group-hover:bg-brand group-hover:text-white transition-colors duration-300 shadow-sm">
+                <i data-lucide="car-front" class="w-6 h-6"></i>
+              </div>
+            <% } %>
+            <h3 class="font-bold text-gray-900 dark:text-white capitalize group-hover:text-brand transition-colors"><%= item.brand %></h3>
+            <span class="text-xs font-semibold text-gray-500 bg-gray-200 dark:bg-slate-800 dark:text-gray-400 px-2 py-0.5 rounded-full mt-2"><%= item._count.brand %> кодов</span>
+          </a>
+        <% }); %>
+        <% if(brands.length === 0) { %>
+           <p class="text-gray-500 text-center col-span-full">База данных наполняется...</p>
+        <% } %>
+      </div>
+    </main>
+  </div>
+  
+  <!-- Подвал (Footer) -->
+  <div class="max-w-5xl mx-auto px-4 md:px-6 w-full">
+    <%- include('partials/footer') %>
+  </div>
+  <script>lucide.createIcons();</script>
+</body>
+</html>

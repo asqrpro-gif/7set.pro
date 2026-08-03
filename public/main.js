@@ -7,7 +7,7 @@ document.addEventListener('DOMContentLoaded', () => {
   const updateThemeIcon = () => {
     if (!themeToggleBtn) return;
     const isDark = document.documentElement.getAttribute('data-theme') === 'dark';
-    themeToggleBtn.innerHTML = `<i data-lucide="${isDark ? 'sun' : 'moon'}" class="w-5 h-5 text-gray-700"></i>`;
+    themeToggleBtn.innerHTML = `<i data-lucide="${isDark ? 'sun' : 'moon'}" class="w-5 h-5 text-gray-700 dark:text-gray-300"></i>`;
     if (window.lucide && typeof lucide.createIcons === 'function') {
       lucide.createIcons();
     }
