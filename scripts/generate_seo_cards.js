@@ -201,6 +201,16 @@ async function main() {
           else safeDrivability = 'caution';
         }
 
+        // ПОВТОРНАЯ ПРОВЕРКА НА ДУБЛИКАТ (Защита от Race Condition при параллельном запуске)
+        const doubleCheck = await prisma.diagnosticReport.findFirst({
+          where: { brand: car.brand, model: car.model, code: code }
+        });
+        
+        if (doubleCheck) {
+          console.log(`⚠️ Внимание! Пока ИИ думал, карточка ${car.brand} ${car.model} ${code} уже была создана. Отменяем дубликат.`);
+          continue;
+        }
+
         // Шаг 3: Сохранение чистового варианта в базу
         const newReport = await prisma.diagnosticReport.create({
           data: {
