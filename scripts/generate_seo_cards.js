@@ -1,6 +1,7 @@
 import 'dotenv/config';
 import { PrismaClient } from '@prisma/client';
 import { analyzeCarErrorFast, analyzeCarErrorDeep, getFactFromDB } from '../lib/gemini_clean.js';
+import { calculateSeoScore } from '../lib/seo_scanner.js';
 import fs from 'fs/promises';
 import path from 'path';
 import { fileURLToPath } from 'url';
@@ -201,7 +202,7 @@ async function main() {
         }
 
         // Шаг 3: Сохранение чистового варианта в базу
-        await prisma.diagnosticReport.create({
+        const newReport = await prisma.diagnosticReport.create({
           data: {
             brand: car.brand,
             model: car.model,
@@ -231,7 +232,14 @@ async function main() {
           }
         });
 
-        console.log(`✅ Сохранено: ${car.brand} ${car.model} ${code}`);
+        // Сразу запускаем тихий SEO-сканер для новой карточки
+        const { score, risk, uniquenessScore } = await calculateSeoScore(newReport, prisma);
+        await prisma.diagnosticReport.update({
+          where: { id: newReport.id },
+          data: { seoScore: score, seoRisk: risk, uniquenessScore }
+        });
+
+        console.log(`✅ Сохранено и отсканировано: ${car.brand} ${car.model} ${code} (SEO Score: ${score}, Уникальность: ${uniquenessScore}%)`);
         console.log(`📅 В очереди на: ${publishDate.toLocaleString()}`);
         console.log(`💤 Остываем 4 минуты...`);
 

@@ -13,6 +13,7 @@ import { seoConfig, getBrandSeo, getModelSeo, formatTitleCase } from './lib/seo_
 
 import path from 'path';
 import { fileURLToPath } from 'url';
+import { calculateSeoScore } from './lib/seo_scanner.js';
 
 const __filename = fileURLToPath(import.meta.url);
 const __dirname = path.dirname(__filename);
@@ -147,6 +148,37 @@ const cleanReportHtml = (html) => {
   return str;
 };
 
+// ==========================================
+// ТИХИЙ ФОНОВЫЙ SEO-СКАНЕР
+// ==========================================
+let isSilentScanning = false;
+async function backgroundSeoScan() {
+  if (isSilentScanning) return;
+  isSilentScanning = true;
+  try {
+    const unscanned = await prisma.diagnosticReport.findFirst({
+      where: { seoScore: 0 }
+    });
+    if (unscanned) {
+      console.log(`[SEO-SCANNER] Фоновое сканирование: ${unscanned.brand} ${unscanned.model} ${unscanned.code}`);
+      const { score, risk, uniquenessScore } = await calculateSeoScore(unscanned, prisma);
+      await prisma.diagnosticReport.update({
+        where: { id: unscanned.id },
+        // Сохраняем минимум 1, чтобы не было зацикливания на 0
+        data: { seoScore: Math.max(1, score), seoRisk: risk, uniquenessScore }
+      });
+      // Обновляем метку времени
+      const scanStatePath = path.join(__dirname, 'scripts', 'last_scan_time.json');
+      fs.writeFileSync(scanStatePath, JSON.stringify({ time: new Date() }));
+    }
+  } catch (e) {
+    console.error("[SEO-SCANNER] Ошибка:", e);
+  }
+  isSilentScanning = false;
+  setTimeout(backgroundSeoScan, 3000); // Сканируем по 1 карточке раз в 3 секунды
+}
+// Запуск фонового процесса
+setTimeout(backgroundSeoScan, 5000);
 
 // Подключение модуля Гаража
 app.use('/garage', garageRouter);
@@ -164,12 +196,14 @@ app.get('/', async (req, res) => {
   try {
     const brandsData = await prisma.diagnosticReport.groupBy({
       by: ['brand'],
-      where: { is_complete: true, code: { not: "UNSUPPORTED" } },
+      where: { is_complete: true, code: { not: "UNSUPPORTED" }, created_at: { lte: new Date() } },
       _count: { brand: true },
       orderBy: { _count: { brand: 'desc' } }
     });
 
-    const totalDeciphered = await prisma.diagnosticReport.count();
+    const totalDeciphered = await prisma.diagnosticReport.count({
+      where: { created_at: { lte: new Date() } }
+    });
 
     res.render('index', { brands: brandsData, totalDeciphered });
   } catch (err) {
@@ -190,7 +224,7 @@ app.get('/catalog', async (req, res) => {
   try {
     const brandsData = await prisma.diagnosticReport.groupBy({
       by: ['brand'],
-      where: { is_complete: true, code: { not: "UNSUPPORTED" } },
+      where: { is_complete: true, code: { not: "UNSUPPORTED" }, created_at: { lte: new Date() } },
       _count: { brand: true },
       orderBy: { _count: { brand: 'desc' } }
     });
@@ -209,7 +243,7 @@ app.get('/catalog/:make', async (req, res) => {
   try {
     const modelsData = await prisma.diagnosticReport.groupBy({
       by: ['model'],
-      where: { brand: make, is_complete: true, code: { not: "UNSUPPORTED" } },
+      where: { brand: make, is_complete: true, code: { not: "UNSUPPORTED" }, created_at: { lte: new Date() } },
       _count: { model: true },
       orderBy: { _count: { model: 'desc' } }
     });
@@ -251,7 +285,7 @@ app.get('/catalog/:make/:model', async (req, res) => {
   const modelName = formatTitleCase(model);
   try {
     const codesData = await prisma.diagnosticReport.findMany({
-      where: { brand: make, model: model, is_complete: true, code: { not: "UNSUPPORTED" } },
+      where: { brand: make, model: model, is_complete: true, code: { not: "UNSUPPORTED" }, created_at: { lte: new Date() } },
       select: { code: true, summary: true, severity: true },
       orderBy: { code: 'asc' }
     });

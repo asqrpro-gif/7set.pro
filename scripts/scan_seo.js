@@ -29,12 +29,12 @@ async function main() {
       where: {
         OR: [
           { summary: { contains: 'не зарегистрирован' } },
-          { summary: { contains: 'Сбой по коду' } },
-          { summary: { contains: 'официально расшифровывается как:' } },
+          { summary: { contains: 'информация по данному коду отсутствует' } },
+          { summary: { contains: 'к сожалению, я не могу найти информацию' } },
           { seoTitle: { contains: 'Неизвестный' } },
           { severity: 'universal' },
           { code: 'UNSUPPORTED' },
-          { uniquenessScore: { lt: 50 } } // Низкая уникальность (Семантические дубли)
+          { uniquenessScore: { lt: 5 } } // Низкая уникальность (Семантические дубли)
         ]
       },
       orderBy: { created_at: 'desc' }
@@ -82,8 +82,8 @@ async function main() {
     const processedCards = badCards.map(card => {
       let reason = card.reason;
       if (!reason) {
-        if (card.uniquenessScore < 50) {
-          reason = 'Семантический дубликат (Уникальность < 50%)';
+        if (card.uniquenessScore !== null && card.uniquenessScore < 5) {
+          reason = 'Семантический дубликат (Уникальность < 5%)';
         } else {
           reason = 'Шаблонный ответ ИИ';
         }

@@ -16,6 +16,9 @@ export default async function generateSitemap(req, res) {
         // Убедимся, что не тянем пустые коды или служебные 'UNSUPPORTED', если они есть
         code: {
           not: 'UNSUPPORTED'
+        },
+        created_at: {
+          lte: new Date()
         }
       }
     });

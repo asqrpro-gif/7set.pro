@@ -227,6 +227,26 @@ router.post('/api/seo-ops/delete', async (req, res) => {
     }
 });
 
+router.post('/api/seo-ops/restore', async (req, res) => {
+    const { ids } = req.body;
+    if (!ids || !Array.isArray(ids) || ids.length === 0) {
+        return res.status(400).json({ error: 'Нет выбранных карточек' });
+    }
+
+    try {
+        if (fs.existsSync(REPORT_FILE)) {
+            let badCards = JSON.parse(fs.readFileSync(REPORT_FILE, 'utf-8'));
+            badCards = badCards.filter(card => !ids.includes(card.id));
+            fs.writeFileSync(REPORT_FILE, JSON.stringify(badCards, null, 2), 'utf-8');
+        }
+
+        res.json({ success: true, count: ids.length });
+    } catch (err) {
+        console.error(err);
+        res.status(500).json({ error: 'Ошибка восстановления' });
+    }
+});
+
 // ==========================================
 // 4. ПОЛЬЗОВАТЕЛИ (ЗАГЛУШКА)
 // ==========================================
@@ -245,6 +265,7 @@ router.get('/seo-detector', async (req, res) => {
         const riskFilter = req.query.risk;
         const brandFilter = req.query.brand;
         const modelFilter = req.query.model;
+        const showDuplicates = req.query.duplicates === 'true';
         const sortField = req.query.sort || 'seoScore';
         const sortOrder = req.query.order === 'desc' ? 'desc' : 'asc';
 
@@ -254,6 +275,26 @@ router.get('/seo-detector', async (req, res) => {
 
         const whereClause = { ...baseWhere };
         if (riskFilter && riskFilter !== 'ALL') whereClause.seoRisk = riskFilter;
+
+        if (showDuplicates) {
+            const duplicatesGrouped = await prisma.diagnosticReport.groupBy({
+                by: ['brand', 'model', 'code'],
+                having: {
+                    id: { _count: { gt: 1 } }
+                }
+            });
+            
+            if (duplicatesGrouped.length > 0) {
+                whereClause.OR = duplicatesGrouped.map(d => ({
+                    brand: d.brand,
+                    model: d.model,
+                    code: d.code
+                }));
+            } else {
+                // Если дубликатов нет, возвращаем пустой результат
+                whereClause.id = 'none';
+            }
+        }
 
         // Получаем статистику по маркам
         const brandStatsRaw = await prisma.diagnosticReport.groupBy({
@@ -301,6 +342,22 @@ router.get('/seo-detector', async (req, res) => {
             orderBy: orderBy
         });
 
+        // Статистика фонового сканирования
+        const totalCards = await prisma.diagnosticReport.count();
+        const unscannedCount = await prisma.diagnosticReport.count({ where: { seoScore: 0 } });
+        const scannedCount = totalCards - unscannedCount;
+        
+        let lastScanTime = null;
+        try {
+            const scanStatePath = path.join(__dirname, '../scripts', 'last_scan_time.json');
+            if (fs.existsSync(scanStatePath)) {
+                const stateData = JSON.parse(fs.readFileSync(scanStatePath, 'utf-8'));
+                lastScanTime = new Date(stateData.time).toLocaleString('ru-RU');
+            }
+        } catch (e) {
+            console.error(e);
+        }
+
         res.render('admin_seo_detector', {
             reports: reports,
             page,
@@ -308,6 +365,7 @@ router.get('/seo-detector', async (req, res) => {
             currentRisk: riskFilter || 'ALL',
             currentBrand: brandFilter || '',
             currentModel: modelFilter || '',
+            showDuplicates: showDuplicates,
             currentSort: sortField,
             currentOrder: sortOrder,
             brandStats,
@@ -317,6 +375,11 @@ router.get('/seo-detector', async (req, res) => {
                 safe: safeCount,
                 warning: warningCount,
                 danger: dangerCount
+            },
+            scanStats: {
+                scanned: scannedCount,
+                total: totalCards,
+                lastScanTime: lastScanTime
             }
         });
     } catch (err) {
@@ -378,6 +441,47 @@ router.post('/api/seo-detector/update', async (req, res) => {
     } catch (err) {
         console.error(err);
         res.status(500).json({ error: 'Ошибка сохранения' });
+    }
+});
+
+router.post('/api/seo-detector/publish', async (req, res) => {
+    try {
+        const { id } = req.body;
+        // Устанавливаем created_at в текущее время (Опубликовано)
+        await prisma.diagnosticReport.update({
+            where: { id },
+            data: { created_at: new Date() }
+        });
+        res.json({ success: true });
+    } catch (err) {
+        res.status(500).json({ error: 'Ошибка публикации' });
+    }
+});
+
+router.post('/api/seo-detector/unpublish', async (req, res) => {
+    try {
+        const { id } = req.body;
+        // Устанавливаем created_at в 2099 год (Отложено)
+        const futureDate = new Date('2099-01-01T00:00:00Z');
+        await prisma.diagnosticReport.update({
+            where: { id },
+            data: { created_at: futureDate }
+        });
+        res.json({ success: true });
+    } catch (err) {
+        res.status(500).json({ error: 'Ошибка снятия с публикации' });
+    }
+});
+
+router.post('/api/seo-detector/delete', async (req, res) => {
+    try {
+        const { id } = req.body;
+        await prisma.diagnosticReport.delete({
+            where: { id }
+        });
+        res.json({ success: true });
+    } catch (err) {
+        res.status(500).json({ error: 'Ошибка удаления' });
     }
 });
 
