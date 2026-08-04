@@ -5,6 +5,7 @@ import path from 'path';
 import { fileURLToPath } from 'url';
 import fs from 'fs';
 import { calculateSeoScore } from '../lib/seo_scanner.js';
+import { enrichSeoCard } from '../services/seoEnrichmentService.js';
 
 const router = express.Router();
 const prisma = new PrismaClient();
@@ -276,14 +277,17 @@ router.get('/seo-detector', async (req, res) => {
         const whereClause = { ...baseWhere };
         if (riskFilter && riskFilter !== 'ALL') whereClause.seoRisk = riskFilter;
 
+        const duplicatesGrouped = await prisma.diagnosticReport.groupBy({
+            by: ['brand', 'model', 'code'],
+            having: {
+                id: { _count: { gt: 1 } }
+            },
+            _count: { id: true }
+        });
+
+        const duplicatesCount = duplicatesGrouped.reduce((sum, d) => sum + d._count.id, 0);
+
         if (showDuplicates) {
-            const duplicatesGrouped = await prisma.diagnosticReport.groupBy({
-                by: ['brand', 'model', 'code'],
-                having: {
-                    id: { _count: { gt: 1 } }
-                }
-            });
-            
             if (duplicatesGrouped.length > 0) {
                 whereClause.OR = duplicatesGrouped.map(d => ({
                     brand: d.brand,
@@ -332,6 +336,10 @@ router.get('/seo-detector', async (req, res) => {
             orderBy.push({ uniquenessScore: sortOrder });
         } else if (sortField === 'seoRisk') {
             orderBy.push({ seoRisk: sortOrder });
+        } else if (sortField === 'brand') {
+            orderBy.push({ brand: sortOrder });
+            orderBy.push({ model: sortOrder });
+            orderBy.push({ code: sortOrder });
         }
         orderBy.push({ created_at: 'desc' });
 
@@ -366,6 +374,7 @@ router.get('/seo-detector', async (req, res) => {
             currentBrand: brandFilter || '',
             currentModel: modelFilter || '',
             showDuplicates: showDuplicates,
+            duplicatesCount: duplicatesCount,
             currentSort: sortField,
             currentOrder: sortOrder,
             brandStats,
@@ -385,6 +394,27 @@ router.get('/seo-detector', async (req, res) => {
     } catch (err) {
         console.error(err);
         res.status(500).send("Ошибка загрузки SEO детектора");
+    }
+});
+
+// API для ручного pSEO обогащения
+router.post('/api/seo/enrich-single', async (req, res) => {
+    const { id } = req.body;
+    if (!id) return res.status(400).json({ error: 'ID обязателен' });
+
+    try {
+        const report = await prisma.diagnosticReport.findUnique({ where: { id } });
+        if (!report) return res.status(404).json({ error: 'Отчет не найден' });
+
+        const result = await enrichSeoCard(report, prisma);
+        if (result.success) {
+            res.json({ success: true, report: result.report });
+        } else {
+            res.status(500).json({ error: result.error });
+        }
+    } catch (err) {
+        console.error(err);
+        res.status(500).json({ error: 'Внутренняя ошибка сервера при обогащении' });
     }
 });
 

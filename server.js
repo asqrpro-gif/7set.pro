@@ -590,6 +590,9 @@ app.get('/catalog/:brand/:model/:code', async (req, res) => {
     let fullAnalysisHtml = cleanReportHtml(marked.parse(formatReportMarkdown(rawFullAnalysis)));
     let scamProtectionHtml = cleanReportHtml(marked.parse(formatReportMarkdown(rawScamProtection)));
     let diyInstructionsHtml = cleanReportHtml(marked.parse(formatReportMarkdown(report.diy_instructions || '')));
+    let toolsTableHtml = report.tools_table_md ? cleanReportHtml(marked.parse(formatReportMarkdown(report.tools_table_md))) : '';
+    let oemPartsTableHtml = report.oem_parts_table_md ? cleanReportHtml(marked.parse(formatReportMarkdown(report.oem_parts_table_md))) : '';
+    let proTipsHtml = report.pro_tips_md ? cleanReportHtml(marked.parse(formatReportMarkdown(report.pro_tips_md))) : '';
 
     let relatedReportsHtml = '';
     if (relatedReports.length > 0) {
@@ -637,6 +640,9 @@ app.get('/catalog/:brand/:model/:code', async (req, res) => {
       report,
       difficultyScoreHtml: (() => { const m = String(report && report.diy_difficulty_score ? report.diy_difficulty_score : '3/5').match(/(\d+)\s*(?:[\/|из]\s*(\d+))?/i); return m ? `${m[1]} из ${m[2] || '5'}` : '3 из 5'; })(),
       diyInstructionsHtml,
+      toolsTableHtml,
+      oemPartsTableHtml,
+      proTipsHtml,
       relatedReportsHtml
     });
 

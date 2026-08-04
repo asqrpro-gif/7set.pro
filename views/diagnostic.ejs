@@ -124,7 +124,7 @@
 
     <div class="diagnostic-grid <%= !isUnlockedForUser ? 'md:items-stretch' : 'md:items-start' %>">
       <article
-        class="bg-white dark:bg-slate-800 rounded-2xl shadow-sm p-5 mb-4 border border-transparent dark:border-slate-700 <%= !isUnlockedForUser ? 'h-full flex flex-col' : '' %>">
+        class="bg-white dark:bg-slate-800 rounded-2xl shadow-sm p-5 mb-4 border border-transparent dark:border-slate-700 <%= !isUnlockedForUser ? 'h-full flex flex-col' : 'lg:sticky lg:top-24 z-10' %>">
         <div class="flex justify-between items-start mb-4">
           <div class="flex flex-wrap gap-2">
             <span class="<%= severityClass %> text-xs font-bold px-3 py-1.5 rounded-full uppercase tracking-wide">
@@ -209,6 +209,12 @@
               <div
                 class="p-5 border-t border-gray-50 dark:border-slate-700 bg-white dark:bg-slate-800 prose prose-blue prose-lg dark:prose-invert max-w-none text-gray-800 dark:text-gray-200">
                 <%- fullAnalysisHtml %>
+                <% if (typeof proTipsHtml !== 'undefined' && proTipsHtml) { %>
+                  <div class="mt-8 border-t border-gray-100 dark:border-slate-700 pt-6">
+                    <h3 class="flex items-center gap-2 text-xl font-bold text-gray-900 dark:text-white mb-4"><i data-lucide='lightbulb' class='w-6 h-6 text-yellow-500'></i> Советы эксперта по <%= displayBrand %></h3>
+                    <%- proTipsHtml %>
+                  </div>
+                <% } %>
               </div>
             </details>
 
@@ -258,6 +264,12 @@
                     чтобы вы понимали примерный масштаб проблемы. Точную стоимость запчастей и работ может назвать
                     только мастер на СТО после физической диагностики.</span>
                 </div>
+                <% if (typeof oemPartsTableHtml !== 'undefined' && oemPartsTableHtml) { %>
+                  <div class="mt-6 prose prose-blue prose-sm dark:prose-invert max-w-none text-gray-800 dark:text-gray-200">
+                    <h3 class="flex items-center gap-2 text-base font-bold text-gray-900 dark:text-white mb-3"><i data-lucide='settings' class='w-5 h-5 text-gray-500'></i> Возможные запчасти (OEM / Аналоги)</h3>
+                    <%- oemPartsTableHtml %>
+                  </div>
+                <% } %>
               </div>
             </details>
 
@@ -296,9 +308,13 @@
                   </div>
                   <div class="bg-gray-50 dark:bg-slate-700/30 rounded-xl p-3.5 text-left flex flex-col">
                     <span
-                      class="text-xs text-gray-500 dark:text-gray-400 font-medium uppercase tracking-wider mb-1">Инструменты</span>
-                    <div class="text-sm md:text-base font-medium text-gray-800 dark:text-gray-100 leading-relaxed">
-                      <%= report.diy_tools || 'Не указаны' %>
+                      class="text-xs text-gray-500 dark:text-gray-400 font-medium uppercase tracking-wider mb-1">Необходимые инструменты</span>
+                    <div class="text-sm md:text-base font-medium text-gray-800 dark:text-gray-100 leading-relaxed <%= (typeof toolsTableHtml !== 'undefined' && toolsTableHtml) ? 'prose prose-sm dark:prose-invert max-w-none' : '' %>">
+                      <% if (typeof toolsTableHtml !== 'undefined' && toolsTableHtml) { %>
+                        <%- toolsTableHtml %>
+                      <% } else { %>
+                        <%= report.diy_tools || 'Не указано' %>
+                      <% } %>
                     </div>
                   </div>
                 </div>

@@ -43,10 +43,14 @@ model DiagnosticReport {
 
   created_at             DateTime @default(now())
 
-  // Поля для pSEO
   seoScore               Int      @default(0)
   seoRisk                String   @default("DANGER")
   uniquenessScore        Int      @default(100)
+
+  // Поля pSEO обогащения
+  tools_table_md         String?  @db.LongText
+  oem_parts_table_md     String?  @db.LongText
+  pro_tips_md            String?  @db.LongText
 }
 
 model User {
