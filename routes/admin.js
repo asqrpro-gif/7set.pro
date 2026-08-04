@@ -67,7 +67,10 @@ router.get('/', async (req, res) => {
         const scriptNames = {
             'generate_seo_cards.js': 'Генерация карточек (ИИ)',
             'scan_seo.js': 'SEO Сканер и Поиск дублей',
-            'delete_bad_seo.js': 'Удаление мусорных карточек'
+            'delete_bad_seo.js': 'Удаление мусорных карточек',
+            'deduplicate.js': 'Удаление дубликатов из БД',
+            'enrich_seo_batch.js': 'Массовое pSEO обогащение',
+            'reset_seo.js': 'Сброс SEO оценок'
         };
 
         // Собираем статусы
