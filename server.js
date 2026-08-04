@@ -352,7 +352,7 @@ app.get('/catalog/:brand/:model/:code', async (req, res) => {
 
     // Ищем в кэше (для ложных кодов ищем единую универсальную карточку)
     let existingReport = await prisma.diagnosticReport.findFirst({
-      where: { brand: targetBrand, model: targetModel, code: targetCode, created_at: { lte: new Date() } }
+      where: { brand: targetBrand, model: targetModel, code: targetCode }
     });
 
     if (existingReport) {
@@ -502,7 +502,7 @@ app.get('/catalog/:brand/:model/:code', async (req, res) => {
     let relatedReports = [];
     if (!isUnsupportedReport) {
       relatedReports = await prisma.diagnosticReport.findMany({
-        where: { brand: targetBrand, model: targetModel, is_complete: true, code: { not: targetCode } },
+        where: { brand: targetBrand, model: targetModel, is_complete: true, code: { not: targetCode }, created_at: { lte: new Date() } },
         take: 6,
         orderBy: { created_at: 'desc' }
       });

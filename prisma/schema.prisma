@@ -51,6 +51,8 @@ model DiagnosticReport {
   tools_table_md         String?  @db.LongText
   oem_parts_table_md     String?  @db.LongText
   pro_tips_md            String?  @db.LongText
+
+  @@unique([brand, model, code])
 }
 
 model User {
