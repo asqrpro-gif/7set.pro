@@ -1,75 +1,73 @@
 <%- include('admin_layout_header', { title: 'Дашборд и Скрипты', page: 'dashboard' }) %>
 
-<div class="grid grid-cols-1 md:grid-cols-4 gap-6 mb-8">
-    <div class="bg-slate-800 rounded-xl p-6 border border-slate-700 shadow-sm flex items-center justify-between">
+<div class="grid grid-cols-2 lg:grid-cols-4 gap-2 mb-4">
+    <div class="bg-slate-800 rounded-lg p-2 md:p-3 border border-slate-700 shadow-sm flex items-center justify-between">
         <div>
-            <p class="text-slate-400 text-sm font-medium">Всего карточек</p>
-            <h3 class="text-3xl font-bold text-white mt-1" id="stat-total">-</h3>
+            <p class="text-slate-400 text-[10px] md:text-xs font-medium">Всего карточек</p>
+            <h3 class="text-lg md:text-xl font-bold text-white mt-0.5" id="stat-total">-</h3>
         </div>
-        <div class="bg-blue-500/20 p-3 rounded-lg"><i data-lucide="database" class="text-blue-400"></i></div>
+        <div class="bg-blue-500/20 p-1.5 md:p-2 rounded"><i data-lucide="database" class="text-blue-400 w-4 h-4 md:w-5 md:h-5"></i></div>
     </div>
-    <div class="bg-slate-800 rounded-xl p-6 border border-slate-700 shadow-sm flex items-center justify-between">
+    <div class="bg-slate-800 rounded-lg p-2 md:p-3 border border-slate-700 shadow-sm flex items-center justify-between">
         <div>
-            <p class="text-slate-400 text-sm font-medium">Опубликовано</p>
-            <h3 class="text-3xl font-bold text-green-400 mt-1" id="stat-published">-</h3>
+            <p class="text-slate-400 text-[10px] md:text-xs font-medium">Опубликовано</p>
+            <h3 class="text-lg md:text-xl font-bold text-green-400 mt-0.5" id="stat-published">-</h3>
         </div>
-        <div class="bg-green-500/20 p-3 rounded-lg"><i data-lucide="check-circle" class="text-green-400"></i></div>
+        <div class="bg-green-500/20 p-1.5 md:p-2 rounded"><i data-lucide="check-circle" class="text-green-400 w-4 h-4 md:w-5 md:h-5"></i></div>
     </div>
-    <div class="bg-slate-800 rounded-xl p-6 border border-slate-700 shadow-sm flex items-center justify-between">
+    <div class="bg-slate-800 rounded-lg p-2 md:p-3 border border-slate-700 shadow-sm flex items-center justify-between">
         <div>
-            <p class="text-slate-400 text-sm font-medium">В очереди (отложено)</p>
-            <h3 class="text-3xl font-bold text-yellow-400 mt-1" id="stat-scheduled">-</h3>
+            <p class="text-slate-400 text-[10px] md:text-xs font-medium">Отложено</p>
+            <h3 class="text-lg md:text-xl font-bold text-yellow-400 mt-0.5" id="stat-scheduled">-</h3>
         </div>
-        <div class="bg-yellow-500/20 p-3 rounded-lg"><i data-lucide="clock" class="text-yellow-400"></i></div>
+        <div class="bg-yellow-500/20 p-1.5 md:p-2 rounded"><i data-lucide="clock" class="text-yellow-400 w-4 h-4 md:w-5 md:h-5"></i></div>
     </div>
-    <div class="bg-slate-800 rounded-xl p-6 border border-slate-700 shadow-sm flex items-center justify-between">
+    <div class="bg-slate-800 rounded-lg p-2 md:p-3 border border-slate-700 shadow-sm flex items-center justify-between">
         <div>
-            <p class="text-slate-400 text-sm font-medium">Сгенерировано сегодня</p>
-            <h3 class="text-3xl font-bold text-purple-400 mt-1" id="stat-today">-</h3>
+            <p class="text-slate-400 text-[10px] md:text-xs font-medium">За сегодня</p>
+            <h3 class="text-lg md:text-xl font-bold text-purple-400 mt-0.5" id="stat-today">-</h3>
         </div>
-        <div class="bg-purple-500/20 p-3 rounded-lg"><i data-lucide="zap" class="text-purple-400"></i></div>
+        <div class="bg-purple-500/20 p-1.5 md:p-2 rounded"><i data-lucide="zap" class="text-purple-400 w-4 h-4 md:w-5 md:h-5"></i></div>
     </div>
 </div>
 
-<h2 class="text-xl font-semibold text-white mb-4">Управление скриптами</h2>
-<div class="grid grid-cols-1 xl:grid-cols-3 gap-6">
-    <div class="xl:col-span-1 space-y-3">
+<h2 class="text-base md:text-lg font-semibold text-white mb-2">Управление скриптами</h2>
+<div class="grid grid-cols-1 lg:grid-cols-3 gap-2">
+    <div class="lg:col-span-1 flex flex-col gap-2">
         <% scripts.forEach(script => { %>
-            <div class="bg-slate-800 border border-slate-700 rounded-xl p-4 hover:border-slate-600 transition-colors shadow-sm">
-                <div class="flex items-center justify-between mb-3">
-                    <div class="flex items-center gap-2.5">
-                        <i data-lucide="terminal-square" class="text-slate-400 w-5 h-5"></i>
-                        <h3 class="text-white font-medium text-base"><%= script.name %></h3>
-                    </div>
+            <div class="bg-slate-800 border border-slate-700 rounded-lg p-2 hover:border-slate-600 transition-colors shadow-sm flex items-center justify-between gap-2">
+                <div class="flex flex-col gap-0.5 overflow-hidden">
+                    <h3 class="text-white font-medium text-xs leading-tight truncate"><%= script.name %></h3>
                     <% if (script.running) { %>
-                        <span class="bg-green-500/10 text-green-400 border border-green-500/20 text-xs px-2 py-1 rounded-full flex items-center gap-1">
+                        <span class="text-green-400 text-[10px] uppercase tracking-wider flex items-center gap-1 font-bold">
                             <span class="w-1.5 h-1.5 bg-green-400 rounded-full animate-pulse"></span> Работает
                         </span>
                     <% } else { %>
-                        <span class="bg-slate-700 text-slate-300 border border-slate-600 text-xs px-2 py-1 rounded-full flex items-center gap-1">
-                            Остановлен
-                        </span>
+                        <span class="text-slate-400 text-[10px] uppercase tracking-wider font-bold">Остановлен</span>
                     <% } %>
                 </div>
                 
-                <div class="flex gap-2">
-                    <button onclick="startScript('<%= script.file %>')" class="flex-1 bg-blue-600 hover:bg-blue-500 text-white py-1.5 rounded-lg text-sm font-medium transition-colors flex items-center justify-center gap-1.5 disabled:opacity-50" <%= script.running ? 'disabled' : '' %>>
-                        <i data-lucide="play" class="w-4 h-4"></i> Старт
-                    </button>
-                    <button onclick="stopScript('<%= script.file %>')" class="flex-1 bg-red-600/20 hover:bg-red-600/40 text-red-400 py-1.5 rounded-lg text-sm font-medium transition-colors flex items-center justify-center gap-1.5 disabled:opacity-50 border border-red-500/20" <%= !script.running ? 'disabled' : '' %>>
-                        <i data-lucide="square" class="w-4 h-4"></i> Стоп
-                    </button>
-                    <button onclick="watchLogs('<%= script.file %>')" class="bg-slate-700 hover:bg-slate-600 text-white px-3 py-1.5 rounded-lg transition-colors border border-slate-600 flex items-center justify-center" title="Смотреть логи">
-                        <i data-lucide="eye" class="w-4 h-4"></i>
-                    </button>
+                <div class="flex gap-1.5 shrink-0">
+                    <% if (script.running) { %>
+                        <button onclick="stopScript('<%= script.file %>')" class="w-12 h-12 md:w-10 md:h-10 bg-red-500/10 hover:bg-red-500/20 text-red-400 rounded-lg flex items-center justify-center transition-colors border border-red-500/20" title="Стоп">
+                            <i data-lucide="square" class="w-5 h-5 md:w-4 md:h-4"></i>
+                        </button>
+                    <% } else { %>
+                        <button onclick="startScript('<%= script.file %>')" class="w-12 h-12 md:w-10 md:h-10 bg-blue-600 hover:bg-blue-500 text-white rounded-lg flex items-center justify-center transition-colors" title="Старт">
+                            <i data-lucide="play" class="w-5 h-5 md:w-4 md:h-4"></i>
+                        </button>
+                    <% } %>
+                        <button onclick="watchLogs('<%= script.file %>')" class="w-12 h-12 md:w-10 md:h-10 bg-slate-700 hover:bg-slate-600 text-white rounded-lg flex items-center justify-center transition-colors border border-slate-600" title="Логи">
+                            <i data-lucide="terminal" class="w-5 h-5 md:w-4 md:h-4"></i>
+                        </button>
                 </div>
             </div>
         <% }) %>
     </div>
     
-    <div class="xl:col-span-2">
-        <div class="bg-[#0c0c0c] border border-slate-700 rounded-xl overflow-hidden h-[600px] flex flex-col shadow-inner">
-            <div class="bg-slate-800 px-4 py-2 border-b border-slate-700 flex justify-between items-center">
+    <div class="lg:col-span-2">
+        <div class="bg-[#0c0c0c] border border-slate-700 rounded-lg overflow-hidden h-[400px] md:h-[600px] flex flex-col shadow-inner">
+            <div class="bg-slate-800 px-3 py-1.5 md:py-2 border-b border-slate-700 flex justify-between items-center">
                 <div class="flex items-center gap-2">
                     <span class="w-3 h-3 rounded-full bg-red-500"></span>
                     <span class="w-3 h-3 rounded-full bg-yellow-500"></span>

@@ -343,8 +343,13 @@ router.get('/seo-detector', async (req, res) => {
             orderBy.push({ brand: sortOrder });
             orderBy.push({ model: sortOrder });
             orderBy.push({ code: sortOrder });
+        } else if (sortField === 'created_at') {
+            orderBy.push({ created_at: sortOrder });
         }
-        orderBy.push({ created_at: 'desc' });
+        
+        if (sortField !== 'created_at') {
+            orderBy.push({ created_at: 'desc' });
+        }
 
         const reports = await prisma.diagnosticReport.findMany({
             where: whereClause,
