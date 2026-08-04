@@ -245,6 +245,8 @@ router.get('/seo-detector', async (req, res) => {
         const riskFilter = req.query.risk;
         const brandFilter = req.query.brand;
         const modelFilter = req.query.model;
+        const sortField = req.query.sort || 'seoScore';
+        const sortOrder = req.query.order === 'desc' ? 'desc' : 'asc';
 
         const baseWhere = {};
         if (brandFilter) baseWhere.brand = brandFilter;
@@ -282,14 +284,21 @@ router.get('/seo-detector', async (req, res) => {
         const dangerCount = await prisma.diagnosticReport.count({ where: { ...baseWhere, seoRisk: 'DANGER' } });
         const totalCount = await prisma.diagnosticReport.count({ where: baseWhere });
 
+        let orderBy = [];
+        if (sortField === 'seoScore') {
+            orderBy.push({ seoScore: sortOrder });
+        } else if (sortField === 'uniquenessScore') {
+            orderBy.push({ uniquenessScore: sortOrder });
+        } else if (sortField === 'seoRisk') {
+            orderBy.push({ seoRisk: sortOrder });
+        }
+        orderBy.push({ created_at: 'desc' });
+
         const reports = await prisma.diagnosticReport.findMany({
             where: whereClause,
             take,
             skip,
-            orderBy: [
-                { seoScore: 'asc' }, // Сначала самые проблемные
-                { created_at: 'desc' }
-            ]
+            orderBy: orderBy
         });
 
         res.render('admin_seo_detector', {
@@ -299,6 +308,8 @@ router.get('/seo-detector', async (req, res) => {
             currentRisk: riskFilter || 'ALL',
             currentBrand: brandFilter || '',
             currentModel: modelFilter || '',
+            currentSort: sortField,
+            currentOrder: sortOrder,
             brandStats,
             modelStats,
             stats: {
