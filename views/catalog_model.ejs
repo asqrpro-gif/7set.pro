@@ -34,7 +34,7 @@
       {
         "@type": "ListItem",
         "position": 2,
-        "name": "Каталог марок",
+        "name": "Архив марок",
         "item": "https://7set.pro/"
       },
       {
@@ -69,7 +69,7 @@
           </li>
           <li class="flex items-center space-x-2">
             <i data-lucide="chevron-right" class="w-4 h-4 text-gray-400"></i>
-            <a href="/catalog" class="hover:text-brand transition-colors">Каталог</a>
+            <a href="/catalog" class="hover:text-brand transition-colors">Архив</a>
           </li>
           <li class="flex items-center space-x-2">
             <i data-lucide="chevron-right" class="w-4 h-4 text-gray-400"></i>
@@ -83,7 +83,7 @@
       </nav>
 
       <!-- Контент Модели -->
-      <section class="bg-white dark:bg-slate-800 rounded-3xl p-6 md:p-10 shadow-sm border border-gray-100 dark:border-slate-700">
+      <section class="py-4">
         <div class="mb-8 text-center md:text-left">
             <h1 class="text-3xl md:text-4xl font-black text-gray-900 dark:text-white capitalize">
               Коды ошибок <%= brandName %> <%= modelName %>
@@ -134,8 +134,8 @@
                 const rangeEnd = prefix.length === 4 ? prefix + '9' : prefix;
                 const groupTitle = prefix.length === 4 ? `Коды ${rangeStart} — ${rangeEnd}` : `Группа ${prefix}`;
             %>
-              <details class="bg-[#f8fafc] dark:bg-slate-900/40 rounded-2xl shadow-sm border border-slate-200 dark:border-slate-700/80 overflow-hidden group w-full">
-                <summary class="flex items-center justify-between py-3 px-4 md:px-6 cursor-pointer hover:bg-[#f1f5f9] dark:hover:bg-slate-800/60 transition-colors list-none outline-none">
+              <details class="group w-full mb-4">
+                <summary class="flex items-center justify-between py-3 px-4 md:px-6 cursor-pointer bg-white dark:bg-slate-800 border-[1.5px] border-gray-100 dark:border-slate-700 rounded-2xl shadow-sm hover:border-brand dark:hover:border-brand transition-colors list-none outline-none">
                   <div class="flex items-center gap-3">
                     <div class="w-8 h-8 rounded-lg bg-brand/10 dark:bg-brand/20 flex items-center justify-center text-brand shadow-sm shrink-0">
                       <i data-lucide="folder-open" class="w-4 h-4"></i>
@@ -149,7 +149,7 @@
                     <i data-lucide="chevron-down" class="w-4 h-4 text-gray-500 dark:text-gray-400 group-hover:text-white group-open:rotate-180 transition-transform duration-300"></i>
                   </div>
                 </summary>
-                <div class="p-5 md:px-8 pb-8 border-t border-slate-200 dark:border-slate-700/50 mt-1 bg-transparent">
+                <div class="p-2 md:p-4 mt-2 bg-transparent">
                   <div class="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 xl:grid-cols-4 gap-5 mt-2">
                     <% groupCodes.forEach(function(report) { 
                         const link = `/catalog/${encodeURIComponent(brandName.toLowerCase())}/${encodeURIComponent(modelName.toLowerCase())}/${encodeURIComponent(report.code.toUpperCase())}`;
@@ -164,7 +164,7 @@
                         };
                         const sev = severityMap[report.severity] || severityMap.medium;
                     %>
-                      <a href="<%= link %>" class="bg-[#ffffff] dark:bg-slate-800 p-5 rounded-2xl border border-slate-200 dark:border-slate-600/80 shadow-sm hover:shadow-[0_8px_20px_-6px_rgba(0,119,255,0.25)] dark:hover:shadow-[0_8px_20px_-6px_rgba(0,119,255,0.4)] hover:border-brand/50 dark:hover:border-brand/50 transition-all flex flex-col h-full relative overflow-hidden duration-300 hover:-translate-y-1.5">
+                      <a href="<%= link %>" class="bg-white dark:bg-slate-800 p-5 rounded-2xl border-[1.5px] border-[#0077FF] dark:border-[#0077FF] shadow-none hover:shadow-[0_0_25px_rgba(0,119,255,0.5)] transition-all flex flex-col h-full relative overflow-hidden duration-300 hover:-translate-y-1">
                         <div class="flex items-center justify-between mb-3">
                             <h3 class="font-black font-mono text-lg bg-brand text-white px-3 py-1 rounded-lg shadow-sm m-0"><%= report.code.toUpperCase() %></h3>
                             <span class="<%= sev.class %> text-[10px] font-bold px-2 py-1 rounded-md uppercase tracking-wider"><%= sev.text %></span>

@@ -7,6 +7,7 @@ import { renderErrorCodePage } from './lib/error_code.js';
 import { marked } from 'marked';
 import fs from 'fs';
 import garageRouter from './routes/garage.js';
+import adminRouter from './routes/admin.js';
 import generateSitemap from './controllers/sitemap.js';
 import { seoConfig, getBrandSeo, getModelSeo, formatTitleCase } from './lib/seo_config.js';
 
@@ -150,6 +151,9 @@ const cleanReportHtml = (html) => {
 // Подключение модуля Гаража
 app.use('/garage', garageRouter);
 
+// Подключение Супер-Админки
+app.use('/admin', adminRouter);
+
 
 // Динамический Sitemap
 app.get('/sitemap.xml', generateSitemap);
@@ -180,7 +184,7 @@ app.get('/legal/subscription', (req, res) => {
 });
 
 
-// 3.0. Страница каталога марок (Catalog Main)
+// 3.0. Страница архива марок (Catalog Main)
 app.get('/catalog', async (req, res) => {
   res.setHeader('Cache-Control', 'no-store, no-cache, must-revalidate, private');
   try {
@@ -193,7 +197,7 @@ app.get('/catalog', async (req, res) => {
 
     res.render('catalog_main', { brands: brandsData });
   } catch (err) {
-    console.error("Ошибка каталога:", err);
+    console.error("Ошибка архива:", err);
     res.status(500).send("Ошибка сервера");
   }
 });
@@ -320,7 +324,7 @@ app.get('/catalog/:brand/:model/:code', async (req, res) => {
     if (existingReport) {
       const isCachedStub = existingReport.brand === "universal" ||
         existingReport.code === "UNSUPPORTED" ||
-        (existingReport.summary || '').includes('не зарегистрирован в официальных каталогах') ||
+        (existingReport.summary || '').includes('не зарегистрирован в официальных архивах') ||
         (existingReport.summary || '').includes('Сбой по коду') ||
         (existingReport.summary || '').includes('официально расшифровывается как:') ||
         (existingReport.seoTitle || '').includes('Неизвестный');

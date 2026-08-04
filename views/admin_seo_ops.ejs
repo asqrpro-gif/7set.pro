@@ -1,0 +1,228 @@
+<%- include('admin_layout_header', { title: 'Управление (Сканирование базы)', page: 'seo-ops' }) %>
+
+<!-- Панель управления сканером -->
+<div class="bg-slate-800 rounded-xl border border-slate-700 shadow-sm p-6 mb-6">
+    <div class="flex items-center justify-between mb-4">
+        <div>
+            <h2 class="text-xl font-bold text-white flex items-center gap-2">
+                <i data-lucide="search" class="text-blue-400"></i> Сканер базы данных (scan_seo.js)
+            </h2>
+            <p class="text-sm text-slate-400 mt-1">Скрипт проверяет всю базу на наличие шаблонных ответов от ИИ и находит дубликаты карточек.</p>
+        </div>
+        <div>
+            <button id="scanBtn" onclick="toggleScan()" class="<%= scanRunning ? 'bg-red-600 hover:bg-red-500' : 'bg-blue-600 hover:bg-blue-500' %> text-white px-6 py-2.5 rounded-lg font-medium transition-colors flex items-center gap-2">
+                <% if (scanRunning) { %>
+                    <i data-lucide="square" class="w-4 h-4"></i> Остановить сканирование
+                <% } else { %>
+                    <i data-lucide="play" class="w-4 h-4"></i> Запустить сканирование
+                <% } %>
+            </button>
+        </div>
+    </div>
+
+    <!-- Терминал логов сканера (виден только если скрипт запущен или есть логи) -->
+    <div id="scanTerminalWrapper" class="bg-[#0c0c0c] border border-slate-700 rounded-lg overflow-hidden h-[200px] flex flex-col mt-4 <%= !scanRunning ? 'hidden' : '' %>">
+        <div class="bg-slate-700/50 px-3 py-1.5 border-b border-slate-700 flex justify-between items-center text-xs">
+            <span class="text-slate-300 font-mono">Консоль scan_seo.js</span>
+            <span class="flex items-center gap-2" id="scanStatusIndicator">
+                <% if (scanRunning) { %>
+                    <span class="w-2 h-2 rounded-full bg-green-500 animate-pulse"></span> Работает
+                <% } else { %>
+                    Остановлен
+                <% } %>
+            </span>
+        </div>
+        <pre id="scanTerminal" class="flex-1 p-3 overflow-y-auto text-green-400 font-mono text-xs whitespace-pre-wrap">Подключение терминала...</pre>
+    </div>
+</div>
+
+<!-- Результаты сканирования -->
+<div class="bg-slate-800 rounded-xl border border-slate-700 shadow-sm overflow-hidden flex flex-col h-[500px]">
+    <div class="p-4 border-b border-slate-700 flex justify-between items-center bg-slate-800/50">
+        <div>
+            <h2 class="text-lg font-semibold text-white">Результаты последнего сканирования: <%= cards.length %></h2>
+            <p class="text-sm text-slate-400">Выберите мусорные карточки или дубликаты и удалите их из системы.</p>
+        </div>
+        <button id="deleteBtn" onclick="deleteSelected()" class="bg-red-600 hover:bg-red-500 text-white px-4 py-2 rounded-lg text-sm font-medium transition-colors flex items-center gap-2 disabled:opacity-50 disabled:cursor-not-allowed" disabled>
+            <i data-lucide="trash-2" class="w-4 h-4"></i> Удалить выбранные (<span id="selectedCount">0</span>)
+        </button>
+    </div>
+
+    <div class="overflow-x-auto flex-1">
+        <table class="w-full text-left border-collapse">
+            <thead>
+                <tr class="bg-slate-900/50 text-slate-300 text-sm border-b border-slate-700">
+                    <th class="p-4 w-12 text-center sticky top-0 bg-slate-900 border-b border-slate-700">
+                        <input type="checkbox" id="selectAll" onclick="toggleAll(this)" class="w-4 h-4 rounded border-slate-600 bg-slate-700 text-blue-600 focus:ring-blue-500 focus:ring-offset-slate-800">
+                    </th>
+                    <th class="p-4 font-semibold w-48 sticky top-0 bg-slate-900 border-b border-slate-700">Марка / Модель</th>
+                    <th class="p-4 font-semibold w-24 sticky top-0 bg-slate-900 border-b border-slate-700">Код</th>
+                    <th class="p-4 font-semibold sticky top-0 bg-slate-900 border-b border-slate-700">Описание причины</th>
+                    <th class="p-4 font-semibold w-32 sticky top-0 bg-slate-900 border-b border-slate-700">Тип мусора</th>
+                    <th class="p-4 font-semibold w-24 text-right sticky top-0 bg-slate-900 border-b border-slate-700">Действие</th>
+                </tr>
+            </thead>
+            <tbody class="text-sm divide-y divide-slate-700/50">
+                <% if (cards.length === 0) { %>
+                    <tr>
+                        <td colspan="6" class="p-8 text-center text-slate-400">
+                            Мусорных карточек пока не найдено. Нажмите "Запустить сканирование". ✨
+                        </td>
+                    </tr>
+                <% } %>
+                <% cards.forEach(card => { %>
+                    <tr class="hover:bg-slate-700/30 transition-colors">
+                        <td class="p-4 text-center">
+                            <input type="checkbox" value="<%= card.id %>" class="card-checkbox w-4 h-4 rounded border-slate-600 bg-slate-700 text-blue-600 focus:ring-blue-500 focus:ring-offset-slate-800" onchange="updateSelection()">
+                        </td>
+                        <td class="p-4">
+                            <div class="font-medium text-white"><%= card.brand %></div>
+                            <div class="text-xs text-slate-400"><%= card.model %></div>
+                        </td>
+                        <td class="p-4 font-mono text-blue-400 font-bold"><%= card.code %></td>
+                        <td class="p-4">
+                            <div class="text-slate-300 line-clamp-2" title="<%= card.summary %>"><%= card.summary %></div>
+                        </td>
+                        <td class="p-4">
+                            <% if (card.reason === 'Дубликат') { %>
+                                <span class="bg-red-500/20 text-red-400 text-xs px-2 py-1 rounded border border-red-500/30 font-medium whitespace-nowrap"><i data-lucide="copy" class="w-3 h-3 inline mr-1"></i>Дубликат</span>
+                            <% } else { %>
+                                <span class="bg-yellow-500/20 text-yellow-400 text-xs px-2 py-1 rounded border border-yellow-500/30 font-medium whitespace-nowrap"><i data-lucide="bot" class="w-3 h-3 inline mr-1"></i>Шаблон ИИ</span>
+                            <% } %>
+                        </td>
+                        <td class="p-4 text-right">
+                            <a href="/catalog/<%= card.brand.toLowerCase() %>/<%= card.model.toLowerCase() %>/<%= card.code %>" target="_blank" class="text-blue-400 hover:text-blue-300 inline-flex items-center gap-1 text-xs bg-blue-500/10 px-2 py-1 rounded border border-blue-500/20 transition-colors">
+                                <i data-lucide="external-link" class="w-3 h-3"></i> Открыть
+                            </a>
+                        </td>
+                    </tr>
+                <% }) %>
+            </tbody>
+        </table>
+    </div>
+</div>
+
+<script>
+    let isRunning = <%= scanRunning %>;
+    let logInterval = null;
+
+    if (isRunning) {
+        startLogPolling();
+    }
+
+    async function toggleScan() {
+        const action = isRunning ? 'stop' : 'start';
+        const msg = isRunning ? 'Остановить сканирование?' : 'Запустить сканирование базы? (Это может занять время)';
+        if (!confirm(msg)) return;
+
+        try {
+            const res = await fetch(`/admin/api/scripts/${action}`, {
+                method: 'POST',
+                headers: { 'Content-Type': 'application/json' },
+                body: JSON.stringify({ script: 'scan_seo.js' })
+            });
+
+            if (res.ok) {
+                if (action === 'start') {
+                    isRunning = true;
+                    document.getElementById('scanTerminalWrapper').classList.remove('hidden');
+                    document.getElementById('scanBtn').className = 'bg-red-600 hover:bg-red-500 text-white px-6 py-2.5 rounded-lg font-medium transition-colors flex items-center gap-2';
+                    document.getElementById('scanBtn').innerHTML = '<i data-lucide="square" class="w-4 h-4"></i> Остановить сканирование';
+                    document.getElementById('scanStatusIndicator').innerHTML = '<span class="w-2 h-2 rounded-full bg-green-500 animate-pulse"></span> Работает';
+                    lucide.createIcons();
+                    startLogPolling();
+                } else {
+                    window.location.reload();
+                }
+            } else {
+                const err = await res.json();
+                alert(err.error || 'Ошибка');
+            }
+        } catch (e) {
+            alert('Сетевая ошибка');
+        }
+    }
+
+    function startLogPolling() {
+        if (logInterval) clearInterval(logInterval);
+        fetchLogs();
+        logInterval = setInterval(fetchLogs, 1000);
+    }
+
+    async function fetchLogs() {
+        try {
+            const res = await fetch(`/admin/api/scripts/logs?script=scan_seo.js`);
+            const data = await res.json();
+            
+            const terminal = document.getElementById('scanTerminal');
+            const isScrolledToBottom = terminal.scrollHeight - terminal.clientHeight <= terminal.scrollTop + 10;
+            
+            terminal.innerText = data.logs || 'Ожидание вывода...';
+            
+            if(isScrolledToBottom) {
+                terminal.scrollTop = terminal.scrollHeight;
+            }
+
+            // Если скрипт сам завершился, перезагружаем страницу, чтобы увидеть результаты
+            if (isRunning && !data.running) {
+                isRunning = false;
+                clearInterval(logInterval);
+                document.getElementById('scanStatusIndicator').innerText = 'Завершено';
+                // Ждем секунду, чтобы юзер увидел, что сканирование закончилось
+                setTimeout(() => window.location.reload(), 2000);
+            }
+        } catch(e) {}
+    }
+
+
+    // --- Логика таблицы ---
+    function updateSelection() {
+        const checkboxes = document.querySelectorAll('.card-checkbox:checked');
+        const count = checkboxes.length;
+        document.getElementById('selectedCount').innerText = count;
+        document.getElementById('deleteBtn').disabled = count === 0;
+        
+        const allCheckboxes = document.querySelectorAll('.card-checkbox');
+        document.getElementById('selectAll').checked = allCheckboxes.length > 0 && count === allCheckboxes.length;
+    }
+
+    function toggleAll(source) {
+        const checkboxes = document.querySelectorAll('.card-checkbox');
+        checkboxes.forEach(cb => cb.checked = source.checked);
+        updateSelection();
+    }
+
+    async function deleteSelected() {
+        const checkboxes = document.querySelectorAll('.card-checkbox:checked');
+        const ids = Array.from(checkboxes).map(cb => cb.value);
+        
+        if (!confirm(`Вы уверены, что хотите безвозвратно удалить ${ids.length} карточек из базы?`)) {
+            return;
+        }
+
+        document.getElementById('deleteBtn').disabled = true;
+        document.getElementById('deleteBtn').innerHTML = '<i data-lucide="loader-2" class="w-4 h-4 animate-spin"></i> Удаление...';
+        lucide.createIcons();
+
+        try {
+            const res = await fetch('/admin/api/seo-ops/delete', {
+                method: 'POST',
+                headers: { 'Content-Type': 'application/json' },
+                body: JSON.stringify({ ids })
+            });
+
+            if (res.ok) {
+                window.location.reload();
+            } else {
+                const err = await res.json();
+                alert('Ошибка: ' + (err.error || 'Неизвестная ошибка'));
+                window.location.reload();
+            }
+        } catch (e) {
+            alert('Сетевая ошибка');
+            window.location.reload();
+        }
+    }
+</script>
+
+<%- include('admin_layout_footer') %>

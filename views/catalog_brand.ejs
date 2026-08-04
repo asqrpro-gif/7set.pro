@@ -34,7 +34,7 @@
       {
         "@type": "ListItem",
         "position": 2,
-        "name": "Каталог марок",
+        "name": "Архив марок",
         "item": "https://7set.pro/"
       },
       {
@@ -63,7 +63,7 @@
           </li>
           <li class="flex items-center space-x-2">
             <i data-lucide="chevron-right" class="w-4 h-4 text-gray-400"></i>
-            <a href="/catalog" class="hover:text-brand transition-colors">Каталог</a>
+            <a href="/catalog" class="hover:text-brand transition-colors">Архив</a>
           </li>
           <li class="flex items-center space-x-2" aria-current="page">
             <i data-lucide="chevron-right" class="w-4 h-4 text-gray-400"></i>
@@ -73,7 +73,7 @@
       </nav>
 
       <!-- Контент Марки -->
-      <section class="bg-white dark:bg-slate-800 rounded-3xl p-6 md:p-10 shadow-sm border border-gray-100 dark:border-slate-700">
+      <section class="py-4">
         <div class="flex flex-col items-center mb-8">
             <% if(logoSlug) { %>
               <img src="/img/logos/<%= logoSlug %>-logo-60x60-px.webp" alt="Логотип <%= brandName %>" width="80" height="80" class="object-contain mb-4 drop-shadow-md">
@@ -88,7 +88,7 @@
 
         <div class="grid grid-cols-1 sm:grid-cols-2 md:grid-cols-3 lg:grid-cols-4 gap-4">
           <% models.forEach(function(item) { %>
-            <a href="/catalog/<%= encodeURIComponent(brandName.toLowerCase()) %>/<%= encodeURIComponent(item.model.toLowerCase()) %>" class="bg-gradient-to-b from-[#ffffff] to-slate-50 dark:from-slate-700/50 dark:to-slate-800/50 backdrop-blur-md p-5 rounded-2xl border border-slate-200 dark:border-slate-600/80 shadow-sm hover:shadow-[0_8px_20px_-6px_rgba(0,119,255,0.25)] dark:hover:shadow-[0_8px_20px_-6px_rgba(0,119,255,0.4)] hover:border-brand/50 dark:hover:border-brand/50 transition-all group flex flex-col items-center text-center duration-300 hover:-translate-y-1.5">
+            <a href="/catalog/<%= encodeURIComponent(brandName.toLowerCase()) %>/<%= encodeURIComponent(item.model.toLowerCase()) %>" class="bg-white dark:bg-slate-800 p-5 rounded-2xl border-[1.5px] border-[#0077FF] dark:border-[#0077FF] shadow-none hover:shadow-[0_0_25px_rgba(0,119,255,0.5)] transition-all group flex flex-col items-center text-center duration-300 hover:-translate-y-1">
               <h2 class="font-bold text-lg text-gray-900 dark:text-white capitalize group-hover:text-brand transition-colors mb-2"><%= item.model %></h2>
               <span class="text-xs font-semibold text-brand bg-brand/10 px-2.5 py-1 rounded-full"><%= item._count.model %> кодов</span>
             </a>

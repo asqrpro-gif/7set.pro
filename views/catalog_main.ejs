@@ -3,8 +3,8 @@
 <head>
   <meta charset="UTF-8">
   <meta name="viewport" content="width=device-width, initial-scale=1.0">
-  <title>Каталог ошибок OBD-II — 7Set.pro</title>
-  <meta name="description" content="Полный каталог марок автомобилей для расшифровки кодов неисправностей OBD-II.">
+  <title>Архив ошибок OBD-II — 7Set.pro</title>
+  <meta name="description" content="Полный архив марок автомобилей для расшифровки кодов неисправностей OBD-II.">
   <link rel="canonical" href="https://7set.pro/catalog" />
   <link rel="icon" type="image/svg+xml" href="/favicon.svg">
   
@@ -38,15 +38,15 @@
         </li>
         <li class="flex items-center space-x-2" aria-current="page">
           <i data-lucide="chevron-right" class="w-4 h-4 text-gray-400"></i>
-          <span class="font-semibold text-gray-900 dark:text-white">Каталог</span>
+          <span class="font-semibold text-gray-900 dark:text-white">Архив</span>
         </li>
       </ol>
     </nav>
 
-    <!-- Каталог Марок -->
-    <main class="mb-16 relative bg-white dark:bg-slate-800 rounded-3xl p-6 md:p-10 shadow-sm border border-gray-100 dark:border-slate-700">
+    <!-- Архив Марок -->
+    <main class="mb-16 relative py-4">
       <div class="text-center mb-10 pt-2">
-        <h1 class="text-3xl md:text-4xl font-black text-gray-900 dark:text-white mb-3">Каталог ошибок по маркам</h1>
+        <h1 class="text-3xl md:text-4xl font-black text-gray-900 dark:text-white mb-3">Архив ошибок по маркам</h1>
         <p class="text-gray-500 dark:text-gray-400 text-sm md:text-base max-w-xl mx-auto">Выберите вашу марку автомобиля для просмотра доступных расшифровок</p>
       </div>
       
@@ -68,16 +68,16 @@
             const brandLower = item.brand.toLowerCase();
             const logoSlug = brandMap[brandLower];
         %>
-          <a href="/catalog/<%= encodeURIComponent(brandLower) %>" class="bg-gradient-to-b from-[#ffffff] to-slate-50 dark:from-slate-700/50 dark:to-slate-800/50 backdrop-blur-md p-4 rounded-2xl border border-slate-200 dark:border-slate-600/80 shadow-sm hover:shadow-[0_8px_20px_-6px_rgba(0,119,255,0.25)] dark:hover:shadow-[0_8px_20px_-6px_rgba(0,119,255,0.4)] hover:border-brand/50 dark:hover:border-brand/50 transition-all group flex flex-col items-center justify-center text-center duration-300 hover:-translate-y-1.5">
+          <a href="/catalog/<%= encodeURIComponent(brandLower) %>" class="bg-white dark:bg-slate-800 p-3 rounded-2xl border-[1.5px] border-[#0077FF] dark:border-[#0077FF] shadow-none hover:shadow-[0_0_25px_rgba(0,119,255,0.5)] transition-all group flex flex-col items-center justify-center text-center duration-300 hover:-translate-y-1">
             <% if(logoSlug) { %>
               <img src="/img/logos/<%= logoSlug %>-logo-60x60-px.webp" alt="Коды ошибок <%= item.brand %>" width="48" height="48" class="object-contain mb-3 drop-shadow-sm group-hover:scale-110 transition-transform duration-300">
             <% } else { %>
-              <div class="w-12 h-12 mb-3 bg-white dark:bg-slate-600 text-brand dark:text-blue-400 rounded-full flex items-center justify-center group-hover:bg-brand group-hover:text-white transition-colors duration-300 shadow-sm">
+              <div class="w-12 h-12 mb-3 bg-blue-500/10 text-brand dark:text-blue-400 rounded-full flex items-center justify-center group-hover:bg-brand group-hover:text-white transition-colors duration-300 shadow-sm">
                 <i data-lucide="car-front" class="w-6 h-6"></i>
               </div>
             <% } %>
-            <h3 class="font-bold text-gray-900 dark:text-white capitalize group-hover:text-brand transition-colors"><%= item.brand %></h3>
-            <span class="text-xs font-semibold text-gray-500 bg-gray-200 dark:bg-slate-800 dark:text-gray-400 px-2 py-0.5 rounded-full mt-2"><%= item._count.brand %> кодов</span>
+            <h3 class="font-bold text-sm sm:text-base text-gray-900 dark:text-white capitalize group-hover:text-brand transition-colors"><%= item.brand %></h3>
+            <span class="text-[10px] sm:text-xs font-semibold text-blue-700 dark:text-blue-300 bg-blue-500/10 dark:bg-blue-500/20 px-2 py-0.5 rounded-full mt-2"><%= item._count.brand %> кодов</span>
           </a>
         <% }); %>
         <% if(brands.length === 0) { %>

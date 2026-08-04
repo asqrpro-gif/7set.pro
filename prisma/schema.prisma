@@ -42,6 +42,11 @@ model DiagnosticReport {
   user                   User?    @relation(fields: [userId], references: [id])
 
   created_at             DateTime @default(now())
+
+  // Поля для pSEO
+  seoScore               Int      @default(0)
+  seoRisk                String   @default("DANGER")
+  uniquenessScore        Int      @default(100)
 }
 
 model User {

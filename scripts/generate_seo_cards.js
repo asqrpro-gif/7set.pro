@@ -1,8 +1,28 @@
 import 'dotenv/config';
 import { PrismaClient } from '@prisma/client';
 import { analyzeCarErrorFast, analyzeCarErrorDeep, getFactFromDB } from '../lib/gemini_clean.js';
+import fs from 'fs/promises';
+import path from 'path';
+import { fileURLToPath } from 'url';
+
+const __filename = fileURLToPath(import.meta.url);
+const __dirname = path.dirname(__filename);
+const STATE_FILE = path.join(__dirname, 'generation_state.json');
 
 const prisma = new PrismaClient();
+
+async function getDailyState() {
+  try {
+    const data = await fs.readFile(STATE_FILE, 'utf-8');
+    return JSON.parse(data);
+  } catch {
+    return { date: new Date().toDateString(), count: 0 };
+  }
+}
+
+async function saveDailyState(dateString, count) {
+  await fs.writeFile(STATE_FILE, JSON.stringify({ date: dateString, count }), 'utf-8');
+}
 
 // ==========================================
 // 1. ИСТОЧНИК ДАННЫХ (Целевые машины и коды)
@@ -46,13 +66,6 @@ const getRandomInt = (min, max) => Math.floor(Math.random() * (max - min + 1)) +
 // 2. УМНЫЙ РАСЧЕТ ДАТЫ ПУБЛИКАЦИИ
 // ==========================================
 async function getNextPublishDate() {
-  const totalCount = await prisma.diagnosticReport.count();
-
-  // Пул первых 350 карточек публикуется сразу без отложки
-  if (totalCount < 350) {
-    return new Date();
-  }
-
   const latestReport = await prisma.diagnosticReport.findFirst({
     orderBy: { created_at: 'desc' },
     select: { created_at: true }
@@ -91,20 +104,48 @@ async function getNextPublishDate() {
 async function main() {
   console.log('🚀 Запуск автономного SEO-конвейера (отложенная публикация)...');
 
-  let dailyGeneratedCount = 0;
-  let currentDay = new Date().getDate();
+  let state = await getDailyState();
+  let currentDayStr = new Date().toDateString();
+  
+  if (state.date !== currentDayStr) {
+    state = { date: currentDayStr, count: 0 };
+    await saveDailyState(currentDayStr, 0);
+  }
+  let dailyGeneratedCount = state.count;
 
   for (const car of TARGET_CARS) {
     for (const code of POPULAR_ERRORS) {
 
-      // Лимит генерации: не более 120 успешных карточек в сутки
-      if (dailyGeneratedCount >= 120) {
-        console.log(`\n🛑 Достигнут суточный лимит (120 карточек). Засыпаем до наступления новых суток...`);
-        while (new Date().getDate() === currentDay) {
+      // Ограничение по времени генерации (от 00:00 до 05:00)
+      let loggedWait = false;
+      while (new Date().getHours() >= 5) {
+        if (!loggedWait) {
+          console.log(`\n⏳ Время генерации вышло (сейчас ${new Date().getHours()} ч.). Работаем только с 00:00 до 05:00. Ждем...`);
+          loggedWait = true;
+        }
+        await sleep(10 * 60 * 1000); // Спим 10 минут и проверяем снова
+      }
+      if (loggedWait) {
+        console.log(`\n🌌 Наступило разрешенное время (00:00 - 05:00)! Возобновляем работу...`);
+      }
+
+      const todayStr = new Date().toDateString();
+      if (todayStr !== currentDayStr) {
+        currentDayStr = todayStr;
+        dailyGeneratedCount = 0;
+        await saveDailyState(currentDayStr, dailyGeneratedCount);
+        console.log(`\n🌅 Наступили новые сутки в процессе работы! Сброс счетчика.`);
+      }
+
+      // Лимит генерации: не более 60 успешных карточек в сутки
+      if (dailyGeneratedCount >= 60) {
+        console.log(`\n🛑 Достигнут суточный лимит (60 карточек). Засыпаем до наступления новых суток...`);
+        while (new Date().toDateString() === currentDayStr) {
           await sleep(10 * 60 * 1000); // проверяем каждые 10 минут
         }
-        currentDay = new Date().getDate();
+        currentDayStr = new Date().toDateString();
         dailyGeneratedCount = 0;
+        await saveDailyState(currentDayStr, dailyGeneratedCount);
         console.log(`\n🌅 Наступили новые сутки! Продолжаем генерацию...`);
       }
 
@@ -192,17 +233,18 @@ async function main() {
 
         console.log(`✅ Сохранено: ${car.brand} ${car.model} ${code}`);
         console.log(`📅 В очереди на: ${publishDate.toLocaleString()}`);
-        console.log(`💤 Остываем 2 минуты...`);
+        console.log(`💤 Остываем 4 минуты...`);
 
         dailyGeneratedCount++; // Увеличиваем счетчик успешных генераций
+        await saveDailyState(currentDayStr, dailyGeneratedCount);
 
-        // Интервал генерации — ровно 2 минуты (120 000 мс)
-        await sleep(120000);
+        // Интервал генерации — ровно 4 минуты (240 000 мс)
+        await sleep(240000);
 
       } catch (error) {
         console.error(`❌ Сбой API для ${car.brand} ${car.model} ${code}:`, error.message);
-        console.log('💤 Штрафная пауза 2 минуты перед новой попыткой...');
-        await sleep(120000);
+        console.log('💤 Штрафная пауза 4 минуты перед новой попыткой...');
+        await sleep(240000);
       }
     }
   }
