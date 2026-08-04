@@ -242,9 +242,48 @@ router.get('/seo-detector', async (req, res) => {
         const page = parseInt(req.query.page) || 1;
         const take = 50;
         const skip = (page - 1) * take;
+        const riskFilter = req.query.risk;
+        const brandFilter = req.query.brand;
+        const modelFilter = req.query.model;
 
-        const total = await prisma.diagnosticReport.count();
+        const baseWhere = {};
+        if (brandFilter) baseWhere.brand = brandFilter;
+        if (modelFilter) baseWhere.model = modelFilter;
+
+        const whereClause = { ...baseWhere };
+        if (riskFilter && riskFilter !== 'ALL') whereClause.seoRisk = riskFilter;
+
+        // Получаем статистику по маркам
+        const brandStatsRaw = await prisma.diagnosticReport.groupBy({
+            by: ['brand'],
+            _count: { id: true },
+            orderBy: { _count: { id: 'desc' } }
+        });
+        const brandStats = brandStatsRaw.map(b => ({ brand: b.brand, count: b._count.id }));
+
+        // Получаем статистику по моделям (если выбрана марка)
+        let modelStats = [];
+        if (brandFilter) {
+            const modelStatsRaw = await prisma.diagnosticReport.groupBy({
+                by: ['model'],
+                where: { brand: brandFilter },
+                _count: { id: true },
+                orderBy: { _count: { id: 'desc' } }
+            });
+            modelStats = modelStatsRaw.map(m => ({ model: m.model, count: m._count.id }));
+        }
+
+        // Получаем общее количество для пагинации
+        const total = await prisma.diagnosticReport.count({ where: whereClause });
+        
+        // Получаем общую статистику для вкладок (с учетом марки и модели)
+        const safeCount = await prisma.diagnosticReport.count({ where: { ...baseWhere, seoRisk: 'SAFE' } });
+        const warningCount = await prisma.diagnosticReport.count({ where: { ...baseWhere, seoRisk: 'WARNING' } });
+        const dangerCount = await prisma.diagnosticReport.count({ where: { ...baseWhere, seoRisk: 'DANGER' } });
+        const totalCount = await prisma.diagnosticReport.count({ where: baseWhere });
+
         const reports = await prisma.diagnosticReport.findMany({
+            where: whereClause,
             take,
             skip,
             orderBy: [
@@ -256,7 +295,18 @@ router.get('/seo-detector', async (req, res) => {
         res.render('admin_seo_detector', {
             reports: reports,
             page,
-            totalPages: Math.ceil(total / take)
+            totalPages: Math.ceil(total / take) || 1,
+            currentRisk: riskFilter || 'ALL',
+            currentBrand: brandFilter || '',
+            currentModel: modelFilter || '',
+            brandStats,
+            modelStats,
+            stats: {
+                total: totalCount,
+                safe: safeCount,
+                warning: warningCount,
+                danger: dangerCount
+            }
         });
     } catch (err) {
         console.error(err);

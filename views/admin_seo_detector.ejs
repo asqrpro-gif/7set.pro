@@ -1,14 +1,48 @@
 <%- include('admin_layout_header', { title: 'SEO детектор (pSEO Quality Control)', page: 'seo-detector' }) %>
 
 <div class="bg-slate-800 rounded-xl border border-slate-700 shadow-sm flex flex-col h-[calc(100vh-100px)]">
-    <div class="p-4 border-b border-slate-700 flex justify-between items-center bg-slate-800/50">
+    <div class="p-4 border-b border-slate-700 flex flex-col md:flex-row justify-between items-center bg-slate-800/50 gap-4">
         <div>
-            <h2 class="text-lg font-semibold text-white">Отчеты (Отсортированы по уровню риска)</h2>
-            <p class="text-sm text-slate-400">Страница <%= page %> из <%= totalPages %></p>
+            <h2 class="text-lg font-semibold text-white">Отчеты по качеству</h2>
+            <div class="flex gap-2 mt-2">
+                <a href="/admin/seo-detector?risk=ALL<%= currentBrand ? '&brand='+currentBrand : '' %><%= currentModel ? '&model='+currentModel : '' %>" class="px-3 py-1 text-xs rounded-full font-medium <%= currentRisk === 'ALL' ? 'bg-blue-600 text-white' : 'bg-slate-700 text-slate-300 hover:bg-slate-600' %> transition-colors">
+                    Все (<%= stats.total %>)
+                </a>
+                <a href="?risk=SAFE<%= currentBrand ? '&brand='+currentBrand : '' %><%= currentModel ? '&model='+currentModel : '' %>" class="px-3 py-1 text-xs rounded-full font-medium <%= currentRisk === 'SAFE' ? 'bg-green-600 text-white' : 'bg-slate-700 text-slate-300 hover:bg-slate-600' %> transition-colors">
+                    Удачные (<%= stats.safe %>)
+                </a>
+                <a href="?risk=WARNING<%= currentBrand ? '&brand='+currentBrand : '' %><%= currentModel ? '&model='+currentModel : '' %>" class="px-3 py-1 text-xs rounded-full font-medium <%= currentRisk === 'WARNING' ? 'bg-yellow-600 text-white' : 'bg-slate-700 text-slate-300 hover:bg-slate-600' %> transition-colors">
+                    Неудачные (<%= stats.warning %>)
+                </a>
+                <a href="?risk=DANGER<%= currentBrand ? '&brand='+currentBrand : '' %><%= currentModel ? '&model='+currentModel : '' %>" class="px-3 py-1 text-xs rounded-full font-medium <%= currentRisk === 'DANGER' ? 'bg-red-600 text-white' : 'bg-slate-700 text-slate-300 hover:bg-slate-600' %> transition-colors">
+                    Критические (<%= stats.danger %>)
+                </a>
+            </div>
         </div>
-        <button id="rescanBtn" onclick="rescanAll()" class="bg-blue-600 hover:bg-blue-500 text-white px-4 py-2 rounded-lg text-sm font-medium transition-colors flex items-center gap-2">
-            <i data-lucide="refresh-cw" class="w-4 h-4" id="rescanIcon"></i> Пересканировать всю базу
-        </button>
+        <div class="flex flex-col sm:flex-row items-center gap-3">
+            <form method="GET" action="/admin/seo-detector" class="flex gap-2 items-center" id="filterForm">
+                <% if (currentRisk && currentRisk !== 'ALL') { %>
+                    <input type="hidden" name="risk" value="<%= currentRisk %>">
+                <% } %>
+                <select name="brand" onchange="this.form.model ? this.form.model.value='' : null; this.form.submit()" class="bg-slate-700 text-white text-xs rounded px-2 py-1.5 border border-slate-600 outline-none min-w-[120px]">
+                    <option value="">Все марки</option>
+                    <% brandStats.forEach(b => { %>
+                        <option value="<%= b.brand %>" <%= currentBrand === b.brand ? 'selected' : '' %>><%= b.brand.toUpperCase() %> (<%= b.count %>)</option>
+                    <% }) %>
+                </select>
+                <% if (currentBrand && modelStats.length > 0) { %>
+                <select name="model" onchange="this.form.submit()" class="bg-slate-700 text-white text-xs rounded px-2 py-1.5 border border-slate-600 outline-none min-w-[120px]">
+                    <option value="">Все модели</option>
+                    <% modelStats.forEach(m => { %>
+                        <option value="<%= m.model %>" <%= currentModel === m.model ? 'selected' : '' %>><%= m.model.toUpperCase() %> (<%= m.count %>)</option>
+                    <% }) %>
+                </select>
+                <% } %>
+            </form>
+            <button id="rescanBtn" onclick="rescanAll()" class="bg-blue-600 hover:bg-blue-500 text-white px-4 py-1.5 rounded text-sm font-medium transition-colors flex items-center gap-2">
+                <i data-lucide="refresh-cw" class="w-4 h-4" id="rescanIcon"></i> Пересканировать
+            </button>
+        </div>
     </div>
 
     <div class="overflow-y-auto flex-1 p-0">
@@ -73,14 +107,25 @@
     </div>
 
     <!-- Пагинация -->
-    <div class="p-4 border-t border-slate-700 bg-slate-800/50 flex justify-center gap-2">
-        <% if (page > 1) { %>
-            <a href="?page=<%= page - 1 %>" class="px-3 py-1 bg-slate-700 text-white rounded hover:bg-slate-600">&laquo; Назад</a>
-        <% } %>
-        <span class="px-3 py-1 text-slate-400">Стр. <%= page %> из <%= totalPages %></span>
-        <% if (page < totalPages) { %>
-            <a href="?page=<%= page + 1 %>" class="px-3 py-1 bg-slate-700 text-white rounded hover:bg-slate-600">Вперед &raquo;</a>
-        <% } %>
+    <div class="p-4 border-t border-slate-700 bg-slate-800/50 flex flex-col md:flex-row justify-between items-center gap-4">
+        <div class="text-sm text-slate-400">
+            Всего карточек в этой вкладке: <strong><%= currentRisk === 'ALL' ? stats.total : (currentRisk === 'SAFE' ? stats.safe : (currentRisk === 'WARNING' ? stats.warning : stats.danger)) %></strong>
+        </div>
+        <div class="flex items-center gap-2">
+            <% 
+                let queryParams = '';
+                if (currentRisk && currentRisk !== 'ALL') queryParams += '&risk=' + currentRisk;
+                if (currentBrand) queryParams += '&brand=' + currentBrand;
+                if (currentModel) queryParams += '&model=' + currentModel;
+            %>
+            <% if (page > 1) { %>
+                <a href="?page=<%= page - 1 %><%= queryParams %>" class="px-3 py-1 bg-slate-700 text-white rounded hover:bg-slate-600">&laquo; Назад</a>
+            <% } %>
+            <span class="px-3 py-1 text-slate-400">Стр. <%= page %> из <%= totalPages %></span>
+            <% if (page < totalPages) { %>
+                <a href="?page=<%= page + 1 %><%= queryParams %>" class="px-3 py-1 bg-slate-700 text-white rounded hover:bg-slate-600">Вперед &raquo;</a>
+            <% } %>
+        </div>
     </div>
 </div>
 
