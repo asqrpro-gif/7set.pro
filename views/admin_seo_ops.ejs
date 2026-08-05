@@ -3,16 +3,16 @@
 <div class="flex flex-col md:flex-row gap-2 mb-4 bg-slate-800 p-1.5 rounded-xl border border-slate-700 shadow-sm w-fit">
     <a href="/admin/seo-ops?mode=seo" class="px-4 py-2 text-sm font-medium rounded-lg transition-colors flex items-center gap-2 <%= typeof mode === 'undefined' || mode === 'seo' ? 'bg-blue-600 text-white shadow-sm' : 'text-slate-400 hover:text-white hover:bg-slate-700/50' %>">
         <i data-lucide="trash-2" class="w-4 h-4"></i>
-        SEO Мусор
+        Мусор
     </a>
     <a href="/admin/seo-ops?mode=links" class="px-4 py-2 text-sm font-medium rounded-lg transition-colors flex items-center gap-2 <%= typeof mode !== 'undefined' && mode === 'links' ? 'bg-blue-600 text-white shadow-sm' : 'text-slate-400 hover:text-white hover:bg-slate-700/50' %>">
         <i data-lucide="activity" class="w-4 h-4"></i>
-        Радар Перелинковки
+        Перелинк
     </a>
 </div>
 
 <% if (typeof mode === 'undefined' || mode === 'seo') { %>
-<div class="bg-slate-800 rounded-xl border border-slate-700 shadow-sm flex flex-col h-[calc(100vh-142px)]">
+<div class="bg-slate-800 rounded-xl border border-slate-700 shadow-sm flex flex-col flex-1 h-full min-h-0">
     <!-- Header -->
     <div class="p-3 border-b border-slate-700 bg-slate-800/50">
         <div class="flex flex-col md:flex-row justify-between items-start md:items-center gap-3">
@@ -68,33 +68,33 @@
                 <p>Отлично! Мусорных карточек не найдено.</p>
             </div>
         <% } else { %>
-            <table class="w-full text-left border-collapse">
-                <thead class="sticky top-0 bg-slate-800/90 backdrop-blur-sm z-10 shadow-sm border-b border-slate-700">
-                    <tr class="text-slate-300 text-xs uppercase tracking-wider">
-                        <th class="p-3 w-10 text-center">
+            <table class="w-full text-left border-collapse min-w-[700px]">
+                <thead class="sticky top-0 bg-slate-900 border-b border-slate-700 z-10">
+                    <tr class="text-slate-300 text-xs">
+                        <th class="px-2 py-2.5 w-10 text-center">
                             <input type="checkbox" id="selectAll" onclick="toggleAll(this)" class="w-4 h-4 rounded border-slate-600 bg-slate-700 text-blue-500 focus:ring-blue-500/50 cursor-pointer">
                         </th>
-                        <th class="p-3 font-medium">Марка/Модель</th>
-                        <th class="p-3 font-medium hidden md:table-cell">Код (ID)</th>
-                        <th class="p-3 font-medium">Причины мусорности</th>
+                        <th class="px-2 py-2.5 font-medium">Марка/Модель</th>
+                        <th class="px-2 py-2.5 font-medium hidden md:table-cell">Код (ID)</th>
+                        <th class="px-2 py-2.5 font-medium">Причины мусорности</th>
                     </tr>
                 </thead>
-                <tbody class="text-sm divide-y divide-slate-700">
+                <tbody class="text-sm divide-y divide-slate-700/50">
                     <% cards.forEach(card => { %>
-                        <tr class="hover:bg-slate-800/50 transition-colors group">
-                            <td class="p-3 text-center">
+                        <tr class="hover:bg-slate-700/30 transition-colors">
+                            <td class="px-2 py-2 text-center">
                                 <input type="checkbox" class="card-checkbox w-4 h-4 rounded border-slate-600 bg-slate-700 text-blue-500 focus:ring-blue-500/50 cursor-pointer" value="<%= card.id %>" onclick="updateSelection()">
                             </td>
-                            <td class="p-3">
-                                <div class="text-white font-medium text-base"><%= card.brand %> <%= card.model %></div>
+                            <td class="px-2 py-2">
+                                <div class="text-white font-medium text-sm"><%= card.brand %> <%= card.model %></div>
                                 <div class="text-slate-500 text-xs mt-0.5"><%= card.id %></div>
                             </td>
-                            <td class="p-3 hidden md:table-cell">
-                                <div class="text-slate-400 font-mono text-sm bg-slate-800 border border-slate-700 px-2 py-1 rounded inline-block">
+                            <td class="px-2 py-2 hidden md:table-cell">
+                                <div class="text-slate-400 font-mono text-[11px] bg-slate-800 border border-slate-700 px-2 py-0.5 rounded inline-block">
                                     <%= card.code %>
                                 </div>
                             </td>
-                            <td class="p-3">
+                            <td class="px-2 py-2">
                                 <div class="flex flex-wrap gap-1.5">
                                     <% if (card.reasons && Array.isArray(card.reasons)) { %>
                                         <% card.reasons.forEach(r => { %>
@@ -258,11 +258,11 @@
 <% } else if (typeof mode !== 'undefined' && mode === 'links') { 
     const currentTab = (typeof tab !== 'undefined') ? tab : 'orphans';
 %>
-    <div class="bg-slate-800 rounded-xl border border-slate-700 shadow-sm flex flex-col h-[calc(100vh-142px)]">
+    <div class="bg-slate-800 rounded-xl border border-slate-700 shadow-sm flex flex-col flex-1 h-full min-h-0">
         <div class="p-4 border-b border-slate-700 bg-slate-800 flex justify-between items-center shrink-0">
             <h2 class="font-semibold text-white flex items-center gap-2 text-sm md:text-base">
                 <i data-lucide="activity" class="w-4 h-4 md:w-5 md:h-5 text-blue-400"></i>
-                Радар Перелинковки
+                Перелинк
             </h2>
             <div class="flex items-center gap-4">
                 <div class="text-xs text-slate-400 hidden md:block">
@@ -301,27 +301,41 @@
                         <strong class="text-blue-400 font-semibold block mb-1">Как это работает?</strong>
                         Кнопка "Сгенерировать перелинковку" автоматически найдет другую карточку из этой же марки/модели и встроит туда органичную ссылку на эту сироту (в блок "Похожие ошибки"). Таким образом, карточка получит внутреннюю ссылку и перестанет быть изолированной для поисковиков.
                     </div>
-                    <div class="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-4">
-                        <% orphans.forEach(orphan => { %>
-                            <div class="bg-slate-800 border border-slate-700 rounded-lg p-4 flex flex-col gap-3 shadow-sm hover:border-orange-500/30 transition-colors">
-                                <div class="flex justify-between items-start">
-                                    <div>
-                                        <h3 class="text-white font-bold text-lg"><%= orphan.brand %> <%= orphan.model %></h3>
-                                        <div class="text-orange-400 font-mono text-sm font-medium"><%= orphan.code %></div>
-                                    </div>
-                                    <a href="/catalog/<%= orphan.brand.toLowerCase() %>/<%= orphan.model.toLowerCase() %>/<%= orphan.code.toLowerCase() %>" target="_blank" class="text-slate-400 hover:text-blue-400 transition-colors">
-                                        <i data-lucide="external-link" class="w-4 h-4"></i>
-                                    </a>
-                                </div>
-                                <div class="text-xs text-slate-400">
-                                    Создано: <%= new Date(orphan.created_at).toLocaleDateString('ru-RU') %>
-                                </div>
-                                <button onclick="fixOrphan('<%= orphan.id %>')" class="mt-auto w-full bg-orange-500/10 hover:bg-orange-500/20 border border-orange-500/30 text-orange-400 text-xs font-medium py-2 px-3 rounded flex items-center justify-center gap-2 transition-colors">
-                                    <i data-lucide="zap" class="w-3.5 h-3.5"></i>
-                                    Сгенерировать перелинковку
-                                </button>
-                            </div>
-                        <% }) %>
+                    <div class="overflow-x-auto min-h-0">
+                        <table class="w-full text-left border-collapse min-w-[700px]">
+                            <thead class="sticky top-0 bg-slate-900 border-b border-slate-700 z-10">
+                                <tr class="text-slate-300 text-xs">
+                                    <th class="px-2 py-2.5 font-medium">Марка/Модель</th>
+                                    <th class="px-2 py-2.5 font-medium">Код (ID)</th>
+                                    <th class="px-2 py-2.5 font-medium text-center">Создано</th>
+                                    <th class="px-2 py-2.5 font-medium text-right">Действия</th>
+                                </tr>
+                            </thead>
+                            <tbody class="text-sm divide-y divide-slate-700/50">
+                                <% orphans.forEach(orphan => { %>
+                                    <tr class="hover:bg-slate-700/30 transition-colors">
+                                        <td class="px-2 py-2">
+                                            <a href="/catalog/<%= orphan.brand.toLowerCase() %>/<%= orphan.model.toLowerCase() %>/<%= orphan.code.toLowerCase() %>" target="_blank" class="hover:underline text-white font-medium text-sm flex items-center gap-1.5 w-fit">
+                                                <%= orphan.brand %> <%= orphan.model %>
+                                                <i data-lucide="external-link" class="w-3 h-3 text-slate-400"></i>
+                                            </a>
+                                        </td>
+                                        <td class="px-2 py-2">
+                                            <span class="text-orange-400 font-mono font-bold bg-slate-800 border border-slate-700 px-1.5 py-0.5 rounded text-xs"><%= orphan.code %></span>
+                                        </td>
+                                        <td class="px-2 py-2 text-center text-slate-400 text-xs">
+                                            <%= new Date(orphan.created_at).toLocaleDateString('ru-RU') %>
+                                        </td>
+                                        <td class="px-2 py-2 text-right">
+                                            <button onclick="fixOrphan('<%= orphan.id %>')" class="bg-orange-500/10 hover:bg-orange-500/20 border border-orange-500/30 text-orange-400 text-xs font-medium py-1.5 px-3 rounded inline-flex items-center justify-center gap-1.5 transition-colors">
+                                                <i data-lucide="zap" class="w-3.5 h-3.5"></i>
+                                                Сгенерировать ссылку
+                                            </button>
+                                        </td>
+                                    </tr>
+                                <% }) %>
+                            </tbody>
+                        </table>
                     </div>
                 <% } %>
             <% } else if (currentTab === 'broken') { %>
@@ -331,31 +345,31 @@
                         <p>Отлично! Битых ссылок не найдено.</p>
                     </div>
                 <% } else { %>
-                    <div class="overflow-x-auto rounded-lg border border-slate-700">
-                        <table class="w-full text-left border-collapse">
-                            <thead>
-                                <tr class="bg-slate-800/80 text-slate-300 text-xs uppercase tracking-wider">
-                                    <th class="p-3 font-medium">Статья (Где найдено)</th>
-                                    <th class="p-3 font-medium">Анкор (Текст)</th>
-                                    <th class="p-3 font-medium">Битая ссылка</th>
-                                    <th class="p-3 font-medium text-right">Действия</th>
+                    <div class="overflow-x-auto min-h-0">
+                        <table class="w-full text-left border-collapse min-w-[700px]">
+                            <thead class="sticky top-0 bg-slate-900 border-b border-slate-700 z-10">
+                                <tr class="text-slate-300 text-xs">
+                                    <th class="px-2 py-2.5 font-medium">Статья (Где найдено)</th>
+                                    <th class="px-2 py-2.5 font-medium">Анкор (Текст)</th>
+                                    <th class="px-2 py-2.5 font-medium">Битая ссылка</th>
+                                    <th class="px-2 py-2.5 font-medium text-right">Действия</th>
                                 </tr>
                             </thead>
-                            <tbody class="text-sm divide-y divide-slate-700">
+                            <tbody class="text-sm divide-y divide-slate-700/50">
                                 <% brokenLinks.forEach((link, idx) => { %>
-                                    <tr class="hover:bg-slate-800/50 transition-colors" id="row-<%= idx %>">
-                                        <td class="p-3">
-                                            <div class="text-white font-medium"><%= link.title %></div>
-                                            <div class="text-xs text-slate-500 mt-1">Поле: <%= link.field %></div>
+                                    <tr class="hover:bg-slate-700/30 transition-colors" id="row-<%= idx %>">
+                                        <td class="px-2 py-2">
+                                            <div class="text-white font-medium text-sm"><%= link.title %></div>
+                                            <div class="text-xs text-slate-500 mt-0.5">Поле: <%= link.field %></div>
                                         </td>
-                                        <td class="p-3 text-slate-300">
-                                            <span class="bg-slate-700 px-2 py-0.5 rounded text-xs">"<%= link.text %>"</span>
+                                        <td class="px-2 py-2 text-slate-300">
+                                            <span class="bg-slate-800 border border-slate-700 px-1.5 py-0.5 rounded text-xs">"<%= link.text %>"</span>
                                         </td>
-                                        <td class="p-3">
-                                            <div class="text-red-400 font-mono text-xs break-all max-w-[300px]"><%= link.url %></div>
+                                        <td class="px-2 py-2">
+                                            <div class="text-red-400 font-mono text-[11px] break-all max-w-[300px]"><%= link.url %></div>
                                         </td>
-                                        <td class="p-3 text-right">
-                                            <button onclick="removeBrokenLink('<%= link.id %>', '<%= link.url.replace(/'/g, "\\'") %>', <%= idx %>)" class="bg-red-500/10 hover:bg-red-500/20 text-red-400 border border-red-500/20 px-3 py-1.5 rounded-lg text-xs font-medium transition-colors inline-flex items-center gap-1.5">
+                                        <td class="px-2 py-2 text-right">
+                                            <button onclick="removeBrokenLink('<%= link.id %>', '<%= link.url.replace(/'/g, "\\'") %>', <%= idx %>)" class="bg-red-500/10 hover:bg-red-500/20 text-red-400 border border-red-500/20 px-2.5 py-1.5 rounded-lg text-xs font-medium transition-colors inline-flex items-center gap-1.5">
                                                 <i data-lucide="trash-2" class="w-3.5 h-3.5"></i>
                                                 Удалить ссылку
                                             </button>
@@ -427,7 +441,7 @@
                 });
                 if(res.ok) {
                     alert('Сканирование успешно запущено! Перейдите в дашборд, чтобы посмотреть логи работы сканера.');
-                    window.location.href = '/admin/dashboard';
+                    window.location.href = '/admin';
                 } else {
                     const err = await res.json();
                     alert(err.error || 'Ошибка запуска скрипта');

@@ -75,6 +75,10 @@ async function run() {
                 
                 // Нас интересуют ссылки на карточки (catalog/brand/model/code)
                 if (url.startsWith('/catalog/')) {
+                    try {
+                        url = decodeURIComponent(url);
+                    } catch (e) {}
+
                     const parts = url.split('/').filter(Boolean);
                     if (parts.length >= 4) { // catalog, brand, model, code
                         const normalizedUrl = `/catalog/${parts[1].toLowerCase()}/${parts[2].toLowerCase()}/${parts[3].toLowerCase()}`;
@@ -109,8 +113,15 @@ async function run() {
             } catch (e) {}
 
             for (const rel of related) {
-                if (rel.code) {
-                    const normalizedUrl = `/catalog/${report.brand.toLowerCase()}/${report.model.toLowerCase()}/${rel.code.toLowerCase()}`;
+                let codeStr = null;
+                if (typeof rel === 'string') {
+                    codeStr = rel;
+                } else if (rel && typeof rel === 'object' && rel.code) {
+                    codeStr = rel.code;
+                }
+
+                if (codeStr) {
+                    const normalizedUrl = `/catalog/${report.brand.toLowerCase()}/${report.model.toLowerCase()}/${codeStr.toLowerCase()}`;
                     if (validUrls.has(normalizedUrl)) {
                         inboundCounts.set(normalizedUrl, (inboundCounts.get(normalizedUrl) || 0) + 1);
                     }
