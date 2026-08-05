@@ -9,9 +9,11 @@ export default async function generateSitemap(req, res) {
     // distinct: ['code'] на случай, если есть дубликаты кодов (если нужно).
     const reports = await prisma.diagnosticReport.findMany({
       select: {
+        brand: true,
+        model: true,
         code: true
       },
-      distinct: ['code'],
+      distinct: ['brand', 'model', 'code'],
       where: {
         // Убедимся, что не тянем пустые коды или служебные 'UNSUPPORTED', если они есть
         code: {
@@ -34,11 +36,15 @@ export default async function generateSitemap(req, res) {
 
     // Добавляем страницы для каждого кода
     for (const report of reports) {
-      if (!report.code) continue;
-      const lowerCode = report.code.toLowerCase();
+      if (!report.code || !report.brand || !report.model) continue;
+      
+      const b = encodeURIComponent(report.brand.toLowerCase());
+      const m = encodeURIComponent(report.model.toLowerCase());
+      const c = encodeURIComponent(report.code.toUpperCase());
+      
       xml += `
   <url>
-    <loc>https://7set.pro/obd2/${lowerCode}</loc>
+    <loc>https://7set.pro/catalog/${b}/${m}/${c}</loc>
     <priority>0.8</priority>
     <changefreq>weekly</changefreq>
   </url>`;

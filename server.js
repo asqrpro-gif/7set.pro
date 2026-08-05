@@ -355,6 +355,12 @@ app.get('/catalog/:brand/:model/:code', async (req, res) => {
       where: { brand: targetBrand, model: targetModel, code: targetCode }
     });
 
+    // Ограничение доступа к отложенным (неопубликованным) карточкам
+    if (existingReport && new Date(existingReport.created_at) > new Date() && !isUnsupported) {
+      console.log(`🔒 [SEO BLOCK] Блокировка доступа к отложенной карточке: ${brand} ${model} ${code}`);
+      return res.status(404).send(renderErrorCodePage(brand, cleanRequestedCode));
+    }
+
     if (existingReport) {
       const isCachedStub = existingReport.brand === "universal" ||
         existingReport.code === "UNSUPPORTED" ||
