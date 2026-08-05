@@ -300,6 +300,12 @@
                     <div class="mb-4 p-3 bg-blue-500/10 border border-blue-500/20 rounded-lg text-sm text-blue-200">
                         <strong class="text-blue-400 font-semibold block mb-1">Как это работает?</strong>
                         Кнопка "Сгенерировать перелинковку" автоматически найдет другую карточку из этой же марки/модели и встроит туда органичную ссылку на эту сироту (в блок "Похожие ошибки"). Таким образом, карточка получит внутреннюю ссылку и перестанет быть изолированной для поисковиков.
+                        <div class="mt-3">
+                            <button onclick="fixAllOrphans()" class="bg-orange-600 hover:bg-orange-500 text-white text-xs font-medium py-1.5 px-4 rounded-lg flex items-center gap-2 transition-colors shadow-sm">
+                                <i data-lucide="zap-fast" class="w-4 h-4"></i>
+                                Массово исправить всех сирот (<%= orphans.length %>)
+                            </button>
+                        </div>
                     </div>
                     <div class="overflow-x-auto min-h-0">
                         <table class="w-full text-left border-collapse min-w-[700px]">
@@ -403,6 +409,35 @@
                 }
             } catch(e) {
                 alert('Сетевая ошибка');
+            }
+        }
+
+        async function fixAllOrphans() {
+            if(!confirm('Вы уверены, что хотите автоматически сгенерировать ссылки для ВСЕХ сирот? Это может занять время.')) return;
+            
+            const btn = document.querySelector('button[onclick="fixAllOrphans()"]');
+            const originalHtml = btn.innerHTML;
+            btn.disabled = true;
+            btn.innerHTML = '<i data-lucide="loader-2" class="w-4 h-4 animate-spin"></i> Обработка...';
+            lucide.createIcons();
+
+            try {
+                const res = await fetch('/admin/api/links/fix-all-orphans', { method: 'POST' });
+                const data = await res.json();
+                if(data.success) {
+                    alert(`Успешно исправлено сирот: ${data.fixed}. Не удалось исправить: ${data.failed}. Пожалуйста, запустите сканирование заново, чтобы обновить список.`);
+                    window.location.reload();
+                } else {
+                    alert('Ошибка: ' + data.error);
+                    btn.disabled = false;
+                    btn.innerHTML = originalHtml;
+                    lucide.createIcons();
+                }
+            } catch(e) {
+                alert('Сетевая ошибка');
+                btn.disabled = false;
+                btn.innerHTML = originalHtml;
+                lucide.createIcons();
             }
         }
 
