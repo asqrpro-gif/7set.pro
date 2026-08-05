@@ -1,6 +1,18 @@
-<%- include('admin_layout_header', { title: 'Операции SEO', page: 'seo-ops' }) %>
+<%- include('admin_layout_header', { title: 'Управление', page: 'seo-ops' }) %>
 
-<div class="bg-slate-800 rounded-xl border border-slate-700 shadow-sm flex flex-col h-[calc(100vh-80px)]">
+<div class="flex flex-col md:flex-row gap-2 mb-4 bg-slate-800 p-1.5 rounded-xl border border-slate-700 shadow-sm w-fit">
+    <a href="/admin/seo-ops?mode=seo" class="px-4 py-2 text-sm font-medium rounded-lg transition-colors flex items-center gap-2 <%= typeof mode === 'undefined' || mode === 'seo' ? 'bg-blue-600 text-white shadow-sm' : 'text-slate-400 hover:text-white hover:bg-slate-700/50' %>">
+        <i data-lucide="trash-2" class="w-4 h-4"></i>
+        SEO Мусор
+    </a>
+    <a href="/admin/seo-ops?mode=links" class="px-4 py-2 text-sm font-medium rounded-lg transition-colors flex items-center gap-2 <%= typeof mode !== 'undefined' && mode === 'links' ? 'bg-blue-600 text-white shadow-sm' : 'text-slate-400 hover:text-white hover:bg-slate-700/50' %>">
+        <i data-lucide="activity" class="w-4 h-4"></i>
+        Радар Перелинковки
+    </a>
+</div>
+
+<% if (typeof mode === 'undefined' || mode === 'seo') { %>
+<div class="bg-slate-800 rounded-xl border border-slate-700 shadow-sm flex flex-col h-[calc(100vh-142px)]">
     <!-- Header -->
     <div class="p-3 border-b border-slate-700 bg-slate-800/50">
         <div class="flex flex-col md:flex-row justify-between items-start md:items-center gap-3">
@@ -36,209 +48,401 @@
             <div class="bg-slate-700/50 px-2 py-1 border-b border-slate-700 flex justify-between items-center text-[10px]">
                 <span class="text-slate-300 font-mono">scan_seo.js</span>
                 <span class="flex items-center gap-1" id="scanStatusIndicator">
-                    <% if (scanRunning) { %>
-                        <span class="w-1.5 h-1.5 rounded-full bg-green-500 animate-pulse"></span> Работает
+                    <% if(scanRunning) { %>
+                        <i data-lucide="loader-2" class="w-3 h-3 text-blue-400 animate-spin"></i> <span class="text-blue-400">В процессе</span>
                     <% } else { %>
-                        Остановлен
+                        <i data-lucide="check-circle" class="w-3 h-3 text-green-400"></i> <span class="text-green-400">Завершено</span>
                     <% } %>
                 </span>
             </div>
-            <pre id="scanTerminal" class="flex-1 p-2 overflow-y-auto text-green-400 font-mono text-[10px] sm:text-xs whitespace-pre-wrap">Подключение терминала...</pre>
+            <div id="scanTerminal" class="flex-1 p-2 font-mono text-[10px] sm:text-xs text-green-400 overflow-y-auto whitespace-pre-wrap leading-relaxed">
+            </div>
         </div>
     </div>
 
-    <!-- Table -->
-    <div class="overflow-auto flex-1 p-0 min-h-0">
-        <table class="w-full text-left border-collapse min-w-[600px]">
-            <thead class="sticky top-0 bg-slate-900 border-b border-slate-700 z-10">
-                <tr class="text-slate-300 text-xs">
-                    <th class="px-2 py-2.5 w-10 text-center">
-                        <input type="checkbox" id="selectAll" onclick="toggleAll(this)" class="w-5 h-5 rounded border-slate-600 bg-slate-700 text-blue-600 focus:ring-blue-500 focus:ring-offset-slate-800 cursor-pointer">
-                    </th>
-                    <th class="px-2 py-2.5 font-medium text-left">Карточка</th>
-                    <th class="px-2 py-2.5 font-medium text-left">Описание причины</th>
-                    <th class="px-2 py-2.5 font-medium w-28 text-center">Тип мусора</th>
-                    <th class="px-2 py-2.5 font-medium w-24 text-right">Действие</th>
-                </tr>
-            </thead>
-            <tbody class="text-sm divide-y divide-slate-700/50">
-                <% if (cards.length === 0) { %>
-                    <tr>
-                        <td colspan="5" class="p-6 text-center text-slate-400 text-sm">
-                            Мусорных карточек не найдено. База чиста! ✨
-                        </td>
+    <!-- Список -->
+    <div class="flex-1 overflow-auto bg-[#0f172a]/50 relative">
+        <% if (cards.length === 0) { %>
+            <div class="flex flex-col items-center justify-center h-full text-slate-500 gap-3">
+                <i data-lucide="check-circle" class="w-12 h-12 text-green-500/50"></i>
+                <p>Отлично! Мусорных карточек не найдено.</p>
+            </div>
+        <% } else { %>
+            <table class="w-full text-left border-collapse">
+                <thead class="sticky top-0 bg-slate-800/90 backdrop-blur-sm z-10 shadow-sm border-b border-slate-700">
+                    <tr class="text-slate-300 text-xs uppercase tracking-wider">
+                        <th class="p-3 w-10 text-center">
+                            <input type="checkbox" id="selectAll" onclick="toggleAll(this)" class="w-4 h-4 rounded border-slate-600 bg-slate-700 text-blue-500 focus:ring-blue-500/50 cursor-pointer">
+                        </th>
+                        <th class="p-3 font-medium">Марка/Модель</th>
+                        <th class="p-3 font-medium hidden md:table-cell">Код (ID)</th>
+                        <th class="p-3 font-medium">Причины мусорности</th>
                     </tr>
-                <% } %>
-                <% cards.forEach(card => { %>
-                    <tr class="hover:bg-slate-700/30 transition-colors">
-                        <td class="px-2 py-2 text-center">
-                            <input type="checkbox" value="<%= card.id %>" class="card-checkbox w-6 h-6 sm:w-5 sm:h-5 rounded border-slate-600 bg-slate-700 text-blue-600 focus:ring-blue-500 focus:ring-offset-slate-800 cursor-pointer" onchange="updateSelection()">
-                        </td>
-                        <td class="px-2 py-2">
-                            <a href="/catalog/<%= card.brand.toLowerCase() %>/<%= card.model.toLowerCase() %>/<%= card.code.toLowerCase() %>" target="_blank" class="hover:underline flex items-center gap-1.5 w-fit">
-                                <span class="font-medium text-blue-400 text-xs sm:text-sm whitespace-nowrap"><%= card.brand.charAt(0).toUpperCase() + card.brand.slice(1).toLowerCase() %> <%= card.model.charAt(0).toUpperCase() + card.model.slice(1).toLowerCase() %></span>
-                                <span class="text-slate-300 font-mono font-bold bg-slate-700/50 border border-slate-600 px-1 rounded text-[10px] sm:text-xs"><%= card.code.toUpperCase() %></span>
-                            </a>
-                        </td>
-                        <td class="px-2 py-2 text-xs sm:text-sm">
-                            <div class="text-slate-300 line-clamp-2" title="<%= card.summary %>"><%= card.summary %></div>
-                        </td>
-                        <td class="px-2 py-2 text-center">
-                            <% if (card.reason === 'Дубликат') { %>
-                                <span class="bg-red-500/10 text-red-400 text-[10px] px-1.5 py-0.5 rounded border border-red-500/30 font-medium whitespace-nowrap"><i data-lucide="copy" class="w-3 h-3 inline mr-1"></i>Дубликат</span>
-                            <% } else { %>
-                                <span class="bg-yellow-500/10 text-yellow-400 text-[10px] px-1.5 py-0.5 rounded border border-yellow-500/30 font-medium whitespace-nowrap"><i data-lucide="bot" class="w-3 h-3 inline mr-1"></i>Шаблон ИИ</span>
-                            <% } %>
-                        </td>
-                        <td class="px-2 py-2 text-right">
-                            <a href="/catalog/<%= card.brand.toLowerCase() %>/<%= card.model.toLowerCase() %>/<%= card.code.toLowerCase() %>" target="_blank" class="text-blue-400 hover:text-blue-300 inline-flex items-center justify-center gap-1 text-xs bg-blue-500/10 h-10 w-10 md:h-8 md:w-auto md:px-2 rounded border border-blue-500/20 transition-colors">
-                                <i data-lucide="eye" class="w-4 h-4 md:w-3 md:h-3"></i> <span class="hidden md:inline">Смотреть</span>
-                            </a>
-                        </td>
-                    </tr>
-                <% }) %>
-            </tbody>
-        </table>
+                </thead>
+                <tbody class="text-sm divide-y divide-slate-700">
+                    <% cards.forEach(card => { %>
+                        <tr class="hover:bg-slate-800/50 transition-colors group">
+                            <td class="p-3 text-center">
+                                <input type="checkbox" class="card-checkbox w-4 h-4 rounded border-slate-600 bg-slate-700 text-blue-500 focus:ring-blue-500/50 cursor-pointer" value="<%= card.id %>" onclick="updateSelection()">
+                            </td>
+                            <td class="p-3">
+                                <div class="text-white font-medium text-base"><%= card.brand %> <%= card.model %></div>
+                                <div class="text-slate-500 text-xs mt-0.5"><%= card.id %></div>
+                            </td>
+                            <td class="p-3 hidden md:table-cell">
+                                <div class="text-slate-400 font-mono text-sm bg-slate-800 border border-slate-700 px-2 py-1 rounded inline-block">
+                                    <%= card.code %>
+                                </div>
+                            </td>
+                            <td class="p-3">
+                                <div class="flex flex-wrap gap-1.5">
+                                    <% if (card.reasons && Array.isArray(card.reasons)) { %>
+                                        <% card.reasons.forEach(r => { %>
+                                            <span class="bg-red-500/10 border border-red-500/20 text-red-400 px-2 py-0.5 rounded text-[11px] font-medium tracking-wide">
+                                                <%= r %>
+                                            </span>
+                                        <% }) %>
+                                    <% } else if (card.reason) { %>
+                                        <span class="bg-red-500/10 border border-red-500/20 text-red-400 px-2 py-0.5 rounded text-[11px] font-medium tracking-wide">
+                                            <%= card.reason %>
+                                        </span>
+                                    <% } %>
+                                </div>
+                            </td>
+                        </tr>
+                    <% }) %>
+                </tbody>
+            </table>
+        <% } %>
     </div>
-</div>
 
-<script>
-    let isRunning = <%= scanRunning %>;
-    let logInterval = null;
+    <script>
+        let isScanRunning = <%= scanRunning %>;
+        let scanLogInterval = null;
 
-    if (isRunning) {
-        startLogPolling();
-    }
+        function fetchLogs() {
+            fetch('/admin/api/scripts/logs?script=scan_seo.js')
+                .then(r => r.json())
+                .then(data => {
+                    const term = document.getElementById('scanTerminal');
+                    term.innerHTML = data.logs || 'Ожидание логов...';
+                    term.scrollTop = term.scrollHeight;
 
-    async function toggleScan() {
-        const action = isRunning ? 'stop' : 'start';
-        const msg = isRunning ? 'Остановить сканирование?' : 'Запустить сканирование базы?';
-        if (!confirm(msg)) return;
+                    if (!data.running && isScanRunning) {
+                        isScanRunning = false;
+                        clearInterval(scanLogInterval);
+                        setTimeout(() => window.location.reload(), 2000);
+                    }
+                });
+        }
 
-        try {
-            const res = await fetch(`/admin/api/scripts/${action}`, {
-                method: 'POST',
-                headers: { 'Content-Type': 'application/json' },
-                body: JSON.stringify({ script: 'scan_seo.js' })
-            });
+        if (isScanRunning) {
+            scanLogInterval = setInterval(fetchLogs, 1000);
+            fetchLogs();
+        }
 
-            if (res.ok) {
-                if (action === 'start') {
-                    isRunning = true;
-                    document.getElementById('scanTerminalWrapper').classList.remove('hidden');
-                    const scanBtn = document.getElementById('scanBtn');
-                    scanBtn.className = 'bg-red-600 hover:bg-red-500 text-white px-4 py-2 rounded-lg text-sm font-medium transition-colors flex items-center gap-2 shrink-0';
-                    scanBtn.innerHTML = '<i data-lucide="square" class="w-4 h-4"></i> Остановить скан';
-                    document.getElementById('scanStatusIndicator').innerHTML = '<span class="w-2 h-2 rounded-full bg-green-500 animate-pulse"></span> Работает';
-                    lucide.createIcons();
-                    startLogPolling();
-                } else {
-                    window.location.reload();
-                }
+        async function toggleScan() {
+            const btn = document.getElementById('scanBtn');
+            const wrapper = document.getElementById('scanTerminalWrapper');
+            
+            if (isScanRunning) {
+                if(!confirm('Точно остановить сканирование?')) return;
+                btn.disabled = true;
+                await fetch('/admin/api/scripts/stop', {
+                    method: 'POST',
+                    headers: {'Content-Type': 'application/json'},
+                    body: JSON.stringify({script: 'scan_seo.js'})
+                });
+                window.location.reload();
             } else {
-                const err = await res.json();
-                alert(err.error || 'Ошибка');
+                btn.disabled = true;
+                btn.innerHTML = '<i data-lucide="loader-2" class="w-4 h-4 animate-spin"></i> Запуск...';
+                lucide.createIcons();
+                
+                await fetch('/admin/api/scripts/start', {
+                    method: 'POST',
+                    headers: {'Content-Type': 'application/json'},
+                    body: JSON.stringify({script: 'scan_seo.js'})
+                });
+                wrapper.classList.remove('hidden');
+                isScanRunning = true;
+                scanLogInterval = setInterval(fetchLogs, 1000);
+                
+                btn.classList.remove('bg-blue-600', 'hover:bg-blue-500');
+                btn.classList.add('bg-red-600', 'hover:bg-red-500');
+                btn.innerHTML = '<i data-lucide="square" class="w-4 h-4"></i> Остановить';
+                btn.disabled = false;
+                lucide.createIcons();
             }
-        } catch (e) {
-            alert('Сетевая ошибка');
         }
-    }
 
-    function startLogPolling() {
-        if (logInterval) clearInterval(logInterval);
-        fetchLogs();
-        logInterval = setInterval(fetchLogs, 1000);
-    }
-
-    async function fetchLogs() {
-        try {
-            const res = await fetch(`/admin/api/scripts/logs?script=scan_seo.js`);
-            const data = await res.json();
+        function updateSelection() {
+            const checkboxes = document.querySelectorAll('.card-checkbox');
+            const checked = document.querySelectorAll('.card-checkbox:checked');
+            const count = checked.length;
             
-            const terminal = document.getElementById('scanTerminal');
-            const isScrolledToBottom = terminal.scrollHeight - terminal.clientHeight <= terminal.scrollTop + 10;
+            document.getElementById('selectedCount').textContent = count;
+            document.getElementById('restoreCount').textContent = count;
             
-            terminal.innerText = data.logs || 'Ожидание вывода...';
+            const delBtn = document.getElementById('deleteBtn');
+            const resBtn = document.getElementById('restoreBtn');
             
-            if(isScrolledToBottom) {
-                terminal.scrollTop = terminal.scrollHeight;
+            delBtn.disabled = count === 0;
+            resBtn.disabled = count === 0;
+            
+            if(count > 0) {
+                delBtn.classList.add('shadow-lg', 'shadow-red-900/20');
+                resBtn.classList.add('shadow-lg', 'shadow-slate-900/20');
+            } else {
+                delBtn.classList.remove('shadow-lg', 'shadow-red-900/20');
+                resBtn.classList.remove('shadow-lg', 'shadow-slate-900/20');
             }
+            
+            const allCheckboxes = document.querySelectorAll('.card-checkbox');
+            document.getElementById('selectAll').checked = allCheckboxes.length > 0 && count === allCheckboxes.length;
+        }
 
-            if (isRunning && !data.running) {
-                isRunning = false;
-                clearInterval(logInterval);
-                document.getElementById('scanStatusIndicator').innerText = 'Завершено';
-                setTimeout(() => window.location.reload(), 2000);
+        function toggleAll(source) {
+            const checkboxes = document.querySelectorAll('.card-checkbox');
+            checkboxes.forEach(cb => cb.checked = source.checked);
+            updateSelection();
+        }
+
+        async function deleteSelected() {
+            const checkboxes = document.querySelectorAll('.card-checkbox:checked');
+            const ids = Array.from(checkboxes).map(cb => cb.value);
+            
+            if (!confirm(`Удалить навсегда ${ids.length} карточек из базы данных?`)) return;
+
+            document.getElementById('deleteBtn').disabled = true;
+            document.getElementById('deleteBtn').innerHTML = '<i data-lucide="loader-2" class="w-4 h-4 animate-spin"></i> Удаление...';
+            lucide.createIcons();
+
+            try {
+                const res = await fetch('/admin/api/seo-ops/delete', {
+                    method: 'POST',
+                    headers: { 'Content-Type': 'application/json' },
+                    body: JSON.stringify({ ids })
+                });
+                if (res.ok) window.location.reload();
+                else alert('Ошибка удаления');
+            } catch (e) {
+                alert('Сетевая ошибка');
             }
-        } catch(e) {}
-    }
-
-    // --- Логика таблицы ---
-    function updateSelection() {
-        const checkboxes = document.querySelectorAll('.card-checkbox:checked');
-        const count = checkboxes.length;
-        
-        document.getElementById('selectedCount').innerText = count;
-        document.getElementById('restoreCount').innerText = count;
-        
-        document.getElementById('deleteBtn').disabled = count === 0;
-        document.getElementById('restoreBtn').disabled = count === 0;
-        
-        const allCheckboxes = document.querySelectorAll('.card-checkbox');
-        document.getElementById('selectAll').checked = allCheckboxes.length > 0 && count === allCheckboxes.length;
-    }
-
-    function toggleAll(source) {
-        const checkboxes = document.querySelectorAll('.card-checkbox');
-        checkboxes.forEach(cb => cb.checked = source.checked);
-        updateSelection();
-    }
-
-    async function deleteSelected() {
-        const checkboxes = document.querySelectorAll('.card-checkbox:checked');
-        const ids = Array.from(checkboxes).map(cb => cb.value);
-        
-        if (!confirm(`Удалить навсегда ${ids.length} карточек из базы данных?`)) return;
-
-        document.getElementById('deleteBtn').disabled = true;
-        document.getElementById('deleteBtn').innerHTML = '<i data-lucide="loader-2" class="w-4 h-4 animate-spin"></i> Удаление...';
-        lucide.createIcons();
-
-        try {
-            const res = await fetch('/admin/api/seo-ops/delete', {
-                method: 'POST',
-                headers: { 'Content-Type': 'application/json' },
-                body: JSON.stringify({ ids })
-            });
-            if (res.ok) window.location.reload();
-            else alert('Ошибка удаления');
-        } catch (e) {
-            alert('Сетевая ошибка');
         }
-    }
 
-    async function restoreSelected() {
-        const checkboxes = document.querySelectorAll('.card-checkbox:checked');
-        const ids = Array.from(checkboxes).map(cb => cb.value);
-        
-        if (!confirm(`Вернуть ${ids.length} карточек из мусора (они пропадут из этого списка)?`)) return;
+        async function restoreSelected() {
+            const checkboxes = document.querySelectorAll('.card-checkbox:checked');
+            const ids = Array.from(checkboxes).map(cb => cb.value);
+            
+            if (!confirm(`Вернуть ${ids.length} карточек из мусора (они пропадут из этого списка)?`)) return;
 
-        document.getElementById('restoreBtn').disabled = true;
-        document.getElementById('restoreBtn').innerHTML = '<i data-lucide="loader-2" class="w-4 h-4 animate-spin"></i> Восстановление...';
-        lucide.createIcons();
+            document.getElementById('restoreBtn').disabled = true;
+            document.getElementById('restoreBtn').innerHTML = '<i data-lucide="loader-2" class="w-4 h-4 animate-spin"></i> Восстановление...';
+            lucide.createIcons();
 
-        try {
-            const res = await fetch('/admin/api/seo-ops/restore', {
-                method: 'POST',
-                headers: { 'Content-Type': 'application/json' },
-                body: JSON.stringify({ ids })
-            });
-            if (res.ok) window.location.reload();
-            else alert('Ошибка восстановления');
-        } catch (e) {
-            alert('Сетевая ошибка');
+            try {
+                const res = await fetch('/admin/api/seo-ops/restore', {
+                    method: 'POST',
+                    headers: { 'Content-Type': 'application/json' },
+                    body: JSON.stringify({ ids })
+                });
+                if (res.ok) window.location.reload();
+                else alert('Ошибка восстановления');
+            } catch (e) {
+                alert('Сетевая ошибка');
+            }
         }
-    }
-</script>
+    </script>
+</div>
+<% } else if (typeof mode !== 'undefined' && mode === 'links') { 
+    const currentTab = (typeof tab !== 'undefined') ? tab : 'orphans';
+%>
+    <div class="bg-slate-800 rounded-xl border border-slate-700 shadow-sm flex flex-col h-[calc(100vh-142px)]">
+        <div class="p-4 border-b border-slate-700 bg-slate-800 flex justify-between items-center shrink-0">
+            <h2 class="font-semibold text-white flex items-center gap-2 text-sm md:text-base">
+                <i data-lucide="activity" class="w-4 h-4 md:w-5 md:h-5 text-blue-400"></i>
+                Радар Перелинковки
+            </h2>
+            <div class="flex items-center gap-4">
+                <div class="text-xs text-slate-400 hidden md:block">
+                    Последний скан: <%= linksStats.lastScan || 'Никогда' %>
+                </div>
+                <button onclick="startLinksScan(this)" class="bg-blue-600 hover:bg-blue-500 text-white text-xs font-medium py-1.5 px-3 rounded flex items-center gap-2 transition-colors shadow-sm">
+                    <i data-lucide="play" class="w-3.5 h-3.5"></i>
+                    <span class="hidden md:inline">Запустить скан</span>
+                    <span class="md:hidden">Скан</span>
+                </button>
+            </div>
+        </div>
+
+        <!-- Вкладки -->
+        <div class="flex gap-2 p-3 border-b border-slate-700 bg-slate-800/50 shrink-0">
+            <a href="?mode=links&tab=orphans" class="px-4 py-2 text-sm font-medium rounded-lg transition-colors <%= currentTab === 'orphans' ? 'bg-orange-500/20 text-orange-400' : 'text-slate-400 hover:bg-slate-700 hover:text-white' %> flex items-center gap-2">
+                <i data-lucide="unlink" class="w-4 h-4"></i>
+                Страницы-сироты (<%= orphans.length %>)
+            </a>
+            <a href="?mode=links&tab=broken" class="px-4 py-2 text-sm font-medium rounded-lg transition-colors <%= currentTab === 'broken' ? 'bg-red-500/20 text-red-400' : 'text-slate-400 hover:bg-slate-700 hover:text-white' %> flex items-center gap-2">
+                <i data-lucide="link-2-off" class="w-4 h-4"></i>
+                Битые ссылки (<%= brokenLinks.length %>)
+            </a>
+        </div>
+
+        <!-- Контент -->
+        <div class="flex-1 overflow-auto bg-[#0f172a]/50 p-4">
+            <% if (currentTab === 'orphans') { %>
+                <% if (orphans.length === 0) { %>
+                    <div class="flex flex-col items-center justify-center h-full text-slate-500 gap-3">
+                        <i data-lucide="check-circle" class="w-12 h-12 text-green-500/50"></i>
+                        <p>Отлично! Страниц-сирот не найдено.</p>
+                    </div>
+                <% } else { %>
+                    <div class="mb-4 p-3 bg-blue-500/10 border border-blue-500/20 rounded-lg text-sm text-blue-200">
+                        <strong class="text-blue-400 font-semibold block mb-1">Как это работает?</strong>
+                        Кнопка "Сгенерировать перелинковку" автоматически найдет другую карточку из этой же марки/модели и встроит туда органичную ссылку на эту сироту (в блок "Похожие ошибки"). Таким образом, карточка получит внутреннюю ссылку и перестанет быть изолированной для поисковиков.
+                    </div>
+                    <div class="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-4">
+                        <% orphans.forEach(orphan => { %>
+                            <div class="bg-slate-800 border border-slate-700 rounded-lg p-4 flex flex-col gap-3 shadow-sm hover:border-orange-500/30 transition-colors">
+                                <div class="flex justify-between items-start">
+                                    <div>
+                                        <h3 class="text-white font-bold text-lg"><%= orphan.brand %> <%= orphan.model %></h3>
+                                        <div class="text-orange-400 font-mono text-sm font-medium"><%= orphan.code %></div>
+                                    </div>
+                                    <a href="/catalog/<%= orphan.brand.toLowerCase() %>/<%= orphan.model.toLowerCase() %>/<%= orphan.code.toLowerCase() %>" target="_blank" class="text-slate-400 hover:text-blue-400 transition-colors">
+                                        <i data-lucide="external-link" class="w-4 h-4"></i>
+                                    </a>
+                                </div>
+                                <div class="text-xs text-slate-400">
+                                    Создано: <%= new Date(orphan.created_at).toLocaleDateString('ru-RU') %>
+                                </div>
+                                <button onclick="fixOrphan('<%= orphan.id %>')" class="mt-auto w-full bg-orange-500/10 hover:bg-orange-500/20 border border-orange-500/30 text-orange-400 text-xs font-medium py-2 px-3 rounded flex items-center justify-center gap-2 transition-colors">
+                                    <i data-lucide="zap" class="w-3.5 h-3.5"></i>
+                                    Сгенерировать перелинковку
+                                </button>
+                            </div>
+                        <% }) %>
+                    </div>
+                <% } %>
+            <% } else if (currentTab === 'broken') { %>
+                <% if (brokenLinks.length === 0) { %>
+                    <div class="flex flex-col items-center justify-center h-full text-slate-500 gap-3">
+                        <i data-lucide="check-circle" class="w-12 h-12 text-green-500/50"></i>
+                        <p>Отлично! Битых ссылок не найдено.</p>
+                    </div>
+                <% } else { %>
+                    <div class="overflow-x-auto rounded-lg border border-slate-700">
+                        <table class="w-full text-left border-collapse">
+                            <thead>
+                                <tr class="bg-slate-800/80 text-slate-300 text-xs uppercase tracking-wider">
+                                    <th class="p-3 font-medium">Статья (Где найдено)</th>
+                                    <th class="p-3 font-medium">Анкор (Текст)</th>
+                                    <th class="p-3 font-medium">Битая ссылка</th>
+                                    <th class="p-3 font-medium text-right">Действия</th>
+                                </tr>
+                            </thead>
+                            <tbody class="text-sm divide-y divide-slate-700">
+                                <% brokenLinks.forEach((link, idx) => { %>
+                                    <tr class="hover:bg-slate-800/50 transition-colors" id="row-<%= idx %>">
+                                        <td class="p-3">
+                                            <div class="text-white font-medium"><%= link.title %></div>
+                                            <div class="text-xs text-slate-500 mt-1">Поле: <%= link.field %></div>
+                                        </td>
+                                        <td class="p-3 text-slate-300">
+                                            <span class="bg-slate-700 px-2 py-0.5 rounded text-xs">"<%= link.text %>"</span>
+                                        </td>
+                                        <td class="p-3">
+                                            <div class="text-red-400 font-mono text-xs break-all max-w-[300px]"><%= link.url %></div>
+                                        </td>
+                                        <td class="p-3 text-right">
+                                            <button onclick="removeBrokenLink('<%= link.id %>', '<%= link.url.replace(/'/g, "\\'") %>', <%= idx %>)" class="bg-red-500/10 hover:bg-red-500/20 text-red-400 border border-red-500/20 px-3 py-1.5 rounded-lg text-xs font-medium transition-colors inline-flex items-center gap-1.5">
+                                                <i data-lucide="trash-2" class="w-3.5 h-3.5"></i>
+                                                Удалить ссылку
+                                            </button>
+                                        </td>
+                                    </tr>
+                                <% }) %>
+                            </tbody>
+                        </table>
+                    </div>
+                <% } %>
+            <% } %>
+        </div>
+    </div>
+
+    <script>
+        async function fixOrphan(id) {
+            if(!confirm('Сгенерировать случайную ссылку на эту карточку из другой карточки той же марки/модели?')) return;
+            
+            try {
+                const res = await fetch('/admin/api/links/fix-orphan', {
+                    method: 'POST',
+                    headers: { 'Content-Type': 'application/json' },
+                    body: JSON.stringify({ id })
+                });
+                const data = await res.json();
+                if(data.success) {
+                    alert('Успешно! Добавлена ссылка из карточки: ' + data.sourceCard);
+                    window.location.reload();
+                } else {
+                    alert('Ошибка: ' + data.error);
+                }
+            } catch(e) {
+                alert('Сетевая ошибка');
+            }
+        }
+
+        async function removeBrokenLink(id, url, rowIdx) {
+            if(!confirm('Удалить эту ссылку из текста статьи (сам текст останется)?')) return;
+            
+            try {
+                const res = await fetch('/admin/api/links/remove-404', {
+                    method: 'POST',
+                    headers: { 'Content-Type': 'application/json' },
+                    body: JSON.stringify({ id, url })
+                });
+                const data = await res.json();
+                if(data.success) {
+                    document.getElementById('row-' + rowIdx).remove();
+                } else {
+                    alert('Ошибка: ' + data.error);
+                }
+            } catch(e) {
+                alert('Сетевая ошибка');
+            }
+        }
+
+        async function startLinksScan(btn) {
+            if(!confirm('Запустить фоновое сканирование ссылок? Это может занять несколько секунд.')) return;
+            const originalHtml = btn.innerHTML;
+            btn.disabled = true;
+            btn.innerHTML = '<i data-lucide="loader-2" class="w-3.5 h-3.5 animate-spin"></i> <span class="hidden md:inline">Запуск...</span>';
+            lucide.createIcons();
+
+            try {
+                const res = await fetch('/admin/api/scripts/start', {
+                    method: 'POST',
+                    headers: {'Content-Type': 'application/json'},
+                    body: JSON.stringify({script: 'scan_links.js'})
+                });
+                if(res.ok) {
+                    alert('Сканирование успешно запущено! Перейдите в дашборд, чтобы посмотреть логи работы сканера.');
+                    window.location.href = '/admin/dashboard';
+                } else {
+                    const err = await res.json();
+                    alert(err.error || 'Ошибка запуска скрипта');
+                    btn.disabled = false;
+                    btn.innerHTML = originalHtml;
+                    lucide.createIcons();
+                }
+            } catch(e) {
+                alert('Сетевая ошибка');
+                btn.disabled = false;
+                btn.innerHTML = originalHtml;
+                lucide.createIcons();
+            }
+        }
+    </script>
+<% } %>
 
 <%- include('admin_layout_footer') %>

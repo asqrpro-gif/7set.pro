@@ -507,12 +507,27 @@ app.get('/catalog/:brand/:model/:code', async (req, res) => {
     const isUnlockedForUser = isUnsupportedReport || (report && (report.is_paid || unlockedList.includes(report.id) || unlockedList.includes(slug)));
 
     let relatedReports = [];
+    let isFallbackRelated = false;
     if (!isUnsupportedReport) {
       relatedReports = await prisma.diagnosticReport.findMany({
         where: { brand: targetBrand, model: targetModel, is_complete: true, code: { not: targetCode }, created_at: { lte: new Date() } },
         take: 6,
         orderBy: { created_at: 'desc' }
       });
+
+      // План Б: если нет карточек той же модели, берем 6 последних SAFE/WARNING
+      if (relatedReports.length === 0 && report) {
+        relatedReports = await prisma.diagnosticReport.findMany({
+          where: { 
+            is_complete: true, 
+            id: { not: report.id },
+            seoRisk: { in: ['SAFE', 'WARNING'] }
+          },
+          take: 6,
+          orderBy: { created_at: 'desc' }
+        });
+        isFallbackRelated = true;
+      }
     }
 
     const baseUrl = process.env.SITE_URL || 'https://7set.pro';
@@ -603,13 +618,14 @@ app.get('/catalog/:brand/:model/:code', async (req, res) => {
 
     let relatedReportsHtml = '';
     if (relatedReports.length > 0) {
+      const sectionTitle = isFallbackRelated ? 'Полезно знать: другие ошибки' : `Другие ошибки ${displayBrand} ${displayModel}`;
       relatedReportsHtml = `
         <div class="mt-8 mb-6">
-          <h2 class="text-xl font-bold text-gray-900 dark:text-white mb-4 flex items-center gap-2"><i data-lucide="link" class="w-5 h-5 text-brand"></i> Другие ошибки ${displayBrand} ${displayModel}</h2>
+          <h2 class="text-xl font-bold text-gray-900 dark:text-white mb-4 flex items-center gap-2"><i data-lucide="link" class="w-5 h-5 text-brand"></i> ${sectionTitle}</h2>
           <div class="grid grid-cols-2 md:grid-cols-3 gap-3">
             ${relatedReports.map(r => `
-              <a href="${baseUrl}/diagnostic/${encodeURIComponent(r.brand.toLowerCase())}/${encodeURIComponent(r.model.toLowerCase())}/${encodeURIComponent(r.code.toUpperCase())}" class="bg-white dark:bg-slate-800 p-3 rounded-xl border border-gray-100 dark:border-slate-700 shadow-sm hover:shadow-md hover:border-brand/40 transition-all flex flex-col group">
-                <span class="font-bold text-gray-900 dark:text-white group-hover:text-brand transition-colors text-sm">${r.code.toUpperCase()}</span>
+              <a href="${baseUrl}/catalog/${encodeURIComponent(r.brand.toLowerCase())}/${encodeURIComponent(r.model.toLowerCase())}/${encodeURIComponent(r.code.toLowerCase())}" class="bg-white dark:bg-slate-800 p-3 rounded-xl border border-gray-100 dark:border-slate-700 shadow-sm hover:shadow-md hover:border-brand/40 transition-all flex flex-col group">
+                <span class="font-bold text-gray-900 dark:text-white group-hover:text-brand transition-colors text-sm whitespace-nowrap overflow-hidden text-ellipsis">${r.brand} ${r.model} ${r.code.toUpperCase()}</span>
                 <span class="text-xs text-gray-500 dark:text-gray-400 mt-1 line-clamp-2">${(r.summary || '').substring(0, 60)}...</span>
               </a>
             `).join('')}

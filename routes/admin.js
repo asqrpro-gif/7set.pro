@@ -71,7 +71,8 @@ router.get('/', async (req, res) => {
             'reset_seo.js': 'Сброс SEO оценок',
             'scan_seo.js': 'SEO Сканер и Поиск дублей',
             'deduplicate.js': 'Удаление дублей',
-            'delete_bad_seo.js': 'Удаление мусорных карточек'
+            'delete_bad_seo.js': 'Удаление мусорных карточек',
+            'scan_links.js': 'Радар ссылок (Orphans/404)'
         };
 
         const scriptOrder = [
@@ -120,15 +121,37 @@ router.get('/', async (req, res) => {
 
         const sitemapStats = {
             urlCount: sitemapUrlCount,
-            limit: 45000, // 45k для запаса
+            limit: 45000,
             lastPing: lastPing,
             isIndex: sitemapUrlCount > 45000,
             chunksCount: Math.ceil(sitemapUrlCount / 45000)
         };
 
+        // Собираем стату для Радара перелинковки
+        let linksStats = { orphansCount: 0, brokenLinksCount: 0, lastScan: null };
+        const LINKS_REPORT_FILE = path.join(__dirname, '../scripts/links_report.json');
+        try {
+            if (fs.existsSync(LINKS_REPORT_FILE)) {
+                const linksData = JSON.parse(fs.readFileSync(LINKS_REPORT_FILE, 'utf-8'));
+                linksStats.orphansCount = Array.isArray(linksData.orphans) ? linksData.orphans.length : 0;
+                linksStats.brokenLinksCount = Array.isArray(linksData.brokenLinks) ? linksData.brokenLinks.length : 0;
+                
+                if (linksData.last_scan) {
+                    const scanDate = new Date(linksData.last_scan);
+                    linksStats.lastScan = scanDate.toLocaleString('ru-RU', {
+                        day: '2-digit', month: '2-digit', year: 'numeric',
+                        hour: '2-digit', minute: '2-digit'
+                    });
+                }
+            }
+        } catch (e) {
+            console.error('Error reading links_report.json:', e);
+        }
+
         res.render('admin_dashboard', {
             scripts: scriptsStatus,
-            sitemapStats: sitemapStats
+            sitemapStats: sitemapStats,
+            linksStats: linksStats
         });
     } catch (err) {
         console.error(err);
@@ -263,9 +286,38 @@ router.get('/seo-ops', async (req, res) => {
             badCards = JSON.parse(data);
         }
 
+        // Собираем стату для Радара перелинковки
+        let linksStats = { lastScan: null };
+        let orphans = [];
+        let brokenLinks = [];
+        const LINKS_REPORT_FILE = path.join(__dirname, '../scripts/links_report.json');
+        try {
+            if (fs.existsSync(LINKS_REPORT_FILE)) {
+                const data = JSON.parse(fs.readFileSync(LINKS_REPORT_FILE, 'utf-8'));
+                orphans = Array.isArray(data.orphans) ? data.orphans : [];
+                brokenLinks = Array.isArray(data.brokenLinks) ? data.brokenLinks : [];
+                if (data.last_scan) {
+                    const scanDate = new Date(data.last_scan);
+                    linksStats.lastScan = scanDate.toLocaleString('ru-RU', {
+                        day: '2-digit', month: '2-digit', year: 'numeric',
+                        hour: '2-digit', minute: '2-digit'
+                    });
+                }
+            }
+        } catch (e) {
+            console.error('Ошибка чтения links_report.json', e);
+        }
+
+        const mode = req.query.mode || 'seo';
+
         res.render('admin_seo_ops', {
             cards: badCards,
-            scanRunning: activeProcesses.has('scan_seo.js')
+            scanRunning: activeProcesses.has('scan_seo.js'),
+            mode: mode,
+            tab: req.query.tab || 'orphans',
+            linksStats: linksStats,
+            orphans: orphans,
+            brokenLinks: brokenLinks
         });
     } catch (err) {
         console.error(err);
@@ -442,6 +494,30 @@ router.get('/seo-detector', async (req, res) => {
             console.error(e);
         }
 
+        // Собираем стату для Радара перелинковки
+        let linksStats = { lastScan: null };
+        let orphans = [];
+        let brokenLinks = [];
+        const LINKS_REPORT_FILE = path.join(__dirname, '../scripts/links_report.json');
+        try {
+            if (fs.existsSync(LINKS_REPORT_FILE)) {
+                const data = JSON.parse(fs.readFileSync(LINKS_REPORT_FILE, 'utf-8'));
+                orphans = Array.isArray(data.orphans) ? data.orphans : [];
+                brokenLinks = Array.isArray(data.brokenLinks) ? data.brokenLinks : [];
+                if (data.last_scan) {
+                    const scanDate = new Date(data.last_scan);
+                    linksStats.lastScan = scanDate.toLocaleString('ru-RU', {
+                        day: '2-digit', month: '2-digit', year: 'numeric',
+                        hour: '2-digit', minute: '2-digit'
+                    });
+                }
+            }
+        } catch (e) {
+            console.error('Ошибка чтения links_report.json', e);
+        }
+
+        const mode = req.query.mode || 'seo';
+
         res.render('admin_seo_detector', {
             reports: reports,
             page,
@@ -452,6 +528,10 @@ router.get('/seo-detector', async (req, res) => {
             duplicatesCount: duplicatesCount,
             currentSort: sortField,
             currentOrder: sortOrder,
+            mode: mode,
+            linksStats: linksStats,
+            orphans: orphans,
+            brokenLinks: brokenLinks,
             stats: {
                 safe: safeCount,
                 warning: warningCount,
@@ -614,6 +694,130 @@ router.post('/api/seo-detector/rescan', async (req, res) => {
             console.error('[SEO Detector] Ошибка массового сканирования:', e);
         }
     })();
+});
+
+// УДАЛЕНИЕ 404 ССЫЛКИ
+router.post('/api/links/remove-404', async (req, res) => {
+    try {
+        const { id, url } = req.body;
+        const report = await prisma.diagnosticReport.findUnique({ where: { id } });
+        if (!report) return res.status(404).json({ error: 'Карточка не найдена' });
+
+        // Экранируем URL для Regex
+        const escapeRegExp = (string) => string.replace(/[.*+?^${}()|[\]\\]/g, '\\$&');
+        const regex = new RegExp(`\\[([^\\]]+)\\]\\(${escapeRegExp(url)}\\)`, 'g');
+
+        const fields = ['full_analysis_markdown', 'pro_tips_md', 'tools_table_md', 'oem_parts_table_md'];
+        const updates = {};
+        let modified = false;
+
+        for (const field of fields) {
+            if (report[field]) {
+                const newContent = report[field].replace(regex, '$1');
+                if (newContent !== report[field]) {
+                    updates[field] = newContent;
+                    modified = true;
+                }
+            }
+        }
+
+        if (modified) {
+            await prisma.diagnosticReport.update({ where: { id }, data: updates });
+            
+            // Обновляем локальный JSON файл, чтобы ссылка исчезла из UI без ресканирования
+            const LINKS_REPORT_FILE = path.join(__dirname, '../scripts/links_report.json');
+            if (fs.existsSync(LINKS_REPORT_FILE)) {
+                const data = JSON.parse(fs.readFileSync(LINKS_REPORT_FILE, 'utf-8'));
+                data.brokenLinks = data.brokenLinks.filter(l => !(l.id === id && l.url === url));
+                fs.writeFileSync(LINKS_REPORT_FILE, JSON.stringify(data, null, 2), 'utf-8');
+            }
+            
+            return res.json({ success: true });
+        } else {
+            return res.json({ success: false, error: 'Ссылка не найдена в тексте' });
+        }
+    } catch (err) {
+        console.error(err);
+        return res.status(500).json({ error: 'Ошибка сервера при удалении ссылки' });
+    }
+});
+
+// ГЕНЕРАЦИЯ ПЕРЕЛИНКОВКИ (ИСПРАВЛЕНИЕ СИРОТЫ)
+router.post('/api/links/fix-orphan', async (req, res) => {
+    try {
+        const { id } = req.body;
+        const orphan = await prisma.diagnosticReport.findUnique({ where: { id } });
+        if (!orphan) return res.status(404).json({ error: 'Карточка сироты не найдена' });
+
+        // Шаг 1: Ищем карточки той же марки, кроме самой сироты
+        let targets = await prisma.diagnosticReport.findMany({
+            where: { 
+                brand: orphan.brand, 
+                id: { not: orphan.id }
+            },
+            take: 10
+        });
+
+        // Шаг 2 (План Б): Если нет той же марки, ищем любые со статусом SAFE/WARNING
+        if (targets.length === 0) {
+            targets = await prisma.diagnosticReport.findMany({
+                where: {
+                    id: { not: orphan.id },
+                    seoRisk: { in: ['SAFE', 'WARNING'] }
+                },
+                orderBy: { created_at: 'desc' },
+                take: 10
+            });
+        }
+
+        if (targets.length === 0) {
+            return res.json({ success: false, error: 'В базе нет подходящих карточек для перелинковки' });
+        }
+
+        // Выбираем 2 случайные цели (или 1, если всего 1 найдена)
+        targets.sort(() => 0.5 - Math.random());
+        const selectedTargets = targets.slice(0, 2);
+
+        const appendText = `\n\n### <i data-lucide='link' class='inline-block w-5 h-5 text-blue-500 mr-1.5 align-text-bottom'></i> Полезно знать\n- [Ошибка ${orphan.code} ${orphan.brand} ${orphan.model}: симптомы и причины](/catalog/${orphan.brand.toLowerCase()}/${orphan.model.toLowerCase()}/${orphan.code.toLowerCase()})`;
+
+        let sourceCardsNames = [];
+
+        for (const target of selectedTargets) {
+            let currentMd = target.full_analysis_markdown || '';
+            const splitRegex = /(###\s*(?:<i[^>]*>\s*<\/i>\s*)?Как не лохануться на СТО)/i;
+            const splitMatch = currentMd.match(splitRegex);
+            
+            let updatedMd;
+            if (splitMatch) {
+                const before = currentMd.substring(0, splitMatch.index).trim();
+                const after = currentMd.substring(splitMatch.index).trim();
+                updatedMd = before + '\n\n' + appendText + '\n\n' + after;
+            } else {
+                updatedMd = currentMd.trim() + '\n\n' + appendText;
+            }
+
+            await prisma.diagnosticReport.update({
+                where: { id: target.id },
+                data: { full_analysis_markdown: updatedMd }
+            });
+            sourceCardsNames.push(`${target.brand} ${target.model} ${target.code}`);
+        }
+
+        // Обновляем локальный JSON файл, чтобы убрать сироту из списка
+        const LINKS_REPORT_FILE = path.join(__dirname, '../scripts/links_report.json');
+        if (fs.existsSync(LINKS_REPORT_FILE)) {
+            const data = JSON.parse(fs.readFileSync(LINKS_REPORT_FILE, 'utf-8'));
+            if (data.orphans) {
+                data.orphans = data.orphans.filter(o => o.id !== id);
+                fs.writeFileSync(LINKS_REPORT_FILE, JSON.stringify(data, null, 2), 'utf-8');
+            }
+        }
+
+        return res.json({ success: true, sourceCard: sourceCardsNames.join(', ') });
+    } catch (err) {
+        console.error(err);
+        return res.status(500).json({ error: 'Ошибка сервера' });
+    }
 });
 
 export default router;
