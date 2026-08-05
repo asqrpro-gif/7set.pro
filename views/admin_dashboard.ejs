@@ -98,24 +98,9 @@
 
 <h2 class="text-base md:text-lg font-semibold text-white mb-2">Радар Перелинковки (Orphans & 404)</h2>
 <div class="bg-slate-800 rounded-lg p-3 md:p-4 border border-slate-700 shadow-sm mb-4">
-    <div class="grid grid-cols-1 md:grid-cols-3 gap-4">
-        <!-- Сироты -->
-        <div class="flex flex-col gap-1.5">
-            <div class="flex items-center gap-2 text-slate-300 font-medium text-xs md:text-sm">
-                <i data-lucide="unlink" class="w-4 h-4 text-orange-400"></i>
-                Страницы-сироты
-            </div>
-            <div class="flex items-end gap-2">
-                <span class="text-xl font-bold <%= (typeof linksStats !== 'undefined' && linksStats.orphansCount > 0) ? 'text-orange-400' : 'text-green-400' %>">
-                    <%= typeof linksStats !== 'undefined' ? linksStats.orphansCount : '0' %>
-                </span>
-                <span class="text-slate-500 text-xs mb-1">карточек без контекстных ссылок</span>
-            </div>
-            <div class="text-[10px] text-slate-400 mt-1">Они есть в каталоге, но на них не ссылаются другие статьи.</div>
-        </div>
-
+    <div class="grid grid-cols-1 md:grid-cols-2 gap-4">
         <!-- Битые ссылки -->
-        <div class="flex flex-col gap-1.5 border-t md:border-t-0 md:border-l border-slate-700 pt-3 md:pt-0 md:pl-4">
+        <div class="flex flex-col gap-1.5">
             <div class="flex items-center gap-2 text-slate-300 font-medium text-xs md:text-sm">
                 <i data-lucide="link-2-off" class="w-4 h-4 text-red-400"></i>
                 Битые ссылки (404)
