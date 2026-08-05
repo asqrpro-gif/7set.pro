@@ -189,6 +189,7 @@ app.use('/admin', adminRouter);
 
 // Динамический Sitemap
 app.get('/sitemap.xml', generateSitemap);
+app.get('/sitemap-:page.xml', generateSitemap);
 
 // 3. Главная страница (Landing Page)
 app.get('/', async (req, res) => {

@@ -31,6 +31,71 @@
     </div>
 </div>
 
+<h2 class="text-base md:text-lg font-semibold text-white mb-2">Умный монитор Sitemap</h2>
+<div class="bg-slate-800 rounded-lg p-3 md:p-4 border border-slate-700 shadow-sm mb-4">
+    <div class="grid grid-cols-1 md:grid-cols-3 gap-4">
+        <!-- Состояние -->
+        <div class="flex flex-col gap-1.5">
+            <div class="flex items-center gap-2 text-slate-300 font-medium text-xs md:text-sm">
+                <i data-lucide="map" class="w-4 h-4 text-blue-400"></i>
+                Объем карты сайта
+            </div>
+            <div class="flex items-end gap-2">
+                <span class="text-xl font-bold text-white"><%= typeof sitemapStats !== 'undefined' ? sitemapStats.urlCount.toLocaleString('ru-RU') : '0' %></span>
+                <span class="text-slate-500 text-xs mb-1">/ <%= typeof sitemapStats !== 'undefined' ? sitemapStats.limit.toLocaleString('ru-RU') : '45 000' %></span>
+            </div>
+            <% if (typeof sitemapStats !== 'undefined' && sitemapStats.isIndex) { %>
+                <span class="text-[10px] text-green-400 font-medium mt-1 bg-green-400/10 px-2 py-0.5 rounded w-fit">Разбито на <%= sitemapStats.chunksCount %> файлов (Index)</span>
+            <% } else { %>
+                <div class="w-full bg-slate-700 rounded-full h-1.5 mt-1">
+                    <% const pct = typeof sitemapStats !== 'undefined' ? Math.min((sitemapStats.urlCount / sitemapStats.limit) * 100, 100) : 0; %>
+                    <div class="bg-blue-500 h-1.5 rounded-full" style="width: <%= pct %>%"></div>
+                </div>
+            <% } %>
+        </div>
+
+        <!-- Чистота -->
+        <div class="flex flex-col gap-1.5 border-t md:border-t-0 md:border-l border-slate-700 pt-3 md:pt-0 md:pl-4">
+            <div class="flex items-center gap-2 text-slate-300 font-medium text-xs md:text-sm">
+                <i data-lucide="shield-check" class="w-4 h-4 text-green-400"></i>
+                Чистота ссылок
+            </div>
+            <div class="flex flex-col gap-1 mt-1 text-xs">
+                <div class="flex items-center gap-1.5 text-slate-400">
+                    <i data-lucide="check" class="w-3.5 h-3.5 text-green-500"></i>
+                    Только опубликованные
+                </div>
+                <div class="flex items-center gap-1.5 text-slate-400">
+                    <i data-lucide="check" class="w-3.5 h-3.5 text-green-500"></i>
+                    Без статуса DANGER
+                </div>
+                <div class="flex items-center gap-1.5 text-slate-400">
+                    <i data-lucide="check" class="w-3.5 h-3.5 text-green-500"></i>
+                    Без пустых (UNSUPPORTED)
+                </div>
+            </div>
+        </div>
+
+        <!-- Управление -->
+        <div class="flex flex-col gap-1.5 border-t md:border-t-0 md:border-l border-slate-700 pt-3 md:pt-0 md:pl-4 justify-between">
+            <div>
+                <div class="flex items-center gap-2 text-slate-300 font-medium text-xs md:text-sm">
+                    <i data-lucide="satellite-dish" class="w-4 h-4 text-purple-400"></i>
+                    Связь с поисковиками
+                </div>
+                <div class="text-xs text-slate-400 mt-1.5">
+                    Последний PING: <br>
+                    <span id="sitemap-last-ping" class="text-white font-medium"><%= typeof sitemapStats !== 'undefined' && sitemapStats.lastPing ? sitemapStats.lastPing : 'Никогда' %></span>
+                </div>
+            </div>
+            <button onclick="pingSitemap(this)" class="mt-2 w-full bg-slate-700 hover:bg-slate-600 border border-slate-600 text-white text-xs font-medium py-1.5 px-3 rounded flex items-center justify-center gap-2 transition-colors">
+                <i data-lucide="send" class="w-3.5 h-3.5"></i>
+                <span>Оповестить ботов</span>
+            </button>
+        </div>
+    </div>
+</div>
+
 <h2 class="text-base md:text-lg font-semibold text-white mb-2">Управление</h2>
 <div class="grid grid-cols-1 lg:grid-cols-3 gap-2">
     <div class="lg:col-span-1 flex flex-col gap-2">
@@ -97,6 +162,40 @@
             document.getElementById('stat-scheduled').innerText = data.scheduledReports;
             document.getElementById('stat-today').innerText = data.generatedToday;
         } catch(e) {}
+    }
+
+    async function pingSitemap(btn) {
+        const originalHtml = btn.innerHTML;
+        btn.disabled = true;
+        btn.innerHTML = '<i data-lucide="loader-2" class="w-3.5 h-3.5 animate-spin"></i> <span>Отправка...</span>';
+        lucide.createIcons();
+        
+        try {
+            const res = await fetch('/admin/api/sitemap/ping', { method: 'POST' });
+            const data = await res.json();
+            
+            if (data.success) {
+                document.getElementById('sitemap-last-ping').innerText = data.date;
+                btn.classList.replace('bg-slate-700', 'bg-green-600/20');
+                btn.classList.replace('border-slate-600', 'border-green-500/50');
+                btn.classList.replace('text-white', 'text-green-400');
+                btn.innerHTML = '<i data-lucide="check" class="w-3.5 h-3.5"></i> <span>Успешно</span>';
+            } else {
+                alert('Ошибка: ' + (data.error || 'Неизвестная ошибка'));
+                btn.innerHTML = originalHtml;
+            }
+        } catch (e) {
+            alert('Ошибка сети при отправке пинга');
+            btn.innerHTML = originalHtml;
+        }
+        
+        lucide.createIcons();
+        setTimeout(() => {
+            btn.disabled = false;
+            btn.innerHTML = originalHtml;
+            btn.className = 'mt-2 w-full bg-slate-700 hover:bg-slate-600 border border-slate-600 text-white text-xs font-medium py-1.5 px-3 rounded flex items-center justify-center gap-2 transition-colors';
+            lucide.createIcons();
+        }, 3000);
     }
 
     async function startScript(name) {

@@ -11,6 +11,13 @@
     if (typeof currentSort !== 'undefined' && currentSort) tabsQueryParams += '&sort=' + currentSort;
     if (typeof currentOrder !== 'undefined' && currentOrder) tabsQueryParams += '&order=' + currentOrder;
 
+    // Для ссылок во вкладках Publish (сохраняют risk/duplicates, меняют publish_status)
+    let publishTabsQueryParams = '';
+    if (typeof currentRisk !== 'undefined' && currentRisk && currentRisk !== 'ALL' && !showDuplicates) publishTabsQueryParams += '&risk=' + currentRisk;
+    if (typeof showDuplicates !== 'undefined' && showDuplicates) publishTabsQueryParams += '&duplicates=true';
+    if (typeof currentSort !== 'undefined' && currentSort) publishTabsQueryParams += '&sort=' + currentSort;
+    if (typeof currentOrder !== 'undefined' && currentOrder) publishTabsQueryParams += '&order=' + currentOrder;
+
     // Функция для генерации ссылок сортировки
     function getSortLink(field) {
         let order = 'asc';
@@ -46,38 +53,34 @@
 
         <div class="mt-3 flex flex-col lg:flex-row justify-between gap-3 lg:items-center">
             <!-- Вкладки Risk -->
-            <div class="flex gap-1.5 flex-wrap">
-                <a href="/admin/seo-detector?risk=ALL<%= tabsQueryParams %>" class="px-3 py-2 md:py-1.5 text-xs rounded-lg font-medium <%= currentRisk === 'ALL' && !showDuplicates ? 'bg-blue-600 text-white' : 'bg-slate-700 text-slate-300 hover:bg-slate-600' %> transition-colors">
+            <div class="flex gap-1.5 flex-wrap w-full lg:w-auto">
+                <a href="/admin/seo-detector?risk=ALL<%= tabsQueryParams %>" class="px-3 py-2 md:py-1.5 text-xs rounded-lg font-medium <%= currentRisk === 'ALL' && !showDuplicates ? 'bg-blue-600 text-white' : 'bg-slate-700 text-slate-300 hover:bg-slate-600' %> transition-colors flex-1 lg:flex-none text-center">
                     Все (<%= stats.total %>)
                 </a>
-                <a href="?risk=SAFE<%= tabsQueryParams %>" class="px-3 py-2 md:py-1.5 text-xs rounded-lg font-medium <%= currentRisk === 'SAFE' && !showDuplicates ? 'bg-green-600 text-white' : 'bg-slate-700 text-slate-300 hover:bg-slate-600' %> transition-colors">
+                <a href="?risk=SAFE<%= tabsQueryParams %>" class="px-3 py-2 md:py-1.5 text-xs rounded-lg font-medium <%= currentRisk === 'SAFE' && !showDuplicates ? 'bg-green-600 text-white' : 'bg-slate-700 text-slate-300 hover:bg-slate-600' %> transition-colors flex-1 lg:flex-none text-center">
                     Удачные (<%= stats.safe %>)
                 </a>
-                <a href="?risk=WARNING<%= tabsQueryParams %>" class="px-3 py-2 md:py-1.5 text-xs rounded-lg font-medium <%= currentRisk === 'WARNING' && !showDuplicates ? 'bg-yellow-600 text-white' : 'bg-slate-700 text-slate-300 hover:bg-slate-600' %> transition-colors">
+                <a href="?risk=WARNING<%= tabsQueryParams %>" class="px-3 py-2 md:py-1.5 text-xs rounded-lg font-medium <%= currentRisk === 'WARNING' && !showDuplicates ? 'bg-yellow-600 text-white' : 'bg-slate-700 text-slate-300 hover:bg-slate-600' %> transition-colors flex-1 lg:flex-none text-center">
                     Неудачные (<%= stats.warning %>)
                 </a>
-                <a href="?risk=DANGER<%= tabsQueryParams %>" class="px-3 py-2 md:py-1.5 text-xs rounded-lg font-medium <%= currentRisk === 'DANGER' && !showDuplicates ? 'bg-red-600 text-white' : 'bg-slate-700 text-slate-300 hover:bg-slate-600' %> transition-colors">
-                    Критические (<%= stats.danger %>)
-                </a>
-                <a href="?duplicates=true<%= tabsQueryParams %>" class="px-3 py-2 md:py-1.5 text-xs rounded-lg font-medium <%= showDuplicates ? 'bg-purple-600 text-white' : 'bg-slate-700 text-slate-300 hover:bg-slate-600' %> transition-colors">
+                <a href="?duplicates=true<%= tabsQueryParams %>" class="px-3 py-2 md:py-1.5 text-xs rounded-lg font-medium <%= showDuplicates ? 'bg-purple-600 text-white' : 'bg-slate-700 text-slate-300 hover:bg-slate-600' %> transition-colors flex-1 lg:flex-none text-center">
                     Дубликаты (<%= duplicatesCount %>)
                 </a>
             </div>
 
-            <!-- Фильтры -->
-            <form method="GET" action="/admin/seo-detector" class="flex gap-1.5 items-center m-0 w-full lg:w-auto flex-wrap">
-                <% if (currentRisk && currentRisk !== 'ALL' && !showDuplicates) { %>
-                    <input type="hidden" name="risk" value="<%= currentRisk %>">
-                <% } %>
-                <% if (showDuplicates) { %>
-                    <input type="hidden" name="duplicates" value="true">
-                <% } %>
-                <select name="publish_status" onchange="this.form.submit()" class="bg-slate-700 text-white text-xs md:text-sm rounded-lg px-2 h-10 md:h-8 border border-slate-600 outline-none flex-1 lg:flex-none">
-                    <option value="">Все статусы публикации</option>
-                    <option value="PUBLISHED" <%= typeof currentPublishStatus !== 'undefined' && currentPublishStatus === 'PUBLISHED' ? 'selected' : '' %>>Опубликовано</option>
-                    <option value="UNPUBLISHED" <%= typeof currentPublishStatus !== 'undefined' && currentPublishStatus === 'UNPUBLISHED' ? 'selected' : '' %>>Отложено (не опубликовано)</option>
-                </select>
-            </form>
+            <!-- Вкладки Publish Status -->
+            <div class="flex gap-1.5 flex-wrap w-full lg:w-auto">
+                <div class="hidden lg:block w-px h-7 bg-slate-700 mx-1"></div>
+                <a href="?publish_status=<%= publishTabsQueryParams %>" class="px-3 py-2 md:py-1.5 text-xs rounded-lg font-medium <%= (!currentPublishStatus) ? 'bg-slate-600 text-white shadow-inner' : 'bg-slate-700 text-slate-300 hover:bg-slate-600' %> transition-colors flex-1 lg:flex-none text-center">
+                    Все статусы (<%= publishStats.total %>)
+                </a>
+                <a href="?publish_status=PUBLISHED<%= publishTabsQueryParams %>" class="px-3 py-2 md:py-1.5 text-xs rounded-lg font-medium <%= (currentPublishStatus === 'PUBLISHED') ? 'bg-blue-600 text-white shadow-inner' : 'bg-slate-700 text-slate-300 hover:bg-slate-600' %> transition-colors flex-1 lg:flex-none text-center">
+                    Опубликовано (<%= publishStats.published %>)
+                </a>
+                <a href="?publish_status=UNPUBLISHED<%= publishTabsQueryParams %>" class="px-3 py-2 md:py-1.5 text-xs rounded-lg font-medium <%= (currentPublishStatus === 'UNPUBLISHED') ? 'bg-purple-600 text-white shadow-inner' : 'bg-slate-700 text-slate-300 hover:bg-slate-600' %> transition-colors flex-1 lg:flex-none text-center">
+                    Отложено (<%= publishStats.unpublished %>)
+                </a>
+            </div>
         </div>
     </div>
 

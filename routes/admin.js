@@ -15,6 +15,7 @@ const __dirname = path.dirname(__filename);
 const scriptsPath = path.join(__dirname, '../scripts');
 const STATE_FILE = path.join(scriptsPath, 'generation_state.json');
 const REPORT_FILE = path.join(scriptsPath, 'bad_cards_report.json');
+const PING_FILE = path.join(scriptsPath, 'sitemap_ping.json');
 
 // HTTP Basic Auth Middleware
 const basicAuth = (req, res, next) => {
@@ -97,8 +98,37 @@ router.get('/', async (req, res) => {
             running: activeProcesses.has(file)
         }));
 
+        // Собираем статистику для умного Sitemap
+        let sitemapUrlCount = await prisma.diagnosticReport.count({
+            where: {
+                code: { not: 'UNSUPPORTED' },
+                seoRisk: { not: 'DANGER' },
+                created_at: { lte: new Date() }
+            }
+        });
+        
+        // Добавляем статические страницы (Главная, Каталог, Оферта)
+        sitemapUrlCount += 3;
+
+        let lastPing = null;
+        try {
+            if (fs.existsSync(PING_FILE)) {
+                const pingData = JSON.parse(fs.readFileSync(PING_FILE, 'utf-8'));
+                lastPing = pingData.date;
+            }
+        } catch (e) {}
+
+        const sitemapStats = {
+            urlCount: sitemapUrlCount,
+            limit: 45000, // 45k для запаса
+            lastPing: lastPing,
+            isIndex: sitemapUrlCount > 45000,
+            chunksCount: Math.ceil(sitemapUrlCount / 45000)
+        };
+
         res.render('admin_dashboard', {
-            scripts: scriptsStatus
+            scripts: scriptsStatus,
+            sitemapStats: sitemapStats
         });
     } catch (err) {
         console.error(err);
@@ -135,6 +165,28 @@ router.get('/api/stats', async (req, res) => {
         });
     } catch (err) {
         res.status(500).json({ error: 'Ошибка получения статистики' });
+    }
+});
+
+// API для пинга Sitemap
+router.post('/api/sitemap/ping', async (req, res) => {
+    try {
+        const sitemapUrl = encodeURIComponent('https://7set.pro/sitemap.xml');
+        // Google отключил свой /ping endpoint в начале 2024 года (возвращает 404).
+        // Поэтому мы пингуем Bing и Яндекс, которые всё ещё поддерживают этот метод.
+        const bingUrl = `https://www.bing.com/ping?sitemap=${sitemapUrl}`;
+        const yandexUrl = `https://webmaster.yandex.ru/ping?sitemap=${sitemapUrl}`;
+        
+        // Отправляем запросы (не дожидаясь ответа, чтобы не вешать интерфейс)
+        fetch(bingUrl).catch(() => {});
+        fetch(yandexUrl).catch(() => {});
+        
+        const dateStr = new Date().toLocaleString('ru-RU');
+        fs.writeFileSync(PING_FILE, JSON.stringify({ date: dateStr }), 'utf-8');
+        return res.json({ success: true, date: dateStr });
+    } catch (err) {
+        console.error(err);
+        return res.status(500).json({ error: 'Ошибка при отправке запроса' });
     }
 });
 
@@ -297,7 +349,13 @@ router.get('/seo-detector', async (req, res) => {
         }
 
         const whereClause = { ...baseWhere };
-        if (riskFilter && riskFilter !== 'ALL') whereClause.seoRisk = riskFilter;
+        if (riskFilter && riskFilter !== 'ALL') {
+            if (riskFilter === 'WARNING') {
+                whereClause.seoRisk = { in: ['WARNING', 'DANGER'] };
+            } else {
+                whereClause.seoRisk = riskFilter;
+            }
+        }
 
         const duplicatesGrouped = await prisma.diagnosticReport.groupBy({
             by: ['brand', 'model', 'code'],
@@ -325,11 +383,22 @@ router.get('/seo-detector', async (req, res) => {
         // Получаем общее количество для пагинации
         const total = await prisma.diagnosticReport.count({ where: whereClause });
         
-        // Получаем общую статистику для вкладок (с учетом марки и модели)
+        // Получаем общую статистику для вкладок Risk (с учетом текущего publishStatus)
         const safeCount = await prisma.diagnosticReport.count({ where: { ...baseWhere, seoRisk: 'SAFE' } });
-        const warningCount = await prisma.diagnosticReport.count({ where: { ...baseWhere, seoRisk: 'WARNING' } });
-        const dangerCount = await prisma.diagnosticReport.count({ where: { ...baseWhere, seoRisk: 'DANGER' } });
+        const warningCount = await prisma.diagnosticReport.count({ where: { ...baseWhere, seoRisk: { in: ['WARNING', 'DANGER'] } } });
         const totalCount = await prisma.diagnosticReport.count({ where: baseWhere });
+
+        // Базовое условие для подсчета статусов публикации (с учетом текущего riskFilter)
+        const baseWhereForPublish = {};
+        if (riskFilter && riskFilter !== 'ALL') {
+            if (riskFilter === 'WARNING') baseWhereForPublish.seoRisk = { in: ['WARNING', 'DANGER'] };
+            else baseWhereForPublish.seoRisk = riskFilter;
+        }
+
+        // Получаем статистику для вкладок Publish
+        const publishedCount = await prisma.diagnosticReport.count({ where: { ...baseWhereForPublish, created_at: { lte: new Date() } } });
+        const unpublishedCount = await prisma.diagnosticReport.count({ where: { ...baseWhereForPublish, created_at: { gt: new Date() } } });
+        const totalPublishCount = await prisma.diagnosticReport.count({ where: baseWhereForPublish });
 
         let orderBy = [];
         if (sortField === 'seoScore') {
@@ -384,10 +453,14 @@ router.get('/seo-detector', async (req, res) => {
             currentSort: sortField,
             currentOrder: sortOrder,
             stats: {
-                total: totalCount,
                 safe: safeCount,
                 warning: warningCount,
-                danger: dangerCount
+                total: totalCount
+            },
+            publishStats: {
+                published: publishedCount,
+                unpublished: unpublishedCount,
+                total: totalPublishCount
             },
             scanStats: {
                 scanned: scannedCount,
