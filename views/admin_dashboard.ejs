@@ -31,10 +31,10 @@
     </div>
 </div>
 
-<h2 class="text-base md:text-lg font-semibold text-white mb-2">Умный монитор Sitemap</h2>
+<h2 class="text-base md:text-lg font-semibold text-white mb-2">Радар Sitemap & 404</h2>
 <div class="bg-slate-800 rounded-lg p-3 md:p-4 border border-slate-700 shadow-sm mb-4">
-    <div class="grid grid-cols-1 md:grid-cols-3 gap-4">
-        <!-- Состояние -->
+    <div class="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 xl:grid-cols-5 gap-4">
+        <!-- 1. Объем карты сайта -->
         <div class="flex flex-col gap-1.5">
             <div class="flex items-center gap-2 text-slate-300 font-medium text-xs md:text-sm">
                 <i data-lucide="map" class="w-4 h-4 text-blue-400"></i>
@@ -54,8 +54,8 @@
             <% } %>
         </div>
 
-        <!-- Чистота -->
-        <div class="flex flex-col gap-1.5 border-t md:border-t-0 md:border-l border-slate-700 pt-3 md:pt-0 md:pl-4">
+        <!-- 2. Чистота ссылок -->
+        <div class="flex flex-col gap-1.5 border-t sm:border-t-0 sm:border-l border-slate-700 pt-3 sm:pt-0 sm:pl-4">
             <div class="flex items-center gap-2 text-slate-300 font-medium text-xs md:text-sm">
                 <i data-lucide="shield-check" class="w-4 h-4 text-green-400"></i>
                 Чистота ссылок
@@ -76,8 +76,23 @@
             </div>
         </div>
 
-        <!-- Управление -->
-        <div class="flex flex-col gap-1.5 border-t md:border-t-0 md:border-l border-slate-700 pt-3 md:pt-0 md:pl-4 justify-between">
+        <!-- 3. Битые ссылки -->
+        <div class="flex flex-col gap-1.5 border-t lg:border-t-0 lg:border-l border-slate-700 pt-3 lg:pt-0 lg:pl-4">
+            <div class="flex items-center gap-2 text-slate-300 font-medium text-xs md:text-sm">
+                <i data-lucide="link-2-off" class="w-4 h-4 text-red-400"></i>
+                Битые ссылки (404)
+            </div>
+            <div class="flex items-end gap-2">
+                <span class="text-xl font-bold <%= (typeof linksStats !== 'undefined' && linksStats.brokenLinksCount > 0) ? 'text-red-400' : 'text-green-400' %>">
+                    <%= typeof linksStats !== 'undefined' ? linksStats.brokenLinksCount : '0' %>
+                </span>
+                <span class="text-slate-500 text-xs mb-1">внутренних 404 ошибок</span>
+            </div>
+            <div class="text-[10px] text-slate-400 mt-1">Ссылки на несуществующие карточки.</div>
+        </div>
+
+        <!-- 4. Управление Sitemap -->
+        <div class="flex flex-col gap-1.5 border-t sm:border-t-0 sm:border-l xl:border-t-0 xl:border-l border-slate-700 pt-3 sm:pt-0 sm:pl-4 justify-between">
             <div>
                 <div class="flex items-center gap-2 text-slate-300 font-medium text-xs md:text-sm">
                     <i data-lucide="satellite-dish" class="w-4 h-4 text-purple-400"></i>
@@ -93,29 +108,9 @@
                 <span>Оповестить ботов</span>
             </button>
         </div>
-    </div>
-</div>
 
-<h2 class="text-base md:text-lg font-semibold text-white mb-2">Радар Перелинковки (Orphans & 404)</h2>
-<div class="bg-slate-800 rounded-lg p-3 md:p-4 border border-slate-700 shadow-sm mb-4">
-    <div class="grid grid-cols-1 md:grid-cols-2 gap-4">
-        <!-- Битые ссылки -->
-        <div class="flex flex-col gap-1.5">
-            <div class="flex items-center gap-2 text-slate-300 font-medium text-xs md:text-sm">
-                <i data-lucide="link-2-off" class="w-4 h-4 text-red-400"></i>
-                Битые ссылки (404)
-            </div>
-            <div class="flex items-end gap-2">
-                <span class="text-xl font-bold <%= (typeof linksStats !== 'undefined' && linksStats.brokenLinksCount > 0) ? 'text-red-400' : 'text-green-400' %>">
-                    <%= typeof linksStats !== 'undefined' ? linksStats.brokenLinksCount : '0' %>
-                </span>
-                <span class="text-slate-500 text-xs mb-1">внутренних 404 ошибок</span>
-            </div>
-            <div class="text-[10px] text-slate-400 mt-1">Ссылки, ведущие на удаленные или несуществующие карточки.</div>
-        </div>
-
-        <!-- Управление -->
-        <div class="flex flex-col gap-1.5 border-t md:border-t-0 md:border-l border-slate-700 pt-3 md:pt-0 md:pl-4 justify-between">
+        <!-- 5. Управление ссылками -->
+        <div class="flex flex-col gap-1.5 border-t xl:border-t-0 xl:border-l border-slate-700 pt-3 xl:pt-0 xl:pl-4 justify-between">
             <div>
                 <div class="flex items-center gap-2 text-slate-300 font-medium text-xs md:text-sm">
                     <i data-lucide="activity" class="w-4 h-4 text-blue-400"></i>
@@ -127,9 +122,9 @@
                 </div>
             </div>
             <div class="mt-2 flex gap-2 w-full">
-                <a href="/admin/seo-ops?mode=links" class="flex-1 bg-slate-700 hover:bg-slate-600 border border-slate-600 text-white text-xs font-medium py-1.5 px-3 rounded flex items-center justify-center gap-2 transition-colors">
+                <a href="/admin/seo-detector#broken-links" class="flex-1 bg-slate-700 hover:bg-slate-600 border border-slate-600 text-white text-xs font-medium py-1.5 px-3 rounded flex items-center justify-center gap-2 transition-colors">
                     <i data-lucide="eye" class="w-3.5 h-3.5"></i>
-                    <span>Смотреть</span>
+                    <span>Смотреть 404</span>
                 </a>
             </div>
         </div>

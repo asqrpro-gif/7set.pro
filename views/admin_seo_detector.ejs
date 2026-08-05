@@ -269,6 +269,86 @@
     </div>
 </details>
 
+<details class="bg-slate-800 rounded-xl border border-slate-700 shadow-sm group mt-4" id="broken-links">
+    <summary class="p-4 cursor-pointer list-none flex justify-between items-center font-semibold text-white select-none [&::-webkit-details-marker]:hidden border-b border-slate-700 bg-slate-800/50 hover:bg-slate-700/50 transition-colors">
+        <div class="flex items-center gap-2">
+            <i data-lucide="link-2-off" class="w-5 h-5 text-red-400"></i>
+            Битые ссылки (404)
+        </div>
+        <div class="flex items-center gap-3">
+            <span class="text-xs font-medium bg-slate-700 px-2 py-1 rounded-md text-slate-300"><%= brokenLinks.length %> шт.</span>
+            <i data-lucide="chevron-down" class="w-5 h-5 text-slate-400 group-open:rotate-180 transition-transform"></i>
+        </div>
+    </summary>
+    <div class="flex flex-col max-h-[500px]">
+        <div class="flex-1 overflow-auto bg-[#0f172a]/50 p-4">
+            <% if (brokenLinks.length === 0) { %>
+                <div class="flex flex-col items-center justify-center h-full text-slate-500 gap-3">
+                    <i data-lucide="check-circle" class="w-12 h-12 text-green-500/50"></i>
+                    <p>Отлично! Битых ссылок не найдено.</p>
+                </div>
+            <% } else { %>
+                <div class="overflow-x-auto min-h-0">
+                    <table class="w-full text-left border-collapse min-w-[700px]">
+                        <thead class="sticky top-0 bg-slate-900 border-b border-slate-700 z-10">
+                            <tr class="text-slate-300 text-xs">
+                                <th class="px-2 py-2.5 font-medium">Статья (Где найдено)</th>
+                                <th class="px-2 py-2.5 font-medium">Анкор (Текст)</th>
+                                <th class="px-2 py-2.5 font-medium">Битая ссылка</th>
+                                <th class="px-2 py-2.5 font-medium text-right">Действия</th>
+                            </tr>
+                        </thead>
+                        <tbody class="text-sm divide-y divide-slate-700/50">
+                            <% brokenLinks.forEach((link, idx) => { %>
+                                <tr class="hover:bg-slate-700/30 transition-colors" id="row-<%= idx %>">
+                                    <td class="px-2 py-2">
+                                        <div class="text-white font-medium text-sm"><%= link.title %></div>
+                                        <div class="text-xs text-slate-500 mt-0.5">Поле: <%= link.field %></div>
+                                    </td>
+                                    <td class="px-2 py-2 text-slate-300">
+                                        <span class="bg-slate-800 border border-slate-700 px-1.5 py-0.5 rounded text-xs">"<%= link.text %>"</span>
+                                    </td>
+                                    <td class="px-2 py-2">
+                                        <div class="text-red-400 font-mono text-[11px] break-all max-w-[300px]"><%= link.url %></div>
+                                    </td>
+                                    <td class="px-2 py-2 text-right">
+                                        <button onclick="removeBrokenLink('<%= link.id %>', '<%= link.url.replace(/'/g, "\\'") %>', <%= idx %>)" class="bg-red-500/10 hover:bg-red-500/20 text-red-400 border border-red-500/20 px-2.5 py-1.5 rounded-lg text-xs font-medium transition-colors inline-flex items-center gap-1.5">
+                                            <i data-lucide="trash-2" class="w-3.5 h-3.5"></i>
+                                            Удалить ссылку
+                                        </button>
+                                    </td>
+                                </tr>
+                            <% }) %>
+                        </tbody>
+                    </table>
+                </div>
+            <% } %>
+        </div>
+    </div>
+</details>
+
+<script>
+async function removeBrokenLink(reportId, brokenUrl, rowIndex) {
+    if(!confirm('Автоматически удалить эту ссылку из текста статьи?')) return;
+    
+    try {
+        const res = await fetch('/admin/api/links/remove-404', {
+            method: 'POST',
+            headers: { 'Content-Type': 'application/json' },
+            body: JSON.stringify({ id: reportId, url: brokenUrl })
+        });
+        const data = await res.json();
+        if(data.success) {
+            document.getElementById('row-' + rowIndex).style.display = 'none';
+        } else {
+            alert('Ошибка: ' + data.error);
+        }
+    } catch(e) {
+        alert('Сетевая ошибка');
+    }
+}
+</script>
+
 <!-- Модальное окно редактирования -->
 <div id="editModal" class="fixed inset-0 bg-black/60 hidden items-center justify-center z-50 backdrop-blur-sm p-4">
     <div class="bg-slate-800 rounded-xl border border-slate-700 w-full max-w-4xl shadow-2xl flex flex-col h-[90vh]">
