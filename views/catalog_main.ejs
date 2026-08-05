@@ -70,14 +70,14 @@
         %>
           <a href="/catalog/<%= encodeURIComponent(brandLower) %>" class="bg-white dark:bg-slate-800 p-3 rounded-2xl border-[1.5px] border-[#0077FF] dark:border-[#0077FF] shadow-none hover:shadow-[0_0_25px_rgba(0,119,255,0.5)] transition-all group flex flex-col items-center justify-center text-center duration-300 hover:-translate-y-1">
             <% if(logoSlug) { %>
-              <img src="/img/logos/<%= logoSlug %>-logo-60x60-px.webp" alt="Коды ошибок <%= item.brand %>" width="48" height="48" class="object-contain mb-3 drop-shadow-sm group-hover:scale-110 transition-transform duration-300">
+              <img src="/img/logos/<%= logoSlug %>-logo-60x60-px.webp" alt="Коды ошибок <%= item.brand %>" width="48" height="48" class="object-contain mb-3 drop-shadow-sm group-hover:scale-110 transition-transform duration-300 order-1 shrink-0">
             <% } else { %>
-              <div class="w-12 h-12 mb-3 bg-blue-500/10 text-brand dark:text-blue-400 rounded-full flex items-center justify-center group-hover:bg-brand group-hover:text-white transition-colors duration-300 shadow-sm">
+              <div class="w-12 h-12 mb-3 bg-blue-500/10 text-brand dark:text-blue-400 rounded-full flex items-center justify-center group-hover:bg-brand group-hover:text-white transition-colors duration-300 shadow-sm order-1 shrink-0">
                 <i data-lucide="car-front" class="w-6 h-6"></i>
               </div>
             <% } %>
-            <h3 class="font-bold text-sm sm:text-base text-gray-900 dark:text-white capitalize group-hover:text-brand transition-colors"><%= item.brand %></h3>
-            <span class="text-[10px] sm:text-xs font-semibold text-blue-700 dark:text-blue-300 bg-blue-500/10 dark:bg-blue-500/20 px-2 py-0.5 rounded-full mt-2"><%= item._count.brand %> кодов</span>
+            <h3 class="font-bold text-sm sm:text-base text-gray-900 dark:text-white capitalize group-hover:text-brand transition-colors order-2"><%= item.brand %></h3>
+            <span class="text-[10px] sm:text-xs font-semibold text-blue-700 dark:text-blue-300 bg-blue-500/10 dark:bg-blue-500/20 px-2 py-0.5 rounded-full mt-2 order-3"><%= item._count.brand %> кодов</span>
           </a>
         <% }); %>
         <% if(brands.length === 0) { %>

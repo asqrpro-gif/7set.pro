@@ -76,12 +76,12 @@
       <section class="py-4">
         <div class="flex flex-col items-center mb-8">
             <% if(logoSlug) { %>
-              <img src="/img/logos/<%= logoSlug %>-logo-60x60-px.webp" alt="Логотип <%= brandName %>" width="80" height="80" class="object-contain mb-4 drop-shadow-md">
+              <img src="/img/logos/<%= logoSlug %>-logo-60x60-px.webp" alt="Логотип <%= brandName %>" width="80" height="80" class="object-contain mb-4 drop-shadow-md order-1 shrink-0">
             <% } %>
-            <h1 class="text-3xl md:text-4xl font-black text-center text-gray-900 dark:text-white capitalize">
+            <h1 class="text-3xl md:text-4xl font-black text-center text-gray-900 dark:text-white capitalize order-2">
               Коды ошибок <%= brandName %>
             </h1>
-            <p class="mt-3 text-gray-500 dark:text-gray-400 text-center max-w-2xl">
+            <p class="mt-3 text-gray-500 dark:text-gray-400 text-center max-w-2xl order-3">
               Выберите модель <%= brandName %> для просмотра детальной расшифровки кодов неисправностей.
             </p>
         </div>

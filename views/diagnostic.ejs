@@ -180,12 +180,12 @@
             const logoSlug = brandMap[currentBrandLower];
           %>
           <% if (logoSlug) { %>
-            <img src="/img/logos/<%= logoSlug %>-logo-60x60-px.webp" width="60" height="60" alt="<%= isUnsupportedReport ? 'Диагностика и проверка неизвестного или ложного кода ошибки автомобиля' : `Детальная расшифровка и ремонт ошибки ${displayCode} для ${displayBrand} ${displayModel}` %>" />
-            <span class="text-gray-800 dark:text-gray-200 font-semibold text-lg mt-4"><%= displayBrand %> <%= displayModel %></span>
+            <img src="/img/logos/<%= logoSlug %>-logo-60x60-px.webp" width="60" height="60" alt="<%= isUnsupportedReport ? 'Диагностика и проверка неизвестного или ложного кода ошибки автомобиля' : `Детальная расшифровка и ремонт ошибки ${displayCode} для ${displayBrand} ${displayModel}` %>" class="order-1 shrink-0" />
+            <span class="text-gray-800 dark:text-gray-200 font-semibold text-lg mt-4 order-2"><%= displayBrand %> <%= displayModel %></span>
           <% } else { %>
-            <i data-lucide="car-front" class="w-16 h-16 text-brand" aria-hidden="true"></i>
-            <span class="text-gray-800 dark:text-gray-200 font-semibold text-lg mt-4"><%= displayBrand %> <%= displayModel %></span>
-            <img src="https://placehold.co/600x400/ffffff/0077FF?text=<%= isUnsupportedReport ? 'UNKNOWN' : displayCode %>" alt="<%= isUnsupportedReport ? 'Диагностика и проверка неизвестного или ложного кода ошибки автомобиля' : `Детальная расшифровка и ремонт ошибки ${displayCode} для ${displayBrand} ${displayModel}` %>" class="sr-only" />
+            <i data-lucide="car-front" class="w-16 h-16 text-brand order-1 shrink-0" aria-hidden="true"></i>
+            <span class="text-gray-800 dark:text-gray-200 font-semibold text-lg mt-4 order-2"><%= displayBrand %> <%= displayModel %></span>
+            <img src="https://placehold.co/600x400/ffffff/0077FF?text=<%= isUnsupportedReport ? 'UNKNOWN' : displayCode %>" alt="<%= isUnsupportedReport ? 'Диагностика и проверка неизвестного или ложного кода ошибки автомобиля' : `Детальная расшифровка и ремонт ошибки ${displayCode} для ${displayBrand} ${displayModel}` %>" class="sr-only order-3" />
           <% } %>
         </div>
         <p class="text-gray-500 dark:text-gray-400 font-medium text-sm leading-relaxed mb-4"><%- summaryText %></p>
@@ -204,14 +204,14 @@
                 class="flex items-center gap-3 font-semibold p-5 cursor-pointer hover:bg-gray-50 dark:hover:bg-slate-700/50 transition-colors list-none outline-none">
                 <h2
                   class="text-base md:text-lg font-semibold m-0 flex items-center gap-3 w-full font-inherit text-inherit text-gray-900 dark:text-white">
-                  <i data-lucide="file-search" class="w-5 h-5 text-brand shrink-0"></i> Полный разбор причины</h2>
+                  <i data-lucide="file-search" class="w-5 h-5 text-brand shrink-0 order-1"></i> <span class="order-2">Полный разбор причины</span></h2>
               </summary>
               <div
                 class="p-5 border-t border-gray-50 dark:border-slate-700 bg-white dark:bg-slate-800 prose prose-blue prose-lg dark:prose-invert max-w-none text-gray-800 dark:text-gray-200">
                 <%- fullAnalysisHtml %>
                 <% if (typeof proTipsHtml !== 'undefined' && proTipsHtml) { %>
                   <div class="mt-8 border-t border-gray-100 dark:border-slate-700 pt-6">
-                    <h3 class="flex items-center gap-2 text-xl font-bold text-gray-900 dark:text-white mb-4"><i data-lucide='lightbulb' class='w-6 h-6 text-yellow-500'></i> Советы эксперта по <%= displayBrand %></h3>
+                    <h3 class="flex items-center gap-2 text-xl font-bold text-gray-900 dark:text-white mb-4"><i data-lucide='lightbulb' class='w-6 h-6 text-yellow-500 shrink-0 order-1'></i> <span class="order-2">Советы эксперта по <%= displayBrand %></span></h3>
                     <%- proTipsHtml %>
                   </div>
                 <% } %>
@@ -225,7 +225,7 @@
                 class="flex items-center gap-3 font-semibold p-5 cursor-pointer hover:bg-gray-50 dark:hover:bg-slate-700/50 transition-colors list-none outline-none">
                 <h2
                   class="text-base md:text-lg font-semibold m-0 flex items-center gap-3 w-full font-inherit text-inherit text-gray-900 dark:text-white">
-                  <i data-lucide="shield-alert" class="w-5 h-5 text-red-500 shrink-0"></i> Защита от обмана на СТО</h2>
+                  <i data-lucide="shield-alert" class="w-5 h-5 text-red-500 shrink-0 order-1"></i> <span class="order-2">Защита от обмана на СТО</span></h2>
               </summary>
               <div
                 class="p-5 border-t border-gray-50 dark:border-slate-700 bg-white dark:bg-slate-800 prose prose-blue prose-lg dark:prose-invert max-w-none text-gray-800 dark:text-gray-200">
@@ -240,7 +240,7 @@
                 class="flex items-center gap-3 font-semibold p-5 cursor-pointer hover:bg-gray-50 dark:hover:bg-slate-700/50 transition-colors list-none outline-none">
                 <h2
                   class="text-base md:text-lg font-semibold m-0 flex items-center gap-3 w-full font-inherit text-inherit text-gray-900 dark:text-white">
-                  <i data-lucide="wallet" class="w-5 h-5 text-green-600 shrink-0"></i> Финансовый прогноз</h2>
+                  <i data-lucide="wallet" class="w-5 h-5 text-green-600 shrink-0 order-1"></i> <span class="order-2">Финансовый прогноз</span></h2>
               </summary>
               <div class="p-5 border-t border-gray-50 dark:border-slate-700 bg-white dark:bg-slate-800">
                 <div class="grid grid-cols-2 gap-4 mt-2">
@@ -266,7 +266,7 @@
                 </div>
                 <% if (typeof oemPartsTableHtml !== 'undefined' && oemPartsTableHtml) { %>
                   <div class="mt-6 prose prose-blue prose-sm dark:prose-invert max-w-none text-gray-800 dark:text-gray-200">
-                    <h3 class="flex items-center gap-2 text-base font-bold text-gray-900 dark:text-white mb-3"><i data-lucide='settings' class='w-5 h-5 text-gray-500'></i> Возможные запчасти (OEM / Аналоги)</h3>
+                    <h3 class="flex items-center gap-2 text-base font-bold text-gray-900 dark:text-white mb-3"><i data-lucide='settings' class='w-5 h-5 text-gray-500 shrink-0 order-1'></i> <span class="order-2">Возможные запчасти (OEM / Аналоги)</span></h3>
                     <%- oemPartsTableHtml %>
                   </div>
                 <% } %>
@@ -280,9 +280,9 @@
                 class="flex items-center gap-3 font-semibold p-5 cursor-pointer hover:bg-gray-50 dark:hover:bg-slate-700/50 transition-colors list-none outline-none">
                 <h2
                   class="text-base md:text-lg font-semibold m-0 flex items-center gap-3 w-full font-inherit text-inherit text-gray-900 dark:text-white">
-                  <i data-lucide="wrench" class="w-5 h-5 text-gray-500 dark:text-gray-400 shrink-0"></i> Сделай сам
+                  <i data-lucide="wrench" class="w-5 h-5 text-gray-500 dark:text-gray-400 shrink-0 order-1"></i> <span class="order-2">Сделай сам</span>
                   <span
-                    class="text-xs px-2 py-0.5 rounded bg-gray-100 dark:bg-slate-700 text-gray-600 dark:text-gray-300 ml-auto font-normal shrink-0">
+                    class="text-xs px-2 py-0.5 rounded bg-gray-100 dark:bg-slate-700 text-gray-600 dark:text-gray-300 ml-auto font-normal shrink-0 order-3">
                     <%= report.diy_difficulty_text || 'Неизвестно' %>
                   </span></h2>
               </summary>
