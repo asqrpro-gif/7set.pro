@@ -58,17 +58,28 @@ async function runBatchEnrichment() {
         continue;
       }
 
-      // Ищем самую старую проблемную карточку
-      const report = await prisma.diagnosticReport.findFirst({
+      const now = new Date();
+      
+      // Сперва ищем опубликованные карточки
+      let report = await prisma.diagnosticReport.findFirst({
         where: {
-          seoRisk: {
-            in: ['WARNING', 'DANGER']
-          }
+          seoRisk: { in: ['WARNING', 'DANGER'] },
+          created_at: { lte: now }
         },
-        orderBy: {
-          created_at: 'asc'
-        }
+        orderBy: { created_at: 'asc' }
       });
+
+      // Если опубликованных проблемных карточек нет, берем отложенные
+      // orderBy: 'asc' гарантирует, что мы возьмем те, которые опубликуются раньше
+      if (!report) {
+        report = await prisma.diagnosticReport.findFirst({
+          where: {
+            seoRisk: { in: ['WARNING', 'DANGER'] },
+            created_at: { gt: now }
+          },
+          orderBy: { created_at: 'asc' }
+        });
+      }
 
       if (!report) {
         console.log('✅ Нет карточек для обогащения (WARNING/DANGER). Спим 1 час...');

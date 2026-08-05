@@ -65,13 +65,30 @@ router.get('/', async (req, res) => {
 
         // Человекочитаемые названия скриптов
         const scriptNames = {
-            'generate_seo_cards.js': 'Генерация карточек (ИИ)',
-            'scan_seo.js': 'SEO Сканер и Поиск дублей',
-            'delete_bad_seo.js': 'Удаление мусорных карточек',
-            'deduplicate.js': 'Удаление дубликатов из БД',
             'enrich_seo_batch.js': 'Массовое pSEO обогащение',
-            'reset_seo.js': 'Сброс SEO оценок'
+            'generate_seo_cards.js': 'Генерация карточек (ИИ)',
+            'reset_seo.js': 'Сброс SEO оценок',
+            'scan_seo.js': 'SEO Сканер и Поиск дублей',
+            'deduplicate.js': 'Удаление дублей',
+            'delete_bad_seo.js': 'Удаление мусорных карточек'
         };
+
+        const scriptOrder = [
+            'enrich_seo_batch.js',
+            'generate_seo_cards.js',
+            'reset_seo.js',
+            'scan_seo.js',
+            'deduplicate.js',
+            'delete_bad_seo.js'
+        ];
+
+        scriptFiles.sort((a, b) => {
+            let indexA = scriptOrder.indexOf(a);
+            let indexB = scriptOrder.indexOf(b);
+            if (indexA === -1) indexA = 999;
+            if (indexB === -1) indexB = 999;
+            return indexA - indexB;
+        });
 
         // Собираем статусы
         const scriptsStatus = scriptFiles.map(file => ({
@@ -267,15 +284,17 @@ router.get('/seo-detector', async (req, res) => {
         const take = 50;
         const skip = (page - 1) * take;
         const riskFilter = req.query.risk;
-        const brandFilter = req.query.brand;
-        const modelFilter = req.query.model;
         const showDuplicates = req.query.duplicates === 'true';
+        const publishStatus = req.query.publish_status;
         const sortField = req.query.sort || 'seoScore';
         const sortOrder = req.query.order === 'desc' ? 'desc' : 'asc';
 
         const baseWhere = {};
-        if (brandFilter) baseWhere.brand = brandFilter;
-        if (modelFilter) baseWhere.model = modelFilter;
+        if (publishStatus === 'PUBLISHED') {
+            baseWhere.created_at = { lte: new Date() };
+        } else if (publishStatus === 'UNPUBLISHED') {
+            baseWhere.created_at = { gt: new Date() };
+        }
 
         const whereClause = { ...baseWhere };
         if (riskFilter && riskFilter !== 'ALL') whereClause.seoRisk = riskFilter;
@@ -301,26 +320,6 @@ router.get('/seo-detector', async (req, res) => {
                 // Если дубликатов нет, возвращаем пустой результат
                 whereClause.id = 'none';
             }
-        }
-
-        // Получаем статистику по маркам
-        const brandStatsRaw = await prisma.diagnosticReport.groupBy({
-            by: ['brand'],
-            _count: { id: true },
-            orderBy: { _count: { id: 'desc' } }
-        });
-        const brandStats = brandStatsRaw.map(b => ({ brand: b.brand, count: b._count.id }));
-
-        // Получаем статистику по моделям (если выбрана марка)
-        let modelStats = [];
-        if (brandFilter) {
-            const modelStatsRaw = await prisma.diagnosticReport.groupBy({
-                by: ['model'],
-                where: { brand: brandFilter },
-                _count: { id: true },
-                orderBy: { _count: { id: 'desc' } }
-            });
-            modelStats = modelStatsRaw.map(m => ({ model: m.model, count: m._count.id }));
         }
 
         // Получаем общее количество для пагинации
@@ -379,14 +378,11 @@ router.get('/seo-detector', async (req, res) => {
             page,
             totalPages: Math.ceil(total / take) || 1,
             currentRisk: riskFilter || 'ALL',
-            currentBrand: brandFilter || '',
-            currentModel: modelFilter || '',
+            currentPublishStatus: publishStatus || '',
             showDuplicates: showDuplicates,
             duplicatesCount: duplicatesCount,
             currentSort: sortField,
             currentOrder: sortOrder,
-            brandStats,
-            modelStats,
             stats: {
                 total: totalCount,
                 safe: safeCount,
