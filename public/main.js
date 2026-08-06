@@ -15,11 +15,10 @@ document.addEventListener('DOMContentLoaded', () => {
 
   // Инициализация темы из localStorage
   const savedTheme = localStorage.getItem('theme');
-  if (savedTheme === 'dark') {
-    document.documentElement.setAttribute('data-theme', 'dark');
-    document.documentElement.classList.add('dark');
-  } else if (!savedTheme && window.matchMedia && window.matchMedia('(prefers-color-scheme: dark)').matches) {
-    // Поддержка системной темы по умолчанию
+  if (savedTheme === 'light') {
+    document.documentElement.setAttribute('data-theme', 'light');
+    document.documentElement.classList.remove('dark');
+  } else {
     document.documentElement.setAttribute('data-theme', 'dark');
     document.documentElement.classList.add('dark');
   }
@@ -91,7 +90,6 @@ document.addEventListener('DOMContentLoaded', () => {
 
         setTimeout(() => {
           // Перезагрузка для отрисовки серверного контента с аккордеонами
-          sessionStorage.setItem('scrollToPaywall', 'true');
           window.location.reload();
         }, 300);
 
@@ -104,15 +102,7 @@ document.addEventListener('DOMContentLoaded', () => {
     });
   }
 
-  // Проверяем, нужно ли прокрутить к разблокированному контенту
-  if (sessionStorage.getItem('scrollToPaywall') === 'true') {
-    sessionStorage.removeItem('scrollToPaywall');
-    setTimeout(() => {
-      if (paywallContainer) {
-        paywallContainer.scrollIntoView({ behavior: 'smooth', block: 'start' });
-      }
-    }, 100);
-  }
+  // (Scroll logic removed because it causes a jump with the new layout)
 
   // =========================================
   // 3. Умный ввод (Автокомплит Марки и Модели)

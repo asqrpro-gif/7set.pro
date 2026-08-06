@@ -5,6 +5,19 @@ import { PrismaClient } from '@prisma/client';
 import { analyzeCarErrorFast, analyzeCarErrorDeep, getFactFromDB } from './lib/gemini_clean.js';
 import { renderErrorCodePage } from './lib/error_code.js';
 import { marked } from 'marked';
+
+// Настраиваем marked для открытия всех ссылок в новой вкладке
+const renderer = new marked.Renderer();
+const originalLink = renderer.link.bind(renderer);
+renderer.link = function (href, title, text) {
+  let link = originalLink(href, title, text);
+  if (!link.includes('target=')) {
+    link = link.replace('<a', '<a target="_blank" rel="noopener noreferrer"');
+  }
+  return link;
+};
+marked.setOptions({ renderer });
+
 import fs from 'fs';
 import garageRouter from './routes/garage.js';
 import adminRouter from './routes/admin.js';
@@ -456,6 +469,11 @@ app.get('/catalog/:brand/:model/:code', async (req, res) => {
                 diy_difficulty_score: deepData.diy_difficulty_score,
                 diy_time: deepData.diy_time,
                 diy_tools: deepData.diy_tools,
+                tools_table_md: deepData.tools_table_md,
+                oem_parts_table_md: deepData.oem_parts_table_md,
+                pro_tips_md: deepData.pro_tips_md,
+                seoTitle: deepData.seo_title || fastData.seoTitle,
+                seoDescription: deepData.seo_description || fastData.seoDescription,
                 is_complete: true // Отчет готов!
               }
             });
@@ -609,8 +627,29 @@ app.get('/catalog/:brand/:model/:code', async (req, res) => {
       rawScamProtection = report.sto_protection_tips || '';
     }
 
+    // Извлекаем SEO футер из scamProtection (или из fullAnalysis, если ScamProtection пуст)
+    let rawSeoFooter = '';
+    const footerRegex = /###\s*(Полезные и правовые ресурсы|ПДД и полезные ресурсы)/i;
+    let footerMatch = rawScamProtection.match(footerRegex);
+    if (footerMatch) {
+      rawSeoFooter = rawScamProtection.substring(footerMatch.index).trim();
+      rawScamProtection = rawScamProtection.substring(0, footerMatch.index).trim();
+    } else {
+      footerMatch = rawFullAnalysis.match(footerRegex);
+      if (footerMatch) {
+        rawSeoFooter = rawFullAnalysis.substring(footerMatch.index).trim();
+        rawFullAnalysis = rawFullAnalysis.substring(0, footerMatch.index).trim();
+      }
+    }
+    
+    // Удаляем заголовок, так как он уже есть в аккордеоне
+    if (rawSeoFooter) {
+        rawSeoFooter = rawSeoFooter.replace(footerRegex, '').trim();
+    }
+
     let fullAnalysisHtml = cleanReportHtml(marked.parse(formatReportMarkdown(rawFullAnalysis)));
     let scamProtectionHtml = cleanReportHtml(marked.parse(formatReportMarkdown(rawScamProtection)));
+    let seoFooterHtml = rawSeoFooter ? cleanReportHtml(marked.parse(formatReportMarkdown(rawSeoFooter))) : '';
     let diyInstructionsHtml = cleanReportHtml(marked.parse(formatReportMarkdown(report.diy_instructions || '')));
     let toolsTableHtml = report.tools_table_md ? cleanReportHtml(marked.parse(formatReportMarkdown(report.tools_table_md))) : '';
     let oemPartsTableHtml = report.oem_parts_table_md ? cleanReportHtml(marked.parse(formatReportMarkdown(report.oem_parts_table_md))) : '';
@@ -640,6 +679,7 @@ app.get('/catalog/:brand/:model/:code', async (req, res) => {
       isUnlockedForUser,
       fullAnalysisHtml,
       scamProtectionHtml,
+      seoFooterHtml,
       pricePartsHtml: (report.price_parts && report.price_parts !== 'Уточняется' ? report.price_parts.replace(/\$/g, '').trim() + ' $' : 'Уточняется').replace(/\\n/g, '<br>'),
       priceLaborHtml: (report.price_labor && report.price_labor !== 'Уточняется' ? report.price_labor.replace(/\$/g, '').trim() + ' $' : 'Уточняется').replace(/\\n/g, '<br>'),
       report,

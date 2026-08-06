@@ -6,7 +6,7 @@ import { fileURLToPath } from 'url';
 import fs from 'fs';
 import { calculateSeoScore } from '../lib/seo_scanner.js';
 import { enrichSeoCard } from '../services/seoEnrichmentService.js';
-
+import { enrichReportText } from '../lib/seoEnricher.js';
 const router = express.Router();
 const prisma = new PrismaClient();
 
@@ -664,5 +664,55 @@ router.post('/api/links/remove-404', async (req, res) => {
 });
 
 
+// ==========================================
+// 6. РЕТРОАКТИВНОЕ SEO-ОБОГАЩЕНИЕ
+// ==========================================
+router.post('/api/seo-enrich/all', async (req, res) => {
+    try {
+        const reports = await prisma.diagnosticReport.findMany({ where: { is_complete: true } });
+        let updatedCount = 0;
+        
+        for (const report of reports) {
+            const rawText = report.full_analysis_markdown || report.summary || '';
+            const newText = enrichReportText(rawText, report.brand, report.model, report.code, report.drivability);
+            
+            if (newText !== rawText) {
+                await prisma.diagnosticReport.update({
+                    where: { id: report.id },
+                    data: { full_analysis_markdown: newText }
+                });
+                updatedCount++;
+            }
+        }
+        
+        res.json({ success: true, updatedCount });
+    } catch (err) {
+        console.error('Ошибка массового обогащения:', err);
+        res.status(500).json({ error: 'Ошибка сервера' });
+    }
+});
+
+router.post('/api/seo-enrich/single/:id', async (req, res) => {
+    try {
+        const report = await prisma.diagnosticReport.findUnique({ where: { id: req.params.id } });
+        if (!report) return res.status(404).json({ error: 'Отчет не найден' });
+        
+        const rawText = report.full_analysis_markdown || report.summary || '';
+        const newText = enrichReportText(rawText, report.brand, report.model, report.code, report.drivability);
+        
+        if (newText !== rawText) {
+            await prisma.diagnosticReport.update({
+                where: { id: report.id },
+                data: { full_analysis_markdown: newText }
+            });
+        }
+        
+        // Всегда возвращаем recreated: true для одиночного запроса, чтобы интерфейс обновился
+        return res.json({ success: true, recreated: true });
+    } catch (err) {
+        console.error('Ошибка одиночного обогащения:', err);
+        res.status(500).json({ error: 'Ошибка сервера' });
+    }
+});
 
 export default router;

@@ -1,5 +1,4 @@
-@import url('https://fonts.googleapis.com/css2?family=IBM+Plex+Sans:wght@400;500;600;700&family=JetBrains+Mono:wght@400;500;700;800&display=swap');
-
+/* Шрифты теперь грузятся из HTML через теги <link> для максимальной скорости */
 /* =========================================
    Дизайн СИСТЕМА (Токены & Переменные)
    ========================================= */
@@ -141,7 +140,7 @@ a {
     }
 
     .diagnostic-grid {
-        grid-template-columns: 1fr 1.5fr;
+        grid-template-columns: repeat(2, minmax(0, 1fr));
         gap: 20px;
         align-items: flex-start;
     }
@@ -408,7 +407,6 @@ button[type="submit"]:active {
     border-radius: 8px;
     /* Технично */
     text-align: center;
-    max-width: 320px;
     width: 100%;
     box-shadow: var(--shadow-lg);
     border: 1px solid var(--border-color);
@@ -648,8 +646,6 @@ button[type="submit"]:active {
    Custom Blocks (Phase 3 & UI Refine)
    ========================================= */
 .report-content {
-    max-width: 800px;
-    margin: 0 auto;
     line-height: 1.4;
     font-size: 14px;
 }
@@ -1351,4 +1347,75 @@ body {
     position: relative;
     z-index: 10;
     filter: drop-shadow(0 1px 2px rgba(0,0,0,0.15));
+}
+
+/* =========================================
+   SEO Footer Links (Cards)
+   ========================================= */
+.seo-footer-content ul {
+    list-style: none !important;
+    padding: 0 !important;
+    margin: 1rem 0 0 0 !important;
+    display: flex;
+    flex-direction: column;
+    gap: 6px; /* Максимально сжатый отступ */
+}
+
+.seo-footer-content ul li {
+    margin: 0 !important;
+    padding: 0 !important;
+}
+
+.seo-footer-content ul li p {
+    margin: 0 !important;
+    padding: 0 !important;
+}
+
+.seo-footer-content ul li a {
+    display: flex !important;
+    align-items: center;
+    gap: 14px;
+    padding: 10px 16px; /* Уменьшенные внутренние отступы */
+    background-color: rgba(37, 99, 235, 0.05); /* blue-50 */
+    border: 1px solid rgba(37, 99, 235, 0.15); /* blue-100 */
+    border-radius: 10px;
+    text-decoration: none !important;
+    color: #1e3a8a !important; /* blue-900 */
+    font-weight: 600;
+    font-size: 14px; /* Чуть компактнее текст */
+    transition: all 0.2s ease;
+}
+
+[data-theme="dark"] .seo-footer-content ul li a {
+    background-color: rgba(37, 99, 235, 0.1);
+    border-color: rgba(37, 99, 235, 0.3);
+    color: #bfdbfe !important; /* blue-200 */
+}
+
+.seo-footer-content ul li a:hover {
+    background-color: rgba(37, 99, 235, 0.1); /* blue-100 */
+    border-color: rgba(37, 99, 235, 0.3);
+    transform: translateY(-1px);
+}
+
+[data-theme="dark"] .seo-footer-content ul li a:hover {
+    background-color: rgba(37, 99, 235, 0.2);
+}
+
+.seo-footer-content ul li a::before {
+    content: "";
+    display: block;
+    width: 30px; /* Уменьшенная иконка */
+    height: 30px;
+    border-radius: 50%;
+    background-color: rgba(37, 99, 235, 0.15);
+    background-image: url('data:image/svg+xml;utf8,<svg xmlns="http://www.w3.org/2000/svg" width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="%232563eb" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M14 2H6a2 2 0 0 0-2 2v16a2 2 0 0 0 2 2h12a2 2 0 0 0 2-2V8z"></path><polyline points="14 2 14 8 20 8"></polyline><line x1="16" y1="13" x2="8" y2="13"></line><line x1="16" y1="17" x2="8" y2="17"></line><polyline points="10 9 9 9 8 9"></polyline></svg>');
+    background-repeat: no-repeat;
+    background-position: center;
+    flex-shrink: 0;
+}
+
+[data-theme="dark"] .seo-footer-content ul li a::before {
+    background-color: rgba(37, 99, 235, 0.3);
+    background-image: url('data:image/svg+xml;utf8,<svg xmlns="http://www.w3.org/2000/svg" width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="%2393c5fd" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M14 2H6a2 2 0 0 0-2 2v16a2 2 0 0 0 2 2h12a2 2 0 0 0 2-2V8z"></path><polyline points="14 2 14 8 20 8"></polyline><line x1="16" y1="13" x2="8" y2="13"></line><line x1="16" y1="17" x2="8" y2="17"></line><polyline points="10 9 9 9 8 9"></polyline></svg>');
 }

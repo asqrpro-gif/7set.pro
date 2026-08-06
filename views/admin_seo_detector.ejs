@@ -189,6 +189,10 @@
                                         <i data-lucide="sparkles" id="enrich-icon-<%= report.id %>" class="w-4 h-4"></i>
                                     </button>
                                 <% } %>
+                                <% const hasRetroLinks = (report.full_analysis_markdown || report.summary || '').includes('Полезные и правовые ресурсы'); %>
+                                <button class="btn-enrich-single w-10 h-10 md:w-8 md:h-8 flex items-center justify-center rounded transition-colors <%= hasRetroLinks ? 'text-emerald-400 hover:text-emerald-300' : 'text-rose-400 hover:text-rose-300 hover:bg-slate-700' %>" data-id="<%= report.id %>" title="SEO Обогащение (Словари)">
+                                    <i data-lucide="link" class="w-4 h-4"></i>
+                                </button>
                                 <% if (isPublished) { %>
                                     <button onclick="unpublishCard('<%= report.id %>')" title="Снять с публикации" class="w-10 h-10 md:w-8 md:h-8 flex items-center justify-center text-slate-400 hover:text-yellow-400 hover:bg-slate-700 rounded transition-colors">
                                         <i data-lucide="clock" class="w-4 h-4"></i>
@@ -589,6 +593,39 @@ async function removeBrokenLink(reportId, brokenUrl, rowIndex) {
                 alert('Ошибка обогащения: ' + e.message);
             }
         }
+
+        document.querySelectorAll('.btn-enrich-single').forEach(btn => {
+            btn.addEventListener('click', async function() {
+                const id = this.getAttribute('data-id');
+                const originalHtml = this.innerHTML;
+                
+                this.disabled = true;
+                this.innerHTML = '<i data-lucide="loader-2" class="w-4 h-4 animate-spin text-cyan-400"></i>';
+                lucide.createIcons();
+
+                try {
+                    const res = await fetch(`/admin/api/seo-enrich/single/${id}`, { method: 'POST' });
+                    const data = await res.json();
+                    
+                    if (data.success || data.status === 'already_enriched') {
+                        this.innerHTML = '<i data-lucide="check-circle" class="w-4 h-4 text-emerald-400"></i>';
+                        lucide.createIcons();
+                        if (data.status === 'already_enriched') {
+                            this.title = 'Уже обогащено';
+                        }
+                        if (data.recreated) {
+                            window.location.reload();
+                        }
+                    } else {
+                        throw new Error(data.error || 'Unknown error');
+                    }
+                } catch(e) {
+                    this.innerHTML = '<i data-lucide="x-circle" class="w-4 h-4 text-rose-400"></i>';
+                    lucide.createIcons();
+                    alert('Ошибка обогащения: ' + e.message);
+                }
+            });
+        });
     </script>
 
 <%- include('admin_layout_footer') %>

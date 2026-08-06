@@ -221,8 +221,8 @@ async function main() {
             summary: fastData.summary,
             teaser_text: fastData.teaser_text,
             drivability: safeDrivability,
-            seoTitle: fastData.seoTitle,
-            seoDescription: fastData.seoDescription,
+            seoTitle: deepData.seo_title || fastData.seoTitle,
+            seoDescription: deepData.seo_description || fastData.seoDescription,
             is_paid: false,
             is_complete: true,
 
@@ -235,6 +235,9 @@ async function main() {
             diy_difficulty_score: deepData.diy_difficulty_score,
             diy_time: deepData.diy_time,
             diy_tools: deepData.diy_tools,
+            tools_table_md: deepData.tools_table_md,
+            oem_parts_table_md: deepData.oem_parts_table_md,
+            pro_tips_md: deepData.pro_tips_md,
             popular_engine_codes: deepData.popular_engine_codes || [],
             related_obd_codes: deepData.related_obd_codes || [],
 

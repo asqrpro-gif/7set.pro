@@ -2,6 +2,15 @@
 <html lang="ru">
 
 <head>
+  <script>
+    if (localStorage.getItem('theme') === 'light') {
+      document.documentElement.setAttribute('data-theme', 'light');
+      document.documentElement.classList.remove('dark');
+    } else {
+      document.documentElement.setAttribute('data-theme', 'dark');
+      document.documentElement.classList.add('dark');
+    }
+  </script>
   <meta charset="UTF-8">
   <meta name="viewport" content="width=device-width, initial-scale=1.0">
   <title>
@@ -122,9 +131,9 @@
       </ol>
     </nav>
 
-    <div class="diagnostic-grid <%= !isUnlockedForUser ? 'md:items-stretch' : 'md:items-start' %>">
+    <div class="<%= !isUnlockedForUser ? 'diagnostic-grid md:items-stretch' : 'flex flex-col gap-6 mt-4' %>">
       <article
-        class="bg-white dark:bg-slate-800 rounded-2xl shadow-sm p-5 mb-4 border border-transparent dark:border-slate-700 <%= !isUnlockedForUser ? 'h-full flex flex-col' : '' %>">
+        class="bg-white dark:bg-slate-800 rounded-2xl shadow-sm p-5 border border-transparent dark:border-slate-700 <%= !isUnlockedForUser ? 'h-full flex flex-col' : '' %>">
         <div class="flex justify-between items-start mb-4">
           <div class="flex flex-wrap gap-2">
             <span class="<%= severityClass %> text-xs font-bold px-3 py-1.5 rounded-full uppercase tracking-wide">
@@ -180,7 +189,7 @@
             const logoSlug = brandMap[currentBrandLower];
           %>
           <% if (logoSlug) { %>
-            <img src="/img/logos/<%= logoSlug %>-logo-60x60-px.webp" width="60" height="60" alt="<%= isUnsupportedReport ? 'Диагностика и проверка неизвестного или ложного кода ошибки автомобиля' : `Детальная расшифровка и ремонт ошибки ${displayCode} для ${displayBrand} ${displayModel}` %>" class="order-1 shrink-0" />
+            <img src="/img/logos/<%= logoSlug %>-logo-60x60-px.webp" fetchpriority="high" width="60" height="60" alt="<%= isUnsupportedReport ? 'Диагностика и проверка неизвестного или ложного кода ошибки автомобиля' : `Детальная расшифровка и ремонт ошибки ${displayCode} для ${displayBrand} ${displayModel}` %>" class="order-1 shrink-0" />
             <span class="text-gray-800 dark:text-gray-200 font-semibold text-lg mt-4 order-2"><%= displayBrand %> <%= displayModel %></span>
           <% } else { %>
             <i data-lucide="car-front" class="w-16 h-16 text-brand order-1 shrink-0" aria-hidden="true"></i>
@@ -197,38 +206,34 @@
         <div class="report-content relative <%= !isUnlockedForUser ? 'h-full flex flex-col justify-end bg-white dark:bg-slate-800 rounded-2xl shadow-sm border border-transparent dark:border-slate-700 overflow-hidden' : '' %>">
           <div class="<%= !isUnlockedForUser ? 'paywall-blur-container absolute inset-0 overflow-hidden opacity-90 p-4 md:p-6' : '' %>">
 
-            <details
-              class="bg-white dark:bg-slate-800 rounded-2xl shadow-sm mb-4 overflow-hidden border border-gray-50 dark:border-slate-700"
-              open>
-              <summary
-                class="flex items-center gap-3 font-semibold p-5 cursor-pointer hover:bg-gray-50 dark:hover:bg-slate-700/50 transition-colors list-none outline-none">
-                <h2
-                  class="text-base md:text-lg font-semibold m-0 flex items-center gap-3 w-full font-inherit text-inherit text-gray-900 dark:text-white">
+            <details class="bg-white dark:bg-slate-800 rounded-2xl shadow-sm mb-4 overflow-hidden border border-gray-50 dark:border-slate-700" open>
+              <summary class="flex items-center gap-3 font-semibold p-5 cursor-pointer hover:bg-gray-50 dark:hover:bg-slate-700/50 transition-colors list-none outline-none">
+                <h2 class="text-base md:text-lg font-semibold m-0 flex items-center gap-3 w-full font-inherit text-inherit text-gray-900 dark:text-white">
                   <i data-lucide="file-search" class="w-5 h-5 text-brand shrink-0 order-1"></i> <span class="order-2">Полный разбор причины</span></h2>
               </summary>
-              <div
-                class="p-5 border-t border-gray-50 dark:border-slate-700 bg-white dark:bg-slate-800 prose prose-blue prose-lg dark:prose-invert max-w-none text-gray-800 dark:text-gray-200">
+              <div class="p-5 border-t border-gray-50 dark:border-slate-700 bg-white dark:bg-slate-800 prose prose-blue prose-lg dark:prose-invert max-w-none text-gray-800 dark:text-gray-200">
                 <%- fullAnalysisHtml %>
-                <% if (typeof proTipsHtml !== 'undefined' && proTipsHtml) { %>
-                  <div class="mt-8 border-t border-gray-100 dark:border-slate-700 pt-6">
-                    <h3 class="flex items-center gap-2 text-xl font-bold text-gray-900 dark:text-white mb-4"><i data-lucide='lightbulb' class='w-6 h-6 text-yellow-500 shrink-0 order-1'></i> <span class="order-2">Советы эксперта по <%= displayBrand %></span></h3>
-                    <%- proTipsHtml %>
-                  </div>
-                <% } %>
               </div>
             </details>
+            
+            <% if (typeof proTipsHtml !== 'undefined' && proTipsHtml) { %>
+            <details class="bg-white dark:bg-slate-800 rounded-2xl shadow-sm mb-4 overflow-hidden border border-gray-50 dark:border-slate-700" open>
+              <summary class="flex items-center gap-3 font-semibold p-5 cursor-pointer hover:bg-gray-50 dark:hover:bg-slate-700/50 transition-colors list-none outline-none">
+                <h2 class="text-base md:text-lg font-semibold m-0 flex items-center gap-3 w-full font-inherit text-inherit text-gray-900 dark:text-white">
+                  <i data-lucide="lightbulb" class="w-5 h-5 text-yellow-500 shrink-0 order-1"></i> <span class="order-2">Советы эксперта по <%= displayBrand %></span></h2>
+              </summary>
+              <div class="p-5 border-t border-gray-50 dark:border-slate-700 bg-white dark:bg-slate-800 prose prose-blue prose-lg dark:prose-invert max-w-none text-gray-800 dark:text-gray-200">
+                <%- proTipsHtml %>
+              </div>
+            </details>
+            <% } %>
 
-            <details
-              class="bg-white dark:bg-slate-800 rounded-2xl shadow-sm mb-4 overflow-hidden border border-gray-50 dark:border-slate-700"
-              open>
-              <summary
-                class="flex items-center gap-3 font-semibold p-5 cursor-pointer hover:bg-gray-50 dark:hover:bg-slate-700/50 transition-colors list-none outline-none">
-                <h2
-                  class="text-base md:text-lg font-semibold m-0 flex items-center gap-3 w-full font-inherit text-inherit text-gray-900 dark:text-white">
+            <details class="bg-white dark:bg-slate-800 rounded-2xl shadow-sm mb-4 overflow-hidden border border-gray-50 dark:border-slate-700" open>
+              <summary class="flex items-center gap-3 font-semibold p-5 cursor-pointer hover:bg-gray-50 dark:hover:bg-slate-700/50 transition-colors list-none outline-none">
+                <h2 class="text-base md:text-lg font-semibold m-0 flex items-center gap-3 w-full font-inherit text-inherit text-gray-900 dark:text-white">
                   <i data-lucide="shield-alert" class="w-5 h-5 text-red-500 shrink-0 order-1"></i> <span class="order-2">Защита от обмана на СТО</span></h2>
               </summary>
-              <div
-                class="p-5 border-t border-gray-50 dark:border-slate-700 bg-white dark:bg-slate-800 prose prose-blue prose-lg dark:prose-invert max-w-none text-gray-800 dark:text-gray-200">
+              <div class="p-5 border-t border-gray-50 dark:border-slate-700 bg-white dark:bg-slate-800 prose prose-blue prose-lg dark:prose-invert max-w-none text-gray-800 dark:text-gray-200">
                 <%- scamProtectionHtml %>
               </div>
             </details>
@@ -334,6 +339,24 @@
                   <%- diyInstructionsHtml %></div>
               </div>
             </details>
+            
+            <% if (typeof seoFooterHtml !== 'undefined' && seoFooterHtml) { %>
+            <details
+              class="bg-white dark:bg-slate-800 rounded-2xl shadow-sm mb-4 overflow-hidden border border-gray-50 dark:border-slate-700"
+              open>
+              <summary
+                class="flex items-center gap-3 font-semibold p-5 cursor-pointer hover:bg-gray-50 dark:hover:bg-slate-700/50 transition-colors list-none outline-none">
+                <h2
+                  class="text-base md:text-lg font-semibold m-0 flex items-center gap-3 w-full font-inherit text-inherit text-gray-900 dark:text-white">
+                  <i data-lucide="scale" class="w-5 h-5 <%= severityClass.includes('red') ? 'text-red-500' : (severityClass.includes('yellow') ? 'text-yellow-500' : 'text-green-500') %> shrink-0 order-1"></i> <span class="order-2">ПДД и полезные ресурсы</span></h2>
+              </summary>
+              <div
+                class="seo-footer-content p-5 border-t border-gray-50 dark:border-slate-700 bg-white dark:bg-slate-800 prose prose-sm md:prose-lg dark:prose-invert max-w-none text-gray-800 dark:text-gray-200">
+                <%- seoFooterHtml %>
+              </div>
+            </details>
+            <% } %>
+            
           </div>
           <% if (!isUnlockedForUser) { %>
             <!-- Градиентное перекрытие и сканер над размытым текстом -->
@@ -346,10 +369,10 @@
 
             <!-- Сама карточка пейволла в нормальном потоке, прижатая к низу -->
             <div id="paywall-overlay"
-              class="relative z-20 w-full flex flex-col items-center p-4 pb-8 pe-none">
+              class="relative z-20 w-full flex flex-col items-center pb-8 pe-none">
 
               <div
-                class="bg-slate-900 bg-gradient-to-br from-slate-900 via-blue-950 to-slate-900 animate-gradient-xy border border-white/10 shadow-[0_20px_60px_-10px_rgba(0,119,255,0.5)] animate-pulse-glow rounded-3xl p-6 md:p-8 w-full max-w-md transform transition-all mx-auto relative overflow-hidden pe-auto">
+                class="bg-slate-900 bg-gradient-to-br from-slate-900 via-blue-950 to-slate-900 animate-gradient-xy border border-white/10 shadow-[0_20px_60px_-10px_rgba(0,119,255,0.5)] animate-pulse-glow rounded-2xl p-6 md:p-8 w-full transform transition-all relative overflow-hidden pe-auto">
 
                 <!-- Декоративные партиклы/сетка на фоне карточки -->
                 <div class="absolute inset-0 opacity-20 bg-dots-pattern">
