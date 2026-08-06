@@ -1,6 +1,6 @@
 import express from 'express';
 import { PrismaClient } from '@prisma/client';
-import { spawn } from 'child_process';
+import { spawn, execSync } from 'child_process';
 import path from 'path';
 import { fileURLToPath } from 'url';
 import fs from 'fs';
@@ -99,8 +99,7 @@ router.get('/', async (req, res) => {
             let gitInfo = null;
             if (file === 'update_site.js') {
                 try {
-                    const { execSync } = require('child_process');
-                    const repoPath = require('path').join(__dirname, '..');
+                    const repoPath = path.join(__dirname, '..');
                     const gitMsg = execSync('git log -1 --format="%s"', { encoding: 'utf-8', cwd: repoPath }).trim();
                     const gitDate = execSync('git log -1 --format="%cd" --date=format:"%d.%m.%Y %H:%M"', { encoding: 'utf-8', cwd: repoPath }).trim();
                     gitInfo = `${gitMsg} (${gitDate})`;
