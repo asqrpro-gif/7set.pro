@@ -11,7 +11,7 @@ async function runCleanup() {
     const reports = await prisma.diagnosticReport.findMany({
       where: {
         full_analysis_markdown: {
-          not: null
+          not: ""
         }
       },
       select: {
