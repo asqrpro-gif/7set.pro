@@ -140,23 +140,32 @@
             <!-- Header (Accordion Trigger) -->
             <div class="p-2 md:p-3 hover:bg-slate-700/50 transition-colors flex items-center justify-between gap-2 cursor-pointer" onclick="toggleTerminal('<%= script.file %>', '<%= safeId %>')">
                 <div class="flex flex-col gap-0.5 overflow-hidden">
-                    <h3 class="text-white font-medium text-sm md:text-base leading-tight truncate"><%= script.name %></h3>
-                    <% if (script.running) { %>
-                        <span class="text-green-400 text-[10px] uppercase tracking-wider flex items-center gap-1 font-bold">
-                            <span class="w-1.5 h-1.5 bg-green-400 rounded-full animate-pulse"></span> Работает
-                        </span>
-                    <% } else { %>
-                        <span class="text-slate-400 text-[10px] uppercase tracking-wider font-bold">Остановлен</span>
-                    <% } %>
+                    <h3 class="text-white font-medium text-sm md:text-base leading-tight truncate">
+                        <%= script.name %>
+                        <% if (script.gitInfo) { %>
+                            <span class="text-[10px] ml-2 px-1.5 py-0.5 rounded bg-slate-700/80 text-slate-300 font-mono inline-flex items-center gap-1 font-normal align-middle">
+                                <i data-lucide="git-commit" class="w-3 h-3 text-emerald-400"></i> <%= script.gitInfo %>
+                            </span>
+                        <% } %>
+                    </h3>
+                    <div id="status-<%= safeId %>">
+                        <% if (script.running) { %>
+                            <span class="text-green-400 text-[10px] uppercase tracking-wider flex items-center gap-1 font-bold">
+                                <span class="w-1.5 h-1.5 bg-green-400 rounded-full animate-pulse"></span> Работает
+                            </span>
+                        <% } else { %>
+                            <span class="text-slate-400 text-[10px] uppercase tracking-wider font-bold">Остановлен</span>
+                        <% } %>
+                    </div>
                 </div>
                 
                 <div class="flex gap-1.5 shrink-0" onclick="event.stopPropagation()">
                     <% if (script.running) { %>
-                        <button onclick="stopScript('<%= script.file %>')" class="w-12 h-12 md:w-10 md:h-10 bg-red-500/10 hover:bg-red-500/20 text-red-400 rounded-lg flex items-center justify-center transition-colors border border-red-500/20" title="Стоп">
+                        <button id="btn-<%= safeId %>" onclick="stopScript('<%= script.file %>')" class="w-12 h-12 md:w-10 md:h-10 bg-red-500/10 hover:bg-red-500/20 text-red-400 rounded-lg flex items-center justify-center transition-colors border border-red-500/20" title="Стоп">
                             <i data-lucide="square" class="w-5 h-5 md:w-4 md:h-4"></i>
                         </button>
                     <% } else { %>
-                        <button onclick="startScript('<%= script.file %>')" class="w-12 h-12 md:w-10 md:h-10 bg-blue-600 hover:bg-blue-500 text-white rounded-lg flex items-center justify-center transition-colors" title="Старт">
+                        <button id="btn-<%= safeId %>" onclick="startScript('<%= script.file %>')" class="w-12 h-12 md:w-10 md:h-10 bg-blue-600 hover:bg-blue-500 text-white rounded-lg flex items-center justify-center transition-colors" title="Старт">
                             <i data-lucide="play" class="w-5 h-5 md:w-4 md:h-4"></i>
                         </button>
                     <% } %>
@@ -265,6 +274,7 @@
     // Accordion Logic
     const openTerminals = new Set();
     const pollingIntervals = {};
+    const scriptRunningState = {};
 
     function toggleTerminal(scriptName, safeId) {
         const container = document.getElementById(`term-container-${safeId}`);
@@ -305,6 +315,31 @@
             
             if(isScrolledToBottom) {
                 termNode.scrollTop = termNode.scrollHeight;
+            }
+            
+            if (scriptRunningState[safeId] === undefined) {
+                scriptRunningState[safeId] = data.running;
+            } else if (scriptRunningState[safeId] !== data.running) {
+                scriptRunningState[safeId] = data.running;
+                
+                const statusNode = document.getElementById(`status-${safeId}`);
+                if (statusNode) {
+                    if (data.running) {
+                        statusNode.innerHTML = `<span class="text-green-400 text-[10px] uppercase tracking-wider flex items-center gap-1 font-bold"><span class="w-1.5 h-1.5 bg-green-400 rounded-full animate-pulse"></span> Работает</span>`;
+                    } else {
+                        statusNode.innerHTML = `<span class="text-slate-400 text-[10px] uppercase tracking-wider font-bold">Остановлен</span>`;
+                    }
+                }
+                
+                const btn = document.getElementById(`btn-${safeId}`);
+                if (btn) {
+                    if (data.running) {
+                        btn.outerHTML = `<button id="btn-${safeId}" onclick="stopScript('${scriptName}')" class="w-12 h-12 md:w-10 md:h-10 bg-red-500/10 hover:bg-red-500/20 text-red-400 rounded-lg flex items-center justify-center transition-colors border border-red-500/20" title="Стоп"><i data-lucide="square" class="w-5 h-5 md:w-4 md:h-4"></i></button>`;
+                    } else {
+                        btn.outerHTML = `<button id="btn-${safeId}" onclick="startScript('${scriptName}')" class="w-12 h-12 md:w-10 md:h-10 bg-blue-600 hover:bg-blue-500 text-white rounded-lg flex items-center justify-center transition-colors" title="Старт"><i data-lucide="play" class="w-5 h-5 md:w-4 md:h-4"></i></button>`;
+                    }
+                    lucide.createIcons();
+                }
             }
         } catch(e) {
             console.error(e);

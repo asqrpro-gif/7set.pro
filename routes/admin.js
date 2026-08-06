@@ -95,11 +95,26 @@ router.get('/', async (req, res) => {
         });
 
         // Собираем статусы
-        const scriptsStatus = scriptFiles.map(file => ({
-            file: file,
-            name: scriptNames[file] || file,
-            running: activeProcesses.has(file)
-        }));
+        const scriptsStatus = scriptFiles.map(file => {
+            let gitInfo = null;
+            if (file === 'update_site.js') {
+                try {
+                    const { execSync } = require('child_process');
+                    const repoPath = require('path').join(__dirname, '..');
+                    const gitMsg = execSync('git log -1 --format="%s"', { encoding: 'utf-8', cwd: repoPath }).trim();
+                    const gitDate = execSync('git log -1 --format="%cd" --date=format:"%d.%m.%Y %H:%M"', { encoding: 'utf-8', cwd: repoPath }).trim();
+                    gitInfo = `${gitMsg} (${gitDate})`;
+                } catch (e) {
+                    console.error('Ошибка получения git info:', e.message);
+                }
+            }
+            return {
+                file: file,
+                name: scriptNames[file] || file,
+                running: activeProcesses.has(file),
+                gitInfo: gitInfo
+            };
+        });
 
         // Собираем статистику для умного Sitemap
         let sitemapUrlCount = await prisma.diagnosticReport.count({

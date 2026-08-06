@@ -10,7 +10,7 @@ try {
     console.log('Текущая версия (последний коммит):');
     
     // Получаем лог коммита
-    const logOutput = execSync('git log -1 --format="%h - %s (%ci)"', { encoding: 'utf-8', stdio: 'pipe' });
+    const logOutput = execSync('git log -1 --format="%s (%cd)" --date=format:"%d.%m.%Y %H:%M"', { encoding: 'utf-8', stdio: 'pipe' });
     console.log(logOutput);
     
 } catch (e) {
