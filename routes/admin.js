@@ -274,9 +274,9 @@ router.post('/api/scripts/stop', (req, res) => {
     const { script } = req.body;
     const child = activeProcesses.get(script);
     if (child) {
-        child.kill();
+        child.kill('SIGKILL');
         activeProcesses.delete(script);
-        appendLog(script, `\n[${new Date().toLocaleString()}] ПРОЦЕСС ОСТАНОВЛЕН АДМИНИСТРАТОРОМ\n`);
+        appendLog(script, `\n[${new Date().toLocaleString()}] ПРОЦЕСС ЖЕСТКО ОСТАНОВЛЕН АДМИНИСТРАТОРОМ (SIGKILL)\n`);
         res.json({ success: true });
     } else {
         res.status(400).json({ error: 'Скрипт не запущен' });

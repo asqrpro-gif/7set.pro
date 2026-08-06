@@ -7,6 +7,7 @@ async function runCleanup() {
   console.log('🚀 Запуск очистки артефактов (висячих цифр) в БД...');
   
   try {
+    console.log('⏳ Загрузка всех карточек из БД (это может занять до 1-2 минут)...');
     // Получаем все карточки, где есть сгенерированный markdown
     const reports = await prisma.diagnosticReport.findMany({
       where: {
