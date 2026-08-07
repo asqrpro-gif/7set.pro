@@ -132,21 +132,28 @@ async function run() {
                 }
             }
 
-            // 3. Оборванные предложения (проверяем только самый конец текста)
-            const cleanContent = field.content.trim();
-            if (cleanContent.length > 0) {
-                const lastWordMatch = cleanContent.match(/(\s|^)([,:(]|и|а|но|или|что|как|в|на|с|к|по|за|из|от)$/i);
-                if (lastWordMatch) {
-                    brokenLinks.push({
-                        id: report.id,
-                        title: title,
-                        text: `Оборвано: ...${cleanContent.slice(-30)}`,
-                        url: 'ОБОРВАННЫЙ ТЕКСТ',
-                        field: field.name
-                    });
+                // 3. Оборванные абзацы (проверяем, если обычный текст обрывается без точки/пунктуации)
+                const isEndOfParagraph = (i === lines.length - 1) || (lines[i+1].trim() === '');
+                if (isEndOfParagraph) {
+                    let textForPunc = line.replace(/<[^>]*>?/gm, '').replace(/[\*\_\`\~]+$/g, '').trim();
+                    // Игнорируем заголовки, списки, таблицы и слишком короткие строки
+                    if (textForPunc.length > 50 && !/^(#|\-|\*|\d+\.|>|\|)/.test(textForPunc)) {
+                        const lastChar = textForPunc.slice(-1);
+                        const validEndings = ['.', '!', '?', ':', ';', '"', "'", '»', ')', ']', '}'];
+                        
+                        // Если последний символ - это буква или цифра (не пункт. знак), значит абзац оборван
+                        if (lastChar && !validEndings.includes(lastChar) && /[a-zA-Zа-яА-Я0-9]/.test(lastChar)) {
+                            brokenLinks.push({
+                                id: report.id,
+                                title: title,
+                                text: `Оборванный абзац: ...${textForPunc.slice(-30)}`,
+                                url: 'ОБОРВАННЫЙ ТЕКСТ',
+                                field: field.name
+                            });
+                        }
+                    }
                 }
             }
-        }
 
         // Проверяем блок related_obd_codes
         if (report.related_obd_codes) {
