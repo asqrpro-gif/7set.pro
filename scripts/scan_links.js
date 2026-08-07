@@ -99,6 +99,51 @@ async function run() {
                     }
                 }
             }
+
+            // Проверка на проблемы верстки (сломанные **, висячие цифры, оборванные предложения)
+            const lines = field.content.split('\n');
+            for (let i = 0; i < lines.length; i++) {
+                const line = lines[i].trim();
+                if (!line) continue;
+                
+                // 1. Незакрытые теги ** (нечетное количество на строке)
+                const boldCount = (line.match(/\*\*/g) || []).length;
+                if (boldCount % 2 !== 0) {
+                    brokenLinks.push({
+                        id: report.id,
+                        title: title,
+                        text: `Незакрытый жирный шрифт: ${line.substring(0, 40)}...`,
+                        url: 'ОШИБКА ВЕРСТКИ',
+                        field: field.name
+                    });
+                }
+
+                // 2. Висячие цифры (например, "2.")
+                if (/^\d+\.$/.test(line)) {
+                    brokenLinks.push({
+                        id: report.id,
+                        title: title,
+                        text: `Висячая цифра: ${line}`,
+                        url: 'АРТЕФАКТ',
+                        field: field.name
+                    });
+                }
+            }
+
+            // 3. Оборванные предложения (проверяем только самый конец текста)
+            const cleanContent = field.content.trim();
+            if (cleanContent.length > 0) {
+                const lastWordMatch = cleanContent.match(/(\s|^)([,:(]|и|а|но|или|что|как|в|на|с|к|по|за|из|от)$/i);
+                if (lastWordMatch) {
+                    brokenLinks.push({
+                        id: report.id,
+                        title: title,
+                        text: `Оборвано: ...${cleanContent.slice(-30)}`,
+                        url: 'ОБОРВАННЫЙ ТЕКСТ',
+                        field: field.name
+                    });
+                }
+            }
         }
 
         // Проверяем блок related_obd_codes

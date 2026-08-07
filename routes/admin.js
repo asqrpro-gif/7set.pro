@@ -497,6 +497,20 @@ router.post('/api/seo/enrich-single', async (req, res) => {
 });
 
 // API для получения детального разбора баллов (асинхронно, при открытии модалки)
+// Получение полных данных карточки по ID (для модалки из таблицы битых ссылок)
+router.get('/api/seo-detector/report/:id', async (req, res) => {
+    try {
+        const report = await prisma.diagnosticReport.findUnique({
+            where: { id: req.params.id }
+        });
+        if (!report) return res.json({ success: false, error: 'Не найдено' });
+        res.json({ success: true, report });
+    } catch (e) {
+        console.error(e);
+        res.json({ success: false, error: 'Ошибка' });
+    }
+});
+
 router.get('/api/seo-detector/details/:id', async (req, res) => {
     try {
         const id = req.params.id;

@@ -1,4 +1,5 @@
 import fetch from 'node-fetch';
+import { enrichReportText } from '../lib/seoEnricher.js';
 
 export async function enrichSeoCard(report, prisma) {
   try {
@@ -59,6 +60,11 @@ ${report.full_analysis_markdown || report.summary}
 
     const enrichedData = JSON.parse(resultText);
 
+    // Применяем ретроактивное обогащение (глоссарий, ПДД, вики-ссылки) 
+    // строго к "сырому" тексту, только что дополненному ИИ.
+    const oldMarkdown = report.full_analysis_markdown || report.summary || '';
+    const newMarkdown = enrichReportText(oldMarkdown, report.brand, report.model, report.code, report.drivability);
+
     // Обновляем БД с новыми полями (без матрешек)
     const updatedReport = await prisma.diagnosticReport.update({
       where: { id: report.id },
@@ -68,6 +74,7 @@ ${report.full_analysis_markdown || report.summary}
         tools_table_md: enrichedData.tools_table_md,
         oem_parts_table_md: enrichedData.oem_parts_table_md,
         pro_tips_md: enrichedData.pro_tips_md,
+        full_analysis_markdown: newMarkdown, // Сохраняем ретроактивное обогащение
         seoScore: 95,
         seoRisk: 'SAFE',
         uniquenessScore: 100 // После такого обогащения текст точно становится уникальнее

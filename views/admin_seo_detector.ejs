@@ -277,7 +277,7 @@
     <summary class="p-4 cursor-pointer list-none flex justify-between items-center font-semibold text-white select-none [&::-webkit-details-marker]:hidden border-b border-slate-700 bg-slate-800/50 hover:bg-slate-700/50 transition-colors">
         <div class="flex items-center gap-2">
             <i data-lucide="link-2-off" class="w-5 h-5 text-red-400"></i>
-            Битые ссылки (404)
+            Проблемы верстки и Битые ссылки
         </div>
         <div class="flex items-center gap-3">
             <span class="text-xs font-medium bg-slate-700 px-2 py-1 rounded-md text-slate-300"><%= brokenLinks.length %> шт.</span>
@@ -289,7 +289,7 @@
             <% if (brokenLinks.length === 0) { %>
                 <div class="flex flex-col items-center justify-center h-full text-slate-500 gap-3">
                     <i data-lucide="check-circle" class="w-12 h-12 text-green-500/50"></i>
-                    <p>Отлично! Битых ссылок не найдено.</p>
+                    <p>Отлично! Проблем верстки и битых ссылок не найдено.</p>
                 </div>
             <% } else { %>
                 <div class="overflow-x-auto min-h-0">
@@ -316,10 +316,17 @@
                                         <div class="text-red-400 font-mono text-[11px] break-all max-w-[300px]"><%= link.url %></div>
                                     </td>
                                     <td class="px-2 py-2 text-right">
-                                        <button onclick="removeBrokenLink('<%= link.id %>', '<%= link.url.replace(/'/g, "\\'") %>', <%= idx %>)" class="bg-red-500/10 hover:bg-red-500/20 text-red-400 border border-red-500/20 px-2.5 py-1.5 rounded-lg text-xs font-medium transition-colors inline-flex items-center gap-1.5">
-                                            <i data-lucide="trash-2" class="w-3.5 h-3.5"></i>
-                                            Удалить ссылку
-                                        </button>
+                                        <div class="flex justify-end gap-1">
+                                            <button onclick="editCardFromLinks('<%= link.id %>')" title="Редактировать" class="w-8 h-8 flex items-center justify-center text-slate-400 hover:text-blue-400 hover:bg-slate-700 rounded transition-colors">
+                                                <i data-lucide="edit-2" class="w-4 h-4"></i>
+                                            </button>
+                                            <button onclick="deleteCard('<%= link.id %>')" title="Удалить карточку" class="w-8 h-8 flex items-center justify-center text-slate-400 hover:text-red-400 hover:bg-slate-700 rounded transition-colors">
+                                                <i data-lucide="trash-2" class="w-4 h-4"></i>
+                                            </button>
+                                            <button onclick="removeBrokenLink('<%= link.id %>', '<%= link.url.replace(/'/g, "\\'") %>', <%= idx %>)" title="Скрыть уведомление" class="w-8 h-8 flex items-center justify-center text-slate-400 hover:text-yellow-400 hover:bg-slate-700 rounded transition-colors">
+                                                <i data-lucide="x" class="w-4 h-4"></i>
+                                            </button>
+                                        </div>
                                     </td>
                                 </tr>
                             <% }) %>
@@ -628,6 +635,21 @@ async function removeBrokenLink(reportId, brokenUrl, rowIndex) {
                 }
             });
         });
+
+        async function editCardFromLinks(id) {
+            try {
+                const res = await fetch(`/admin/api/seo-detector/report/${id}`);
+                const data = await res.json();
+                if (data.success && data.report) {
+                    openEditModal(data.report);
+                } else {
+                    alert('Не удалось загрузить данные карточки');
+                }
+            } catch (e) {
+                console.error(e);
+                alert('Ошибка сети при загрузке карточки');
+            }
+        }
     </script>
 
 <%- include('admin_layout_footer') %>
