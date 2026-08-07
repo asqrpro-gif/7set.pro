@@ -277,7 +277,7 @@
     <summary class="p-4 cursor-pointer list-none flex justify-between items-center font-semibold text-white select-none [&::-webkit-details-marker]:hidden border-b border-slate-700 bg-slate-800/50 hover:bg-slate-700/50 transition-colors">
         <div class="flex items-center gap-2">
             <i data-lucide="link-2-off" class="w-5 h-5 text-red-400"></i>
-            Проблемы верстки и Битые ссылки
+            Сироты, Проблемы верстки и Битые ссылки
         </div>
         <div class="flex items-center gap-3">
             <span class="text-xs font-medium bg-slate-700 px-2 py-1 rounded-md text-slate-300"><%= brokenLinks.length %> шт.</span>
@@ -306,7 +306,16 @@
                             <% brokenLinks.forEach((link, idx) => { %>
                                 <tr class="hover:bg-slate-700/30 transition-colors" id="row-<%= idx %>">
                                     <td class="px-2 py-2">
-                                        <div class="text-white font-medium text-sm"><%= link.title %></div>
+                                        <div class="text-white font-medium text-sm flex items-center gap-2 flex-wrap">
+                                            <%= link.title %>
+                                            <% if (link.url === 'СТРАНИЦА-СИРОТА') { %>
+                                                <span class="bg-purple-500/10 border border-purple-500/20 text-purple-400 text-[10px] px-1.5 py-0.5 rounded whitespace-nowrap">Сирота</span>
+                                            <% } else if (['ОШИБКА ВЕРСТКИ', 'ОБОРВАННЫЙ ТЕКСТ', 'АРТЕФАКТ'].includes(link.url)) { %>
+                                                <span class="bg-orange-500/10 border border-orange-500/20 text-orange-400 text-[10px] px-1.5 py-0.5 rounded whitespace-nowrap">Проблемная верстка</span>
+                                            <% } else { %>
+                                                <span class="bg-red-500/10 border border-red-500/20 text-red-400 text-[10px] px-1.5 py-0.5 rounded whitespace-nowrap">Битая ссылка</span>
+                                            <% } %>
+                                        </div>
                                         <div class="text-xs text-slate-500 mt-0.5">Поле: <%= link.field %></div>
                                     </td>
                                     <td class="px-2 py-2 text-slate-300">

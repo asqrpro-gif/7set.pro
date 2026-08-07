@@ -424,7 +424,17 @@ router.get('/seo-detector', async (req, res) => {
             if (fs.existsSync(LINKS_REPORT_FILE)) {
                 const data = JSON.parse(fs.readFileSync(LINKS_REPORT_FILE, 'utf-8'));
                 orphans = Array.isArray(data.orphans) ? data.orphans : [];
-                brokenLinks = Array.isArray(data.brokenLinks) ? data.brokenLinks : [];
+                
+                // Преобразуем сирот в формат таблицы битых ссылок
+                let mappedOrphans = orphans.map(o => ({
+                    id: o.id,
+                    title: `${o.brand} ${o.model} ${o.code}`,
+                    text: 'На карточку не ведет ни одна ссылка (изолирована)',
+                    url: 'СТРАНИЦА-СИРОТА',
+                    field: 'Веб-архитектура'
+                }));
+                
+                brokenLinks = (Array.isArray(data.brokenLinks) ? data.brokenLinks : []).concat(mappedOrphans);
                 if (data.last_scan) {
                     const scanDate = new Date(data.last_scan);
                     linksStats.lastScan = scanDate.toLocaleString('ru-RU', {
@@ -509,6 +519,15 @@ router.get('/api/seo-detector/report/:id', async (req, res) => {
         console.error(e);
         res.json({ success: false, error: 'Ошибка' });
     }
+});
+
+router.get('/api/test/dump-p0134', async (req, res) => {
+    try {
+        const report = await prisma.diagnosticReport.findFirst({
+            where: { brand: 'hyundai', model: 'tucson', code: 'p0134' }
+        });
+        res.json(report);
+    } catch(e) { res.json({error: e.message}); }
 });
 
 router.get('/api/seo-detector/details/:id', async (req, res) => {

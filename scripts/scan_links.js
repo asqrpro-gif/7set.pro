@@ -118,12 +118,13 @@ async function run() {
                     });
                 }
 
-                // 2. Висячие цифры (например, "2.")
-                if (/^\d+\.$/.test(line)) {
+                // 2. Висячие цифры (например, "2.", "**2.**", "<p>1.</p>")
+                const cleanLine = line.replace(/<[^>]*>?/gm, '').trim();
+                if (/^[\s\*\#\-_]*\d+\.[\s\*\#\-_]*$/.test(cleanLine)) {
                     brokenLinks.push({
                         id: report.id,
                         title: title,
-                        text: `Висячая цифра: ${line}`,
+                        text: `Висячая цифра: ${cleanLine}`,
                         url: 'АРТЕФАКТ',
                         field: field.name
                     });
