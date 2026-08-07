@@ -298,7 +298,7 @@
     </div>
 </details>
 
-<details class="bg-slate-800 rounded-xl border border-slate-700 shadow-sm group mt-4" id="broken-links">
+<details class="bg-slate-800 rounded-xl border border-slate-700 shadow-sm group mt-4" id="broken-links" open>
     <summary class="p-4 cursor-pointer list-none flex justify-between items-center font-semibold text-white select-none [&::-webkit-details-marker]:hidden border-b border-slate-700 bg-slate-800/50 hover:bg-slate-700/50 transition-colors">
         <div class="flex items-center gap-2">
             <i data-lucide="link-2-off" class="w-5 h-5 text-red-400"></i>
@@ -415,6 +415,9 @@
                                     </td>
                                     <td class="px-2 py-2 text-right">
                                         <div class="flex justify-end gap-1">
+                                            <button class="btn-enrich-single w-8 h-8 flex items-center justify-center rounded transition-colors <%= link.hasRetroLinks ? 'text-emerald-400 hover:text-emerald-300' : 'text-rose-400 hover:text-rose-300 hover:bg-slate-700' %>" data-id="<%= link.id %>" title="SEO Обогащение (Словари)">
+                                                <i data-lucide="link" class="w-4 h-4"></i>
+                                            </button>
                                             <button onclick="editCardFromLinks('<%= link.id %>')" title="Редактировать" class="w-8 h-8 flex items-center justify-center text-slate-400 hover:text-blue-400 hover:bg-slate-700 rounded transition-colors">
                                                 <i data-lucide="edit-2" class="w-4 h-4"></i>
                                             </button>

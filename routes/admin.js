@@ -151,7 +151,7 @@ router.get('/', async (req, res) => {
                 const linksData = JSON.parse(fs.readFileSync(LINKS_REPORT_FILE, 'utf-8'));
                 linksStats.orphansCount = Array.isArray(linksData.orphans) ? linksData.orphans.length : 0;
                 linksStats.brokenLinksCount = Array.isArray(linksData.brokenLinks) ? linksData.brokenLinks.length : 0;
-                
+
                 if (linksData.last_scan) {
                     const scanDate = new Date(linksData.last_scan);
                     linksStats.lastScan = scanDate.toLocaleString('ru-RU', {
@@ -522,6 +522,22 @@ router.get('/seo-detector', async (req, res) => {
             }
         } catch (e) {
             console.error('Ошибка чтения links_report.json', e);
+        }
+
+        // Обогащаем brokenLinks флагом hasRetroLinks из базы
+        if (brokenLinks.length > 0) {
+            const brokenLinkIds = brokenLinks.map(link => link.id).filter(id => id);
+            const dbReports = await prisma.diagnosticReport.findMany({
+                where: { id: { in: brokenLinkIds } },
+                select: { id: true, full_analysis_markdown: true, summary: true }
+            });
+            const dbReportsMap = {};
+            dbReports.forEach(r => {
+                dbReportsMap[r.id] = (r.full_analysis_markdown || r.summary || '').includes('ПДД и полезные ресурсы');
+            });
+            brokenLinks.forEach(link => {
+                link.hasRetroLinks = !!dbReportsMap[link.id];
+            });
         }
 
         const mode = req.query.mode || 'seo';
