@@ -153,6 +153,7 @@ async function run() {
                     }
                 }
             } // конец цикла for (let i = ...
+        } // конец цикла for (const field of fieldsToCheck)
 
         // Проверяем блок related_obd_codes
         if (report.related_obd_codes) {
