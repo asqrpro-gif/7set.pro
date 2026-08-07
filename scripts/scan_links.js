@@ -102,13 +102,18 @@ async function run() {
 
             // Проверка на проблемы верстки (сломанные **, висячие цифры, оборванные предложения)
             const lines = field.content.split('\n');
+            let currentParagraphLength = 0;
             for (let i = 0; i < lines.length; i++) {
                 const line = lines[i].trim();
-                if (!line) continue;
+                if (!line) {
+                    currentParagraphLength = 0;
+                    continue;
+                }
+                currentParagraphLength += line.length;
                 
                 // 1. Незакрытые теги ** (нечетное количество на строке)
                 const boldCount = (line.match(/\*\*/g) || []).length;
-                if (boldCount % 2 !== 0) {
+                if (boldCount % 2 !== 0 && !/<[^>]+>/.test(line)) {
                     brokenLinks.push({
                         id: report.id,
                         title: title,
@@ -118,25 +123,36 @@ async function run() {
                     });
                 }
 
-                // 2. Висячие цифры (например, "2.", "**2.**", "<p>1.</p>", "1. 💰")
+                // 2. Висячие цифры и пустые HTML списки (например, "2.", "1\.", "<li></li>")
                 const cleanLine = line.replace(/<[^>]*>?/gm, '').trim();
                 const textWithoutSymbols = cleanLine.replace(/[\*\#\-_]/g, '').trim();
-                if (/^\d+\./.test(textWithoutSymbols) && !/[a-zA-Zа-яА-Я]/.test(cleanLine)) {
+                
+                const isHangingNumber = /^\d+\\?\./.test(textWithoutSymbols) && !/[a-zA-Zа-яА-Я]/.test(cleanLine);
+                const isEmptyHtmlList = /<li[^>]*>\s*<\/li>/i.test(line);
+                
+                if (isHangingNumber || isEmptyHtmlList) {
                     brokenLinks.push({
                         id: report.id,
                         title: title,
-                        text: `Висячая цифра: ${cleanLine.substring(0, 40)}`,
+                        text: `Висячий элемент: ${line.replace(/<[^>]*>?/gm, '').substring(0, 40) || '<li></li>'}`,
                         url: 'АРТЕФАКТ',
                         field: field.name
                     });
                 }
 
                 // 3. Оборванные абзацы (проверяем, если обычный текст обрывается без точки/пунктуации)
-                const isEndOfParagraph = (i === lines.length - 1) || (lines[i+1].trim() === '');
+                const nextLine = (i === lines.length - 1) ? '' : lines[i+1].trim();
+                
+                // Абзац завершен, если следующая строка пустая, либо это смена HTML/Markdown блоков
+                const isEndOfParagraph = !nextLine || 
+                                         /<\/(p|div|li|h[1-6])>$/i.test(line) || 
+                                         /^<(p|ol|ul|li|div|h[1-6])/i.test(nextLine) ||
+                                         /^(#|\-|\*|\d+\\?\.|>|\|)/.test(nextLine);
+
                 if (isEndOfParagraph) {
                     let textForPunc = line.replace(/<[^>]*>?/gm, '').replace(/[\*\_\`\~]+$/g, '').trim();
-                    // Игнорируем заголовки, списки, таблицы и слишком короткие строки
-                    if (textForPunc.length > 50 && !/^(#|\-|\*|\d+\.|>|\|)/.test(textForPunc)) {
+                    // Игнорируем заголовки, списки, таблицы. Проверяем длину (больше 30 символов, чтобы ловить даже короткие обрывы).
+                    if (currentParagraphLength > 30 && !/^(#|\-|\*|\d+\\?\.|>|\|)/.test(textForPunc)) {
                         const lastChar = textForPunc.slice(-1);
                         const validEndings = ['.', '!', '?', ':', ';', '"', "'", '»', ')', ']', '}'];
                         
