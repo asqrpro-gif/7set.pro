@@ -419,6 +419,13 @@ router.get('/seo-detector', async (req, res) => {
         let linksStats = { lastScan: null };
         let orphans = [];
         let brokenLinks = [];
+        let linkStatsObj = {
+            total: 0,
+            orphans: 0,
+            drafts: 0,
+            layout: 0,
+            broken: 0
+        };
         const LINKS_REPORT_FILE = path.join(__dirname, '../scripts/links_report.json');
         try {
             if (fs.existsSync(LINKS_REPORT_FILE)) {
@@ -436,6 +443,15 @@ router.get('/seo-detector', async (req, res) => {
                 }));
                 
                 brokenLinks = (Array.isArray(data.brokenLinks) ? data.brokenLinks : []).concat(mappedOrphans);
+                
+                // Подсчет статистики для фильтров
+                linkStatsObj.total = brokenLinks.length;
+                brokenLinks.forEach(link => {
+                    if (link.url === 'СТРАНИЦА-СИРОТА') linkStatsObj.orphans++;
+                    else if (link.url === 'ССЫЛКА НА ЧЕРНОВИК') linkStatsObj.drafts++;
+                    else if (['ОШИБКА ВЕРСТКИ', 'ОБОРВАННЫЙ ТЕКСТ', 'АРТЕФАКТ'].includes(link.url)) linkStatsObj.layout++;
+                    else linkStatsObj.broken++;
+                });
                 
                 // Фильтрация
                 const linkFilter = req.query.link_filter || 'ALL';
@@ -458,9 +474,9 @@ router.get('/seo-detector', async (req, res) => {
                     if (linkSort === 'title') {
                         valA = a.title.toLowerCase();
                         valB = b.title.toLowerCase();
-                    } else if (linkSort === 'type') {
-                        valA = a.url.toLowerCase();
-                        valB = b.url.toLowerCase();
+                    } else if (linkSort === 'type' || linkSort === 'problem') {
+                        valA = (a.url || '').toLowerCase();
+                        valB = (b.url || '').toLowerCase();
                     } else {
                         // date
                         valA = new Date(a.created_at || 0).getTime();
@@ -505,6 +521,7 @@ router.get('/seo-detector', async (req, res) => {
                 warning: warningCount,
                 total: totalCount
             },
+            brokenLinksStats: linkStatsObj,
             linkFilter: req.query.link_filter || 'ALL',
             linkSort: req.query.link_sort || 'date',
             linkOrder: req.query.link_order || 'desc',

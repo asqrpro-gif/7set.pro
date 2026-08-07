@@ -289,20 +289,20 @@
             
             <!-- Фильтры -->
             <div class="flex flex-wrap items-center gap-2 mb-4">
-                <a href="/admin/seo-detector?mode=seo&link_filter=ALL&link_sort=<%= linkSort %>&link_order=<%= linkOrder %>" class="px-3 py-1.5 rounded-lg text-xs font-medium transition-colors <%= linkFilter === 'ALL' ? 'bg-blue-600 text-white' : 'bg-slate-800 text-slate-400 hover:bg-slate-700 hover:text-white' %>">
-                    Все
+                <a href="/admin/seo-detector?mode=seo&link_filter=ALL&link_sort=<%= linkSort %>&link_order=<%= linkOrder %>" class="px-3 py-1.5 rounded-lg text-xs font-medium transition-colors flex items-center gap-2 <%= linkFilter === 'ALL' ? 'bg-blue-600 text-white' : 'bg-slate-800 text-slate-400 hover:bg-slate-700 hover:text-white' %>">
+                    Все <span class="<%= linkFilter === 'ALL' ? 'bg-blue-700' : 'bg-slate-900' %> px-1.5 py-0.5 rounded text-[10px]"><%= brokenLinksStats.total %></span>
                 </a>
-                <a href="/admin/seo-detector?mode=seo&link_filter=BROKEN&link_sort=<%= linkSort %>&link_order=<%= linkOrder %>" class="px-3 py-1.5 rounded-lg text-xs font-medium transition-colors <%= linkFilter === 'BROKEN' ? 'bg-red-500/20 text-red-400 border border-red-500/30' : 'bg-slate-800 text-slate-400 hover:bg-slate-700 hover:text-white' %>">
-                    Битые ссылки
+                <a href="/admin/seo-detector?mode=seo&link_filter=BROKEN&link_sort=<%= linkSort %>&link_order=<%= linkOrder %>" class="px-3 py-1.5 rounded-lg text-xs font-medium transition-colors flex items-center gap-2 <%= linkFilter === 'BROKEN' ? 'bg-red-500/20 text-red-400 border border-red-500/30' : 'bg-slate-800 text-slate-400 hover:bg-slate-700 hover:text-white' %>">
+                    Битые ссылки <span class="<%= linkFilter === 'BROKEN' ? 'bg-red-500/20' : 'bg-slate-900' %> px-1.5 py-0.5 rounded text-[10px]"><%= brokenLinksStats.broken %></span>
                 </a>
-                <a href="/admin/seo-detector?mode=seo&link_filter=DRAFTS&link_sort=<%= linkSort %>&link_order=<%= linkOrder %>" class="px-3 py-1.5 rounded-lg text-xs font-medium transition-colors <%= linkFilter === 'DRAFTS' ? 'bg-slate-600/30 text-slate-300 border border-slate-600' : 'bg-slate-800 text-slate-400 hover:bg-slate-700 hover:text-white' %>">
-                    Черновики
+                <a href="/admin/seo-detector?mode=seo&link_filter=DRAFTS&link_sort=<%= linkSort %>&link_order=<%= linkOrder %>" class="px-3 py-1.5 rounded-lg text-xs font-medium transition-colors flex items-center gap-2 <%= linkFilter === 'DRAFTS' ? 'bg-slate-600/30 text-slate-300 border border-slate-600' : 'bg-slate-800 text-slate-400 hover:bg-slate-700 hover:text-white' %>">
+                    Черновики <span class="<%= linkFilter === 'DRAFTS' ? 'bg-slate-700' : 'bg-slate-900' %> px-1.5 py-0.5 rounded text-[10px]"><%= brokenLinksStats.drafts %></span>
                 </a>
-                <a href="/admin/seo-detector?mode=seo&link_filter=LAYOUT&link_sort=<%= linkSort %>&link_order=<%= linkOrder %>" class="px-3 py-1.5 rounded-lg text-xs font-medium transition-colors <%= linkFilter === 'LAYOUT' ? 'bg-orange-500/20 text-orange-400 border border-orange-500/30' : 'bg-slate-800 text-slate-400 hover:bg-slate-700 hover:text-white' %>">
-                    Проблемы верстки
+                <a href="/admin/seo-detector?mode=seo&link_filter=LAYOUT&link_sort=<%= linkSort %>&link_order=<%= linkOrder %>" class="px-3 py-1.5 rounded-lg text-xs font-medium transition-colors flex items-center gap-2 <%= linkFilter === 'LAYOUT' ? 'bg-orange-500/20 text-orange-400 border border-orange-500/30' : 'bg-slate-800 text-slate-400 hover:bg-slate-700 hover:text-white' %>">
+                    Проблемы верстки <span class="<%= linkFilter === 'LAYOUT' ? 'bg-orange-500/20' : 'bg-slate-900' %> px-1.5 py-0.5 rounded text-[10px]"><%= brokenLinksStats.layout %></span>
                 </a>
-                <a href="/admin/seo-detector?mode=seo&link_filter=ORPHANS&link_sort=<%= linkSort %>&link_order=<%= linkOrder %>" class="px-3 py-1.5 rounded-lg text-xs font-medium transition-colors <%= linkFilter === 'ORPHANS' ? 'bg-purple-500/20 text-purple-400 border border-purple-500/30' : 'bg-slate-800 text-slate-400 hover:bg-slate-700 hover:text-white' %>">
-                    Сироты
+                <a href="/admin/seo-detector?mode=seo&link_filter=ORPHANS&link_sort=<%= linkSort %>&link_order=<%= linkOrder %>" class="px-3 py-1.5 rounded-lg text-xs font-medium transition-colors flex items-center gap-2 <%= linkFilter === 'ORPHANS' ? 'bg-purple-500/20 text-purple-400 border border-purple-500/30' : 'bg-slate-800 text-slate-400 hover:bg-slate-700 hover:text-white' %>">
+                    Сироты <span class="<%= linkFilter === 'ORPHANS' ? 'bg-purple-500/20' : 'bg-slate-900' %> px-1.5 py-0.5 rounded text-[10px]"><%= brokenLinksStats.orphans %></span>
                 </a>
             </div>
 
@@ -326,7 +326,9 @@
                                 <th class="px-2 py-2.5 font-medium hover:text-white cursor-pointer select-none" onclick="window.location.href='/admin/seo-detector?mode=seo&link_filter=<%= linkFilter %>&link_sort=date&link_order=<%= linkSort === 'date' && linkOrder === 'asc' ? 'desc' : 'asc' %>'">
                                     <div class="flex items-center gap-1 justify-center">Статус <% if (linkSort === 'date') { %><i data-lucide="<%= linkOrder === 'asc' ? 'chevron-up' : 'chevron-down' %>" class="w-3 h-3 text-blue-400"></i><% } %></div>
                                 </th>
-                                <th class="px-2 py-2.5 font-medium">Проблема</th>
+                                <th class="px-2 py-2.5 font-medium hover:text-white cursor-pointer select-none" onclick="window.location.href='/admin/seo-detector?mode=seo&link_filter=<%= linkFilter %>&link_sort=problem&link_order=<%= linkSort === 'problem' && linkOrder === 'asc' ? 'desc' : 'asc' %>'">
+                                    <div class="flex items-center gap-1">Проблема <% if (linkSort === 'problem') { %><i data-lucide="<%= linkOrder === 'asc' ? 'chevron-up' : 'chevron-down' %>" class="w-3 h-3 text-blue-400"></i><% } %></div>
+                                </th>
                                 <th class="px-2 py-2.5 font-medium text-right">Действия</th>
                             </tr>
                         </thead>
