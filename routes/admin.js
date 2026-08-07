@@ -444,7 +444,7 @@ router.get('/seo-detector', async (req, res) => {
                 
                 brokenLinks = (Array.isArray(data.brokenLinks) ? data.brokenLinks : []).concat(mappedOrphans);
                 
-                // Подсчет статистики для фильтров
+                // Подсчет статистики для фильтров (Тип)
                 linkStatsObj.total = brokenLinks.length;
                 brokenLinks.forEach(link => {
                     if (link.url === 'СТРАНИЦА-СИРОТА') linkStatsObj.orphans++;
@@ -452,8 +452,20 @@ router.get('/seo-detector', async (req, res) => {
                     else if (['ОШИБКА ВЕРСТКИ', 'ОБОРВАННЫЙ ТЕКСТ', 'АРТЕФАКТ'].includes(link.url)) linkStatsObj.layout++;
                     else linkStatsObj.broken++;
                 });
-                
-                // Фильтрация
+
+                // Подсчет статистики для фильтров (Статус публикации)
+                let linkPublishStats = {
+                    total: brokenLinks.length,
+                    published: 0,
+                    unpublished: 0
+                };
+                const now = new Date();
+                brokenLinks.forEach(link => {
+                    if (new Date(link.created_at || 0) <= now) linkPublishStats.published++;
+                    else linkPublishStats.unpublished++;
+                });
+
+                // Фильтрация (Тип)
                 const linkFilter = req.query.link_filter || 'ALL';
                 if (linkFilter !== 'ALL') {
                     brokenLinks = brokenLinks.filter(link => {
@@ -461,6 +473,17 @@ router.get('/seo-detector', async (req, res) => {
                         if (linkFilter === 'DRAFTS') return link.url === 'ССЫЛКА НА ЧЕРНОВИК';
                         if (linkFilter === 'LAYOUT') return ['ОШИБКА ВЕРСТКИ', 'ОБОРВАННЫЙ ТЕКСТ', 'АРТЕФАКТ'].includes(link.url);
                         if (linkFilter === 'BROKEN') return !['СТРАНИЦА-СИРОТА', 'ССЫЛКА НА ЧЕРНОВИК', 'ОШИБКА ВЕРСТКИ', 'ОБОРВАННЫЙ ТЕКСТ', 'АРТЕФАКТ'].includes(link.url);
+                        return true;
+                    });
+                }
+
+                // Фильтрация (Статус публикации)
+                const linkPublishStatus = req.query.link_publish_status || '';
+                if (linkPublishStatus) {
+                    brokenLinks = brokenLinks.filter(link => {
+                        const isPublished = new Date(link.created_at || 0) <= now;
+                        if (linkPublishStatus === 'PUBLISHED') return isPublished;
+                        if (linkPublishStatus === 'UNPUBLISHED') return !isPublished;
                         return true;
                     });
                 }
@@ -525,6 +548,8 @@ router.get('/seo-detector', async (req, res) => {
             linkFilter: req.query.link_filter || 'ALL',
             linkSort: req.query.link_sort || 'date',
             linkOrder: req.query.link_order || 'desc',
+            linkPublishStatus: linkPublishStatus,
+            linkPublishStats: linkPublishStats,
             publishStats: {
                 published: publishedCount,
                 unpublished: unpublishedCount,

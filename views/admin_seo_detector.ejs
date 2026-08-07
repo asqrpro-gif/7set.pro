@@ -18,6 +18,31 @@
     if (typeof currentSort !== 'undefined' && currentSort) publishTabsQueryParams += '&sort=' + currentSort;
     if (typeof currentOrder !== 'undefined' && currentOrder) publishTabsQueryParams += '&order=' + currentOrder;
 
+    // Параметры второй таблицы (чтобы не сбрасывались при кликах в первой таблице)
+    let table2Params = '';
+    if (typeof linkFilter !== 'undefined' && linkFilter !== 'ALL') table2Params += '&link_filter=' + linkFilter;
+    if (typeof linkSort !== 'undefined' && linkSort !== 'date') table2Params += '&link_sort=' + linkSort;
+    if (typeof linkOrder !== 'undefined' && linkOrder !== 'desc') table2Params += '&link_order=' + linkOrder;
+    if (typeof linkPublishStatus !== 'undefined' && linkPublishStatus) table2Params += '&link_publish_status=' + linkPublishStatus;
+
+    tabsQueryParams += table2Params;
+    publishTabsQueryParams += table2Params;
+    baseQueryParams += table2Params;
+
+    // Параметры первой таблицы (чтобы не сбрасывались при кликах во второй таблице)
+    let table1Params = '';
+    if (typeof currentRisk !== 'undefined' && currentRisk && currentRisk !== 'ALL' && !showDuplicates) table1Params += '&risk=' + currentRisk;
+    if (typeof showDuplicates !== 'undefined' && showDuplicates) table1Params += '&duplicates=true';
+    if (typeof currentPublishStatus !== 'undefined' && currentPublishStatus) table1Params += '&publish_status=' + currentPublishStatus;
+    if (typeof currentSort !== 'undefined' && currentSort) table1Params += '&sort=' + currentSort;
+    if (typeof currentOrder !== 'undefined' && currentOrder) table1Params += '&order=' + currentOrder;
+
+    // Ссылки для вкладок Publish во второй таблице
+    let table2PublishParams = table1Params;
+    if (typeof linkFilter !== 'undefined' && linkFilter !== 'ALL') table2PublishParams += '&link_filter=' + linkFilter;
+    if (typeof linkSort !== 'undefined' && linkSort !== 'date') table2PublishParams += '&link_sort=' + linkSort;
+    if (typeof linkOrder !== 'undefined' && linkOrder !== 'desc') table2PublishParams += '&link_order=' + linkOrder;
+
     // Функция для генерации ссылок сортировки
     function getSortLink(field) {
         let order = 'asc';
@@ -54,31 +79,31 @@
         <div class="mt-3 flex flex-col lg:flex-row justify-between gap-3 lg:items-center">
             <!-- Вкладки Risk -->
             <div class="flex gap-1.5 flex-wrap w-full lg:w-auto">
-                <a href="/admin/seo-detector?risk=ALL<%= tabsQueryParams %>" class="px-3 py-2 md:py-1.5 text-xs rounded-lg font-medium <%= currentRisk === 'ALL' && !showDuplicates ? 'bg-blue-600 text-white' : 'bg-slate-700 text-slate-300 hover:bg-slate-600' %> transition-colors flex-1 lg:flex-none text-center">
-                    Все (<%= stats.total %>)
+                <a href="/admin/seo-detector?risk=ALL<%= tabsQueryParams %>" class="px-3 py-1.5 rounded-lg text-xs font-medium transition-colors flex items-center gap-2 flex-1 lg:flex-none justify-center <%= currentRisk === 'ALL' && !showDuplicates ? 'bg-blue-600 text-white' : 'bg-slate-700 text-slate-300 hover:bg-slate-600 hover:text-white' %>">
+                    Все <span class="<%= currentRisk === 'ALL' && !showDuplicates ? 'bg-blue-700' : 'bg-slate-800' %> px-1.5 py-0.5 rounded text-[10px]"><%= stats.total %></span>
                 </a>
-                <a href="?risk=SAFE<%= tabsQueryParams %>" class="px-3 py-2 md:py-1.5 text-xs rounded-lg font-medium <%= currentRisk === 'SAFE' && !showDuplicates ? 'bg-green-600 text-white' : 'bg-slate-700 text-slate-300 hover:bg-slate-600' %> transition-colors flex-1 lg:flex-none text-center">
-                    Удачные (<%= stats.safe %>)
+                <a href="?risk=SAFE<%= tabsQueryParams %>" class="px-3 py-1.5 rounded-lg text-xs font-medium transition-colors flex items-center gap-2 flex-1 lg:flex-none justify-center <%= currentRisk === 'SAFE' && !showDuplicates ? 'bg-green-600 text-white' : 'bg-slate-700 text-slate-300 hover:bg-slate-600 hover:text-white' %>">
+                    Удачные <span class="<%= currentRisk === 'SAFE' && !showDuplicates ? 'bg-green-700' : 'bg-slate-800' %> px-1.5 py-0.5 rounded text-[10px]"><%= stats.safe %></span>
                 </a>
-                <a href="?risk=WARNING<%= tabsQueryParams %>" class="px-3 py-2 md:py-1.5 text-xs rounded-lg font-medium <%= currentRisk === 'WARNING' && !showDuplicates ? 'bg-yellow-600 text-white' : 'bg-slate-700 text-slate-300 hover:bg-slate-600' %> transition-colors flex-1 lg:flex-none text-center">
-                    Неудачные (<%= stats.warning %>)
+                <a href="?risk=WARNING<%= tabsQueryParams %>" class="px-3 py-1.5 rounded-lg text-xs font-medium transition-colors flex items-center gap-2 flex-1 lg:flex-none justify-center <%= currentRisk === 'WARNING' && !showDuplicates ? 'bg-yellow-600 text-white' : 'bg-slate-700 text-slate-300 hover:bg-slate-600 hover:text-white' %>">
+                    Неудачные <span class="<%= currentRisk === 'WARNING' && !showDuplicates ? 'bg-yellow-700' : 'bg-slate-800' %> px-1.5 py-0.5 rounded text-[10px]"><%= stats.warning %></span>
                 </a>
-                <a href="?duplicates=true<%= tabsQueryParams %>" class="px-3 py-2 md:py-1.5 text-xs rounded-lg font-medium <%= showDuplicates ? 'bg-purple-600 text-white' : 'bg-slate-700 text-slate-300 hover:bg-slate-600' %> transition-colors flex-1 lg:flex-none text-center">
-                    Дубликаты (<%= duplicatesCount %>)
+                <a href="?duplicates=true<%= tabsQueryParams %>" class="px-3 py-1.5 rounded-lg text-xs font-medium transition-colors flex items-center gap-2 flex-1 lg:flex-none justify-center <%= showDuplicates ? 'bg-purple-600 text-white' : 'bg-slate-700 text-slate-300 hover:bg-slate-600 hover:text-white' %>">
+                    Дубликаты <span class="<%= showDuplicates ? 'bg-purple-700' : 'bg-slate-800' %> px-1.5 py-0.5 rounded text-[10px]"><%= duplicatesCount %></span>
                 </a>
             </div>
 
             <!-- Вкладки Publish Status -->
             <div class="flex gap-1.5 flex-wrap w-full lg:w-auto">
                 <div class="hidden lg:block w-px h-7 bg-slate-700 mx-1"></div>
-                <a href="?publish_status=<%= publishTabsQueryParams %>" class="px-3 py-2 md:py-1.5 text-xs rounded-lg font-medium <%= (!currentPublishStatus) ? 'bg-slate-600 text-white shadow-inner' : 'bg-slate-700 text-slate-300 hover:bg-slate-600' %> transition-colors flex-1 lg:flex-none text-center">
-                    Все статусы (<%= publishStats.total %>)
+                <a href="?publish_status=<%= publishTabsQueryParams %>" class="px-3 py-1.5 rounded-lg text-xs font-medium transition-colors flex items-center gap-2 flex-1 lg:flex-none justify-center <%= (!currentPublishStatus) ? 'bg-slate-600 text-white shadow-inner' : 'bg-slate-700 text-slate-300 hover:bg-slate-600 hover:text-white' %>">
+                    Все статусы <span class="<%= (!currentPublishStatus) ? 'bg-slate-700' : 'bg-slate-800' %> px-1.5 py-0.5 rounded text-[10px]"><%= publishStats.total %></span>
                 </a>
-                <a href="?publish_status=PUBLISHED<%= publishTabsQueryParams %>" class="px-3 py-2 md:py-1.5 text-xs rounded-lg font-medium <%= (currentPublishStatus === 'PUBLISHED') ? 'bg-blue-600 text-white shadow-inner' : 'bg-slate-700 text-slate-300 hover:bg-slate-600' %> transition-colors flex-1 lg:flex-none text-center">
-                    Опубликовано (<%= publishStats.published %>)
+                <a href="?publish_status=PUBLISHED<%= publishTabsQueryParams %>" class="px-3 py-1.5 rounded-lg text-xs font-medium transition-colors flex items-center gap-2 flex-1 lg:flex-none justify-center <%= (currentPublishStatus === 'PUBLISHED') ? 'bg-blue-600 text-white shadow-inner' : 'bg-slate-700 text-slate-300 hover:bg-slate-600 hover:text-white' %>">
+                    Опубликовано <span class="<%= (currentPublishStatus === 'PUBLISHED') ? 'bg-blue-700' : 'bg-slate-800' %> px-1.5 py-0.5 rounded text-[10px]"><%= publishStats.published %></span>
                 </a>
-                <a href="?publish_status=UNPUBLISHED<%= publishTabsQueryParams %>" class="px-3 py-2 md:py-1.5 text-xs rounded-lg font-medium <%= (currentPublishStatus === 'UNPUBLISHED') ? 'bg-purple-600 text-white shadow-inner' : 'bg-slate-700 text-slate-300 hover:bg-slate-600' %> transition-colors flex-1 lg:flex-none text-center">
-                    Отложено (<%= publishStats.unpublished %>)
+                <a href="?publish_status=UNPUBLISHED<%= publishTabsQueryParams %>" class="px-3 py-1.5 rounded-lg text-xs font-medium transition-colors flex items-center gap-2 flex-1 lg:flex-none justify-center <%= (currentPublishStatus === 'UNPUBLISHED') ? 'bg-purple-600 text-white shadow-inner' : 'bg-slate-700 text-slate-300 hover:bg-slate-600 hover:text-white' %>">
+                    Отложено <span class="<%= (currentPublishStatus === 'UNPUBLISHED') ? 'bg-purple-700' : 'bg-slate-800' %> px-1.5 py-0.5 rounded text-[10px]"><%= publishStats.unpublished %></span>
                 </a>
             </div>
         </div>
@@ -288,22 +313,37 @@
         <div class="flex-1 overflow-auto bg-[#0f172a]/50 p-4">
             
             <!-- Фильтры -->
-            <div class="flex flex-wrap items-center gap-2 mb-4">
-                <a href="/admin/seo-detector?mode=seo&link_filter=ALL&link_sort=<%= linkSort %>&link_order=<%= linkOrder %>" class="px-3 py-1.5 rounded-lg text-xs font-medium transition-colors flex items-center gap-2 <%= linkFilter === 'ALL' ? 'bg-blue-600 text-white' : 'bg-slate-800 text-slate-400 hover:bg-slate-700 hover:text-white' %>">
-                    Все <span class="<%= linkFilter === 'ALL' ? 'bg-blue-700' : 'bg-slate-900' %> px-1.5 py-0.5 rounded text-[10px]"><%= brokenLinksStats.total %></span>
-                </a>
-                <a href="/admin/seo-detector?mode=seo&link_filter=BROKEN&link_sort=<%= linkSort %>&link_order=<%= linkOrder %>" class="px-3 py-1.5 rounded-lg text-xs font-medium transition-colors flex items-center gap-2 <%= linkFilter === 'BROKEN' ? 'bg-red-500/20 text-red-400 border border-red-500/30' : 'bg-slate-800 text-slate-400 hover:bg-slate-700 hover:text-white' %>">
-                    Битые ссылки <span class="<%= linkFilter === 'BROKEN' ? 'bg-red-500/20' : 'bg-slate-900' %> px-1.5 py-0.5 rounded text-[10px]"><%= brokenLinksStats.broken %></span>
-                </a>
-                <a href="/admin/seo-detector?mode=seo&link_filter=DRAFTS&link_sort=<%= linkSort %>&link_order=<%= linkOrder %>" class="px-3 py-1.5 rounded-lg text-xs font-medium transition-colors flex items-center gap-2 <%= linkFilter === 'DRAFTS' ? 'bg-slate-600/30 text-slate-300 border border-slate-600' : 'bg-slate-800 text-slate-400 hover:bg-slate-700 hover:text-white' %>">
-                    Черновики <span class="<%= linkFilter === 'DRAFTS' ? 'bg-slate-700' : 'bg-slate-900' %> px-1.5 py-0.5 rounded text-[10px]"><%= brokenLinksStats.drafts %></span>
-                </a>
-                <a href="/admin/seo-detector?mode=seo&link_filter=LAYOUT&link_sort=<%= linkSort %>&link_order=<%= linkOrder %>" class="px-3 py-1.5 rounded-lg text-xs font-medium transition-colors flex items-center gap-2 <%= linkFilter === 'LAYOUT' ? 'bg-orange-500/20 text-orange-400 border border-orange-500/30' : 'bg-slate-800 text-slate-400 hover:bg-slate-700 hover:text-white' %>">
-                    Проблемы верстки <span class="<%= linkFilter === 'LAYOUT' ? 'bg-orange-500/20' : 'bg-slate-900' %> px-1.5 py-0.5 rounded text-[10px]"><%= brokenLinksStats.layout %></span>
-                </a>
-                <a href="/admin/seo-detector?mode=seo&link_filter=ORPHANS&link_sort=<%= linkSort %>&link_order=<%= linkOrder %>" class="px-3 py-1.5 rounded-lg text-xs font-medium transition-colors flex items-center gap-2 <%= linkFilter === 'ORPHANS' ? 'bg-purple-500/20 text-purple-400 border border-purple-500/30' : 'bg-slate-800 text-slate-400 hover:bg-slate-700 hover:text-white' %>">
-                    Сироты <span class="<%= linkFilter === 'ORPHANS' ? 'bg-purple-500/20' : 'bg-slate-900' %> px-1.5 py-0.5 rounded text-[10px]"><%= brokenLinksStats.orphans %></span>
-                </a>
+            <div class="flex flex-col lg:flex-row justify-between gap-3 lg:items-center mb-4">
+                <div class="flex flex-wrap items-center gap-2">
+                    <a href="/admin/seo-detector?mode=seo&link_filter=ALL&link_sort=<%= linkSort %>&link_order=<%= linkOrder %><%= table1Params %>#broken-links" class="px-3 py-1.5 rounded-lg text-xs font-medium transition-colors flex items-center gap-2 <%= linkFilter === 'ALL' ? 'bg-blue-600 text-white' : 'bg-slate-800 text-slate-400 hover:bg-slate-700 hover:text-white' %>">
+                        Все <span class="<%= linkFilter === 'ALL' ? 'bg-blue-700' : 'bg-slate-900' %> px-1.5 py-0.5 rounded text-[10px]"><%= brokenLinksStats.total %></span>
+                    </a>
+                    <a href="/admin/seo-detector?mode=seo&link_filter=BROKEN&link_sort=<%= linkSort %>&link_order=<%= linkOrder %><%= table1Params %>#broken-links" class="px-3 py-1.5 rounded-lg text-xs font-medium transition-colors flex items-center gap-2 <%= linkFilter === 'BROKEN' ? 'bg-red-500/20 text-red-400 border border-red-500/30' : 'bg-slate-800 text-slate-400 hover:bg-slate-700 hover:text-white' %>">
+                        Битые ссылки <span class="<%= linkFilter === 'BROKEN' ? 'bg-red-500/20' : 'bg-slate-900' %> px-1.5 py-0.5 rounded text-[10px]"><%= brokenLinksStats.broken %></span>
+                    </a>
+                    <a href="/admin/seo-detector?mode=seo&link_filter=DRAFTS&link_sort=<%= linkSort %>&link_order=<%= linkOrder %><%= table1Params %>#broken-links" class="px-3 py-1.5 rounded-lg text-xs font-medium transition-colors flex items-center gap-2 <%= linkFilter === 'DRAFTS' ? 'bg-slate-600/30 text-slate-300 border border-slate-600' : 'bg-slate-800 text-slate-400 hover:bg-slate-700 hover:text-white' %>">
+                        Черновики <span class="<%= linkFilter === 'DRAFTS' ? 'bg-slate-700' : 'bg-slate-900' %> px-1.5 py-0.5 rounded text-[10px]"><%= brokenLinksStats.drafts %></span>
+                    </a>
+                    <a href="/admin/seo-detector?mode=seo&link_filter=LAYOUT&link_sort=<%= linkSort %>&link_order=<%= linkOrder %><%= table1Params %>#broken-links" class="px-3 py-1.5 rounded-lg text-xs font-medium transition-colors flex items-center gap-2 <%= linkFilter === 'LAYOUT' ? 'bg-orange-500/20 text-orange-400 border border-orange-500/30' : 'bg-slate-800 text-slate-400 hover:bg-slate-700 hover:text-white' %>">
+                        Проблемы верстки <span class="<%= linkFilter === 'LAYOUT' ? 'bg-orange-500/20' : 'bg-slate-900' %> px-1.5 py-0.5 rounded text-[10px]"><%= brokenLinksStats.layout %></span>
+                    </a>
+                    <a href="/admin/seo-detector?mode=seo&link_filter=ORPHANS&link_sort=<%= linkSort %>&link_order=<%= linkOrder %><%= table1Params %>#broken-links" class="px-3 py-1.5 rounded-lg text-xs font-medium transition-colors flex items-center gap-2 <%= linkFilter === 'ORPHANS' ? 'bg-purple-500/20 text-purple-400 border border-purple-500/30' : 'bg-slate-800 text-slate-400 hover:bg-slate-700 hover:text-white' %>">
+                        Сироты <span class="<%= linkFilter === 'ORPHANS' ? 'bg-purple-500/20' : 'bg-slate-900' %> px-1.5 py-0.5 rounded text-[10px]"><%= brokenLinksStats.orphans %></span>
+                    </a>
+                </div>
+
+                <div class="flex gap-1.5 flex-wrap w-full lg:w-auto mt-2 lg:mt-0">
+                    <div class="hidden lg:block w-px h-7 bg-slate-700 mx-1"></div>
+                    <a href="/admin/seo-detector?mode=seo<%= table2PublishParams %>#broken-links" class="px-3 py-1.5 rounded-lg text-xs font-medium transition-colors flex items-center gap-2 flex-1 lg:flex-none justify-center <%= (!linkPublishStatus) ? 'bg-slate-600 text-white shadow-inner' : 'bg-slate-800 text-slate-400 hover:bg-slate-700 hover:text-white' %>">
+                        Все статусы <span class="<%= (!linkPublishStatus) ? 'bg-slate-700' : 'bg-slate-900' %> px-1.5 py-0.5 rounded text-[10px]"><%= linkPublishStats.total %></span>
+                    </a>
+                    <a href="/admin/seo-detector?mode=seo&link_publish_status=PUBLISHED<%= table2PublishParams %>#broken-links" class="px-3 py-1.5 rounded-lg text-xs font-medium transition-colors flex items-center gap-2 flex-1 lg:flex-none justify-center <%= (linkPublishStatus === 'PUBLISHED') ? 'bg-blue-600 text-white shadow-inner' : 'bg-slate-800 text-slate-400 hover:bg-slate-700 hover:text-white' %>">
+                        Опубликовано <span class="<%= (linkPublishStatus === 'PUBLISHED') ? 'bg-blue-700' : 'bg-slate-900' %> px-1.5 py-0.5 rounded text-[10px]"><%= linkPublishStats.published %></span>
+                    </a>
+                    <a href="/admin/seo-detector?mode=seo&link_publish_status=UNPUBLISHED<%= table2PublishParams %>#broken-links" class="px-3 py-1.5 rounded-lg text-xs font-medium transition-colors flex items-center gap-2 flex-1 lg:flex-none justify-center <%= (linkPublishStatus === 'UNPUBLISHED') ? 'bg-purple-600 text-white shadow-inner' : 'bg-slate-800 text-slate-400 hover:bg-slate-700 hover:text-white' %>">
+                        Отложено <span class="<%= (linkPublishStatus === 'UNPUBLISHED') ? 'bg-purple-700' : 'bg-slate-900' %> px-1.5 py-0.5 rounded text-[10px]"><%= linkPublishStats.unpublished %></span>
+                    </a>
+                </div>
             </div>
 
             <% if (brokenLinks.length === 0) { %>
@@ -316,18 +356,15 @@
                     <table class="w-full text-left border-collapse min-w-[900px]">
                         <thead class="sticky top-0 bg-slate-900 border-b border-slate-700 z-10">
                             <tr class="text-slate-300 text-xs">
-                                <th class="px-2 py-2.5 font-medium hover:text-white cursor-pointer select-none" onclick="window.location.href='/admin/seo-detector?mode=seo&link_filter=<%= linkFilter %>&link_sort=title&link_order=<%= linkSort === 'title' && linkOrder === 'asc' ? 'desc' : 'asc' %>'">
+                                <th class="px-2 py-2.5 font-medium hover:text-white cursor-pointer select-none" onclick="window.location.href='/admin/seo-detector?mode=seo&link_filter=<%= linkFilter %>&link_sort=title&link_order=<%= linkSort === 'title' && linkOrder === 'asc' ? 'desc' : 'asc' %><%= table1Params %>#broken-links'">
                                     <div class="flex items-center gap-1">Статья (Где найдено) <% if (linkSort === 'title') { %><i data-lucide="<%= linkOrder === 'asc' ? 'chevron-up' : 'chevron-down' %>" class="w-3 h-3 text-blue-400"></i><% } %></div>
                                 </th>
                                 <th class="px-2 py-2.5 font-medium">Анкор (Текст)</th>
-                                <th class="px-2 py-2.5 font-medium hover:text-white cursor-pointer select-none" onclick="window.location.href='/admin/seo-detector?mode=seo&link_filter=<%= linkFilter %>&link_sort=type&link_order=<%= linkSort === 'type' && linkOrder === 'asc' ? 'desc' : 'asc' %>'">
+                                <th class="px-2 py-2.5 font-medium hover:text-white cursor-pointer select-none" onclick="window.location.href='/admin/seo-detector?mode=seo&link_filter=<%= linkFilter %>&link_sort=type&link_order=<%= linkSort === 'type' && linkOrder === 'asc' ? 'desc' : 'asc' %><%= table1Params %>#broken-links'">
                                     <div class="flex items-center gap-1 justify-center">Тип проблемы <% if (linkSort === 'type') { %><i data-lucide="<%= linkOrder === 'asc' ? 'chevron-up' : 'chevron-down' %>" class="w-3 h-3 text-blue-400"></i><% } %></div>
                                 </th>
-                                <th class="px-2 py-2.5 font-medium hover:text-white cursor-pointer select-none" onclick="window.location.href='/admin/seo-detector?mode=seo&link_filter=<%= linkFilter %>&link_sort=date&link_order=<%= linkSort === 'date' && linkOrder === 'asc' ? 'desc' : 'asc' %>'">
+                                <th class="px-2 py-2.5 font-medium hover:text-white cursor-pointer select-none" onclick="window.location.href='/admin/seo-detector?mode=seo&link_filter=<%= linkFilter %>&link_sort=date&link_order=<%= linkSort === 'date' && linkOrder === 'asc' ? 'desc' : 'asc' %><%= table1Params %>#broken-links'">
                                     <div class="flex items-center gap-1 justify-center">Статус <% if (linkSort === 'date') { %><i data-lucide="<%= linkOrder === 'asc' ? 'chevron-up' : 'chevron-down' %>" class="w-3 h-3 text-blue-400"></i><% } %></div>
-                                </th>
-                                <th class="px-2 py-2.5 font-medium hover:text-white cursor-pointer select-none" onclick="window.location.href='/admin/seo-detector?mode=seo&link_filter=<%= linkFilter %>&link_sort=problem&link_order=<%= linkSort === 'problem' && linkOrder === 'asc' ? 'desc' : 'asc' %>'">
-                                    <div class="flex items-center gap-1">Проблема <% if (linkSort === 'problem') { %><i data-lucide="<%= linkOrder === 'asc' ? 'chevron-up' : 'chevron-down' %>" class="w-3 h-3 text-blue-400"></i><% } %></div>
                                 </th>
                                 <th class="px-2 py-2.5 font-medium text-right">Действия</th>
                             </tr>
@@ -375,9 +412,6 @@
                                                 <span class="opacity-70"><%= new Date(link.created_at).toLocaleDateString('ru-RU') %></span>
                                             </span>
                                         <% } %>
-                                    </td>
-                                    <td class="px-2 py-2">
-                                        <div class="text-red-400 font-mono text-[11px] break-all max-w-[300px] <%= link.url === 'ССЫЛКА НА ЧЕРНОВИК' ? 'text-slate-400' : '' %>"><%= link.url %></div>
                                     </td>
                                     <td class="px-2 py-2 text-right">
                                         <div class="flex justify-end gap-1">
