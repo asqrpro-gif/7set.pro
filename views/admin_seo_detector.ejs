@@ -415,7 +415,7 @@
                                     </td>
                                     <td class="px-2 py-2 text-right">
                                         <div class="flex justify-end gap-1">
-                                            <button class="btn-enrich-single w-8 h-8 flex items-center justify-center rounded transition-colors <%= link.hasRetroLinks ? 'text-emerald-400 hover:text-emerald-300' : 'text-rose-400 hover:text-rose-300 hover:bg-slate-700' %>" data-id="<%= link.id %>" title="SEO Обогащение (Словари)">
+                                            <button type="button" class="btn-enrich-table2 w-8 h-8 flex items-center justify-center rounded transition-colors <%= link.hasRetroLinks ? 'text-emerald-400 hover:text-emerald-300' : 'text-rose-400 hover:text-rose-300 hover:bg-slate-700' %>" data-id="<%= link.id %>" title="SEO Обогащение (Словари)">
                                                 <i data-lucide="link" class="w-4 h-4"></i>
                                             </button>
                                             <button onclick="editCardFromLinks('<%= link.id %>')" title="Редактировать" class="w-8 h-8 flex items-center justify-center text-slate-400 hover:text-blue-400 hover:bg-slate-700 rounded transition-colors">
@@ -732,6 +732,43 @@ async function removeBrokenLink(reportId, brokenUrl, rowIndex) {
                     this.innerHTML = '<i data-lucide="x-circle" class="w-4 h-4 text-rose-400"></i>';
                     lucide.createIcons();
                     alert('Ошибка обогащения: ' + e.message);
+                }
+            });
+        });
+
+        // Отдельный, полностью независимый обработчик для таблицы 2
+        document.querySelectorAll('.btn-enrich-table2').forEach(btn => {
+            btn.addEventListener('click', async function(e) {
+                e.preventDefault(); // Защита от дефолтного поведения браузера
+                
+                const id = this.getAttribute('data-id');
+                
+                this.disabled = true;
+                this.innerHTML = '<i data-lucide="loader-2" class="w-4 h-4 animate-spin text-cyan-400"></i>';
+                lucide.createIcons();
+
+                try {
+                    const res = await fetch(`/admin/api/seo-enrich/single/${id}`, { method: 'POST' });
+                    const data = await res.json();
+                    
+                    if (data.success || data.status === 'already_enriched') {
+                        this.innerHTML = '<i data-lucide="link" class="w-4 h-4"></i>';
+                        this.classList.remove('text-rose-400', 'hover:text-rose-300', 'hover:bg-slate-700');
+                        this.classList.add('text-emerald-400', 'hover:text-emerald-300');
+                        lucide.createIcons();
+                        if (data.status === 'already_enriched') {
+                            this.title = 'Уже обогащено';
+                        }
+                        // Никаких window.location.reload()
+                    } else {
+                        throw new Error(data.error || 'Unknown error');
+                    }
+                } catch(err) {
+                    this.innerHTML = '<i data-lucide="x-circle" class="w-4 h-4 text-rose-400"></i>';
+                    lucide.createIcons();
+                    alert('Ошибка обогащения: ' + err.message);
+                } finally {
+                    this.disabled = false;
                 }
             });
         });
