@@ -148,7 +148,7 @@
             </thead>
             <tbody class="text-sm divide-y divide-slate-700/50">
                 <% reports.forEach(report => { %>
-                    <tr class="hover:bg-slate-700/30 transition-colors">
+                    <tr class="hover:bg-slate-700/30 transition-colors" data-report-id="<%= report.id %>">
                         <td class="px-2 py-2">
                             <a href="/catalog/<%= report.brand.toLowerCase() %>/<%= report.model.toLowerCase() %>/<%= report.code.toLowerCase() %>" target="_blank" class="hover:underline flex items-center gap-1.5 w-fit">
                                 <span class="font-medium text-blue-400 text-xs sm:text-sm whitespace-nowrap"><%= report.brand.charAt(0).toUpperCase() + report.brand.slice(1).toLowerCase() %> <%= report.model.charAt(0).toUpperCase() + report.model.slice(1).toLowerCase() %></span>
@@ -371,7 +371,7 @@
                         </thead>
                         <tbody class="text-sm divide-y divide-slate-700/50">
                             <% brokenLinks.forEach((link, idx) => { %>
-                                <tr class="hover:bg-slate-700/30 transition-colors" id="row-<%= idx %>">
+                                <tr class="hover:bg-slate-700/30 transition-colors" id="row-<%= idx %>" data-report-id="<%= link.id %>">
                                     <td class="px-2 py-2">
                                         <div class="text-white font-medium text-sm">
                                             <% const urlParts = link.title.split(' '); %>
@@ -613,8 +613,8 @@ async function removeBrokenLink(reportId, brokenUrl, rowIndex) {
 
             const data = await res.json();
             if (data.success) {
-                // Перезагрузка страницы для обновления таблицы
-                window.location.reload();
+                // Закрываем модалку без перезагрузки
+                closeEditModal();
             } else {
                 alert(data.error || 'Ошибка сохранения');
             }
@@ -661,7 +661,9 @@ async function removeBrokenLink(reportId, brokenUrl, rowIndex) {
                     headers: { 'Content-Type': 'application/json' },
                     body: JSON.stringify({ id })
                 });
-                if (res.ok) window.location.reload();
+                if (res.ok) {
+                    document.querySelectorAll(`tr[data-report-id="${id}"]`).forEach(row => row.remove());
+                }
                 else alert('Ошибка удаления');
             } catch(e) { alert('Сетевая ошибка'); }
         }
@@ -722,9 +724,6 @@ async function removeBrokenLink(reportId, brokenUrl, rowIndex) {
                         lucide.createIcons();
                         if (data.status === 'already_enriched') {
                             this.title = 'Уже обогащено';
-                        }
-                        if (data.recreated) {
-                            window.location.reload();
                         }
                     } else {
                         throw new Error(data.error || 'Unknown error');
