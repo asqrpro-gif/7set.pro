@@ -18,8 +18,7 @@ ${report.full_analysis_markdown || report.summary}
 1. tools_table_md: Markdown-таблица (столбцы "Инструмент" и "Назначение") с необходимыми для диагностики и ремонта инструментами.
 2. oem_parts_table_md: Markdown-таблица (столбцы "Деталь", "Тип/Артикул (или аналог)") с запчастями, которые могут понадобиться.
 3. pro_tips_md: Специфика ремонта ИМЕННО ЭТОЙ марки (2-3 абзаца, глубокие нюансы, болячки ${report.brand}, на что обратить внимание). Не используй общие фразы.
-4. new_seo_title: SEO-заголовок (до 75 символов). Обязательно включи код, марку, модель и название сломанного узла или симптом (например: "Ошибка P0340 Toyota Camry: датчик распредвала — симптомы и ремонт"). Избегай воды.
-5. new_seo_description: SEO-описание (до 155 символов). Начни сразу с главного: в чем суть ошибки (какой узел вышел из строя на ${report.brand} ${report.model}), какие главные симптомы и чем это грозит. Запрещено использовать клише ("В этой статье...", "Узнайте..."). Пиши плотно и технически грамотно.
+4. new_seo_description: SEO-описание (до 155 символов). Начни сразу с главного: в чем суть ошибки (какой узел вышел из строя на ${report.brand} ${report.model}), какие главные симптомы и чем это грозит. Запрещено использовать клише ("В этой статье...", "Узнайте..."). Пиши плотно и технически грамотно.
     `.trim();
 
     const requestBody = {
@@ -32,10 +31,9 @@ ${report.full_analysis_markdown || report.summary}
             tools_table_md: { type: "STRING", description: "Markdown-таблица Инструмент | Назначение" },
             oem_parts_table_md: { type: "STRING", description: "Markdown-таблица Деталь | Тип/Артикул" },
             pro_tips_md: { type: "STRING", description: "Специфика ремонта этой марки в Markdown (2-3 абзаца)" },
-            new_seo_title: { type: "STRING", description: "SEO Title до 75 символов" },
             new_seo_description: { type: "STRING", description: "SEO Description до 155 символов" }
           },
-          required: ["tools_table_md", "oem_parts_table_md", "pro_tips_md", "new_seo_title", "new_seo_description"]
+          required: ["tools_table_md", "oem_parts_table_md", "pro_tips_md", "new_seo_description"]
         }
       }
     };
@@ -69,7 +67,6 @@ ${report.full_analysis_markdown || report.summary}
     const updatedReport = await prisma.diagnosticReport.update({
       where: { id: report.id },
       data: {
-        seoTitle: enrichedData.new_seo_title,
         seoDescription: enrichedData.new_seo_description,
         tools_table_md: enrichedData.tools_table_md,
         oem_parts_table_md: enrichedData.oem_parts_table_md,
