@@ -426,6 +426,12 @@ router.get('/seo-detector', async (req, res) => {
             layout: 0,
             broken: 0
         };
+        let linkPublishStats = {
+            total: 0,
+            published: 0,
+            unpublished: 0
+        };
+        const linkPublishStatus = req.query.link_publish_status || '';
         const LINKS_REPORT_FILE = path.join(__dirname, '../scripts/links_report.json');
         try {
             if (fs.existsSync(LINKS_REPORT_FILE)) {
@@ -454,11 +460,7 @@ router.get('/seo-detector', async (req, res) => {
                 });
 
                 // Подсчет статистики для фильтров (Статус публикации)
-                let linkPublishStats = {
-                    total: brokenLinks.length,
-                    published: 0,
-                    unpublished: 0
-                };
+                linkPublishStats.total = brokenLinks.length;
                 const now = new Date();
                 brokenLinks.forEach(link => {
                     if (new Date(link.created_at || 0) <= now) linkPublishStats.published++;
@@ -478,7 +480,6 @@ router.get('/seo-detector', async (req, res) => {
                 }
 
                 // Фильтрация (Статус публикации)
-                const linkPublishStatus = req.query.link_publish_status || '';
                 if (linkPublishStatus) {
                     brokenLinks = brokenLinks.filter(link => {
                         const isPublished = new Date(link.created_at || 0) <= now;
