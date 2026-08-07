@@ -61,7 +61,7 @@ router.get('/', async (req, res) => {
         // Читаем список файлов в папке scripts
         let scriptFiles = [];
         if (fs.existsSync(scriptsPath)) {
-            scriptFiles = fs.readdirSync(scriptsPath).filter(f => f.endsWith('.js') && f !== 'clean_test_cards.js');
+            scriptFiles = fs.readdirSync(scriptsPath).filter(f => f.endsWith('.js') && !['clean_test_cards.js', 'migrate_retroactive.js', 'clean_artifacts.js'].includes(f));
         }
 
         // Человекочитаемые названия скриптов
