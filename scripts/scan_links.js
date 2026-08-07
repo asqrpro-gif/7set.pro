@@ -226,29 +226,14 @@ async function run() {
         }
     }
 
-    // Ищем сирот
-    const orphans = [];
-    reports.forEach(r => {
-        // Мы ищем сирот среди опубликованных карточек (или всех, но лучше всех, так как они должны обрастать ссылками до публикации тоже)
-        const url = `/catalog/${r.brand.toLowerCase()}/${r.model.toLowerCase()}/${r.code.toLowerCase()}`;
-        if (inboundCounts.get(url) === 0) {
-            orphans.push({
-                id: r.id,
-                brand: r.brand,
-                model: r.model,
-                code: r.code,
-                created_at: r.created_at
-            });
-        }
-    });
-
     console.log(`Найдено битых ссылок: ${brokenLinks.length}`);
-    console.log(`Найдено страниц-сирот: ${orphans.length}`);
+    // Страницы-сироты больше не вычисляются, так как архитектура EJS 
+    // автоматически генерирует блок "Похожие ошибки" для 100% карточек.
 
     const reportData = {
         last_scan: new Date().toISOString(),
         brokenLinks: brokenLinks,
-        orphans: orphans
+        orphans: [] // Оставляем пустой массив для обратной совместимости с admin.js
     };
 
     fs.writeFileSync(REPORT_FILE, JSON.stringify(reportData, null, 2), 'utf-8');
