@@ -130,7 +130,6 @@ async function run() {
                         field: field.name
                     });
                 }
-            }
 
                 // 3. Оборванные абзацы (проверяем, если обычный текст обрывается без точки/пунктуации)
                 const isEndOfParagraph = (i === lines.length - 1) || (lines[i+1].trim() === '');
@@ -153,7 +152,7 @@ async function run() {
                         }
                     }
                 }
-            }
+            } // конец цикла for (let i = ...
 
         // Проверяем блок related_obd_codes
         if (report.related_obd_codes) {
