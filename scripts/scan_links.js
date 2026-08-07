@@ -31,14 +31,15 @@ async function run() {
 
     console.log(`Загружено карточек из базы: ${reports.length}`);
 
-    // Множество всех существующих URL
+    // Множество всех существующих URL (url -> is_published)
     const validUrls = new Map();
     reports.forEach(r => {
         const url = `/catalog/${r.brand.toLowerCase()}/${r.model.toLowerCase()}/${r.code.toLowerCase()}`;
-        validUrls.set(url, r.id);
+        const isPublished = new Date(r.created_at) <= new Date();
+        validUrls.set(url, isPublished);
     });
 
-    const brokenLinks = []; // { id, title, text, url, field }
+    const brokenLinks = []; // { id, title, text, url, field, created_at }
     const inboundCounts = new Map(); // url -> count
 
     reports.forEach(r => {
@@ -84,16 +85,31 @@ async function run() {
                         const normalizedUrl = `/catalog/${parts[1].toLowerCase()}/${parts[2].toLowerCase()}/${parts[3].toLowerCase()}`;
                         
                         if (validUrls.has(normalizedUrl)) {
-                            // Ссылка живая, увеличиваем счетчик входящих ссылок на эту карточку
-                            inboundCounts.set(normalizedUrl, (inboundCounts.get(normalizedUrl) || 0) + 1);
+                            // Ссылка на существующую карточку
+                            const targetIsPublished = validUrls.get(normalizedUrl);
+                            if (targetIsPublished) {
+                                // Карточка опубликована, всё ок
+                                inboundCounts.set(normalizedUrl, (inboundCounts.get(normalizedUrl) || 0) + 1);
+                            } else {
+                                // Карточка-черновик (вылечится при публикации)
+                                brokenLinks.push({
+                                    id: report.id,
+                                    title: title,
+                                    text: text,
+                                    url: 'ССЫЛКА НА ЧЕРНОВИК', // Особый статус
+                                    field: field.name,
+                                    created_at: report.created_at
+                                });
+                            }
                         } else {
-                            // Битая ссылка
+                            // Битая ссылка (реально 404)
                             brokenLinks.push({
                                 id: report.id,
                                 title: title,
                                 text: text,
                                 url: rawUrl, // сохраняем сырой урл для точного удаления в тексте
-                                field: field.name
+                                field: field.name,
+                                created_at: report.created_at
                             });
                         }
                     }
@@ -119,7 +135,8 @@ async function run() {
                         title: title,
                         text: `Незакрытый жирный шрифт: ${line.substring(0, 40)}...`,
                         url: 'ОШИБКА ВЕРСТКИ',
-                        field: field.name
+                        field: field.name,
+                        created_at: report.created_at
                     });
                 }
 
@@ -136,7 +153,8 @@ async function run() {
                         title: title,
                         text: `Висячий элемент: ${line.replace(/<[^>]*>?/gm, '').substring(0, 40) || '<li></li>'}`,
                         url: 'АРТЕФАКТ',
-                        field: field.name
+                        field: field.name,
+                        created_at: report.created_at
                     });
                 }
 
@@ -150,9 +168,16 @@ async function run() {
                                          /^(#|\-|\*|\d+\\?\.|>|\|)/.test(nextLine);
 
                 if (isEndOfParagraph) {
+                    // БЕЛЫЙ СПИСОК (исключения)
+                    const isWhitelisted = /^(#|\-|\*|\d+\\?\.|>|\|)/.test(line.trim()) || // Markdown блоки (заголовки, списки)
+                                          /^<h[1-6][^>]*>/i.test(line.trim()) || // HTML заголовки
+                                          /^<li[^>]*>/i.test(line.trim()) || // HTML списки
+                                          /<span[^>]*>.*<\/span>/i.test(line.trim()); // Глоссарий (span)
+
                     let textForPunc = line.replace(/<[^>]*>?/gm, '').replace(/[\*\_\`\~]+$/g, '').trim();
+                    
                     // Игнорируем заголовки, списки, таблицы. Проверяем длину (больше 30 символов, чтобы ловить даже короткие обрывы).
-                    if (currentParagraphLength > 30 && !/^(#|\-|\*|\d+\\?\.|>|\|)/.test(textForPunc)) {
+                    if (currentParagraphLength > 30 && !isWhitelisted) {
                         const lastChar = textForPunc.slice(-1);
                         const validEndings = ['.', '!', '?', ':', ';', '"', "'", '»', ')', ']', '}'];
                         
@@ -163,7 +188,8 @@ async function run() {
                                 title: title,
                                 text: `Оборванный абзац: ...${textForPunc.slice(-30)}`,
                                 url: 'ОБОРВАННЫЙ ТЕКСТ',
-                                field: field.name
+                                field: field.name,
+                                created_at: report.created_at
                             });
                         }
                     }

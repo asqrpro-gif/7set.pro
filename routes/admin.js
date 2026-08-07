@@ -431,10 +431,47 @@ router.get('/seo-detector', async (req, res) => {
                     title: `${o.brand} ${o.model} ${o.code}`,
                     text: 'На карточку не ведет ни одна ссылка (изолирована)',
                     url: 'СТРАНИЦА-СИРОТА',
-                    field: 'Веб-архитектура'
+                    field: 'Веб-архитектура',
+                    created_at: o.created_at || new Date().toISOString()
                 }));
                 
                 brokenLinks = (Array.isArray(data.brokenLinks) ? data.brokenLinks : []).concat(mappedOrphans);
+                
+                // Фильтрация
+                const linkFilter = req.query.link_filter || 'ALL';
+                if (linkFilter !== 'ALL') {
+                    brokenLinks = brokenLinks.filter(link => {
+                        if (linkFilter === 'ORPHANS') return link.url === 'СТРАНИЦА-СИРОТА';
+                        if (linkFilter === 'DRAFTS') return link.url === 'ССЫЛКА НА ЧЕРНОВИК';
+                        if (linkFilter === 'LAYOUT') return ['ОШИБКА ВЕРСТКИ', 'ОБОРВАННЫЙ ТЕКСТ', 'АРТЕФАКТ'].includes(link.url);
+                        if (linkFilter === 'BROKEN') return !['СТРАНИЦА-СИРОТА', 'ССЫЛКА НА ЧЕРНОВИК', 'ОШИБКА ВЕРСТКИ', 'ОБОРВАННЫЙ ТЕКСТ', 'АРТЕФАКТ'].includes(link.url);
+                        return true;
+                    });
+                }
+                
+                // Сортировка
+                const linkSort = req.query.link_sort || 'date';
+                const linkOrder = req.query.link_order || 'desc';
+                
+                brokenLinks.sort((a, b) => {
+                    let valA, valB;
+                    if (linkSort === 'title') {
+                        valA = a.title.toLowerCase();
+                        valB = b.title.toLowerCase();
+                    } else if (linkSort === 'type') {
+                        valA = a.url.toLowerCase();
+                        valB = b.url.toLowerCase();
+                    } else {
+                        // date
+                        valA = new Date(a.created_at || 0).getTime();
+                        valB = new Date(b.created_at || 0).getTime();
+                    }
+                    
+                    if (valA < valB) return linkOrder === 'asc' ? -1 : 1;
+                    if (valA > valB) return linkOrder === 'asc' ? 1 : -1;
+                    return 0;
+                });
+                
                 if (data.last_scan) {
                     const scanDate = new Date(data.last_scan);
                     linksStats.lastScan = scanDate.toLocaleString('ru-RU', {
@@ -468,6 +505,9 @@ router.get('/seo-detector', async (req, res) => {
                 warning: warningCount,
                 total: totalCount
             },
+            linkFilter: req.query.link_filter || 'ALL',
+            linkSort: req.query.link_sort || 'date',
+            linkOrder: req.query.link_order || 'desc',
             publishStats: {
                 published: publishedCount,
                 unpublished: unpublishedCount,
