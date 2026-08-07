@@ -118,13 +118,14 @@ async function run() {
                     });
                 }
 
-                // 2. Висячие цифры (например, "2.", "**2.**", "<p>1.</p>")
+                // 2. Висячие цифры (например, "2.", "**2.**", "<p>1.</p>", "1. 💰")
                 const cleanLine = line.replace(/<[^>]*>?/gm, '').trim();
-                if (/^[\s\*\#\-_]*\d+\.[\s\*\#\-_]*$/.test(cleanLine)) {
+                const textWithoutSymbols = cleanLine.replace(/[\*\#\-_]/g, '').trim();
+                if (/^\d+\./.test(textWithoutSymbols) && !/[a-zA-Zа-яА-Я]/.test(cleanLine)) {
                     brokenLinks.push({
                         id: report.id,
                         title: title,
-                        text: `Висячая цифра: ${cleanLine}`,
+                        text: `Висячая цифра: ${cleanLine.substring(0, 40)}`,
                         url: 'АРТЕФАКТ',
                         field: field.name
                     });
