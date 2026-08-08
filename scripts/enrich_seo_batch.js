@@ -69,18 +69,6 @@ async function runBatchEnrichment() {
         orderBy: { created_at: 'desc' }
       });
 
-      // Если опубликованных проблемных карточек нет, берем отложенные
-      // orderBy: 'asc' гарантирует, что мы возьмем те, которые опубликуются раньше
-      if (!report) {
-        report = await prisma.diagnosticReport.findFirst({
-          where: {
-            seoRisk: { in: ['WARNING', 'DANGER'] },
-            created_at: { gt: now }
-          },
-          orderBy: { created_at: 'asc' }
-        });
-      }
-
       if (!report) {
         console.log('✅ Нет карточек для обогащения (WARNING/DANGER). Спим 1 час...');
         await sleep(60 * 60 * 1000); // 1 час
