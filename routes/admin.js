@@ -585,12 +585,32 @@ router.get('/seo-detector', async (req, res) => {
             problematicTitles = problematicTitles.filter(t => new Date(t.created_at) > nowForTitles);
         }
 
+        const titleSort = req.query.title_sort || 'card';
+        const titleOrder = req.query.title_order === 'desc' ? 'desc' : 'asc';
+
+        problematicTitles.sort((a, b) => {
+            let valA = '';
+            let valB = '';
+            if (titleSort === 'card') {
+                valA = `${a.brand} ${a.model} ${a.code}`.toLowerCase();
+                valB = `${b.brand} ${b.model} ${b.code}`.toLowerCase();
+            } else if (titleSort === 'title') {
+                valA = a.seoTitle ? a.seoTitle.toLowerCase() : '';
+                valB = b.seoTitle ? b.seoTitle.toLowerCase() : '';
+            }
+            if (valA < valB) return titleOrder === 'asc' ? -1 : 1;
+            if (valA > valB) return titleOrder === 'asc' ? 1 : -1;
+            return 0;
+        });
+
         const mode = req.query.mode || 'seo';
 
         res.render('admin_seo_detector', {
             problematicTitles,
             titlePublishStatus,
             titlePublishStats,
+            titleSort,
+            titleOrder,
             reports: reports,
             page,
             totalPages: Math.ceil(total / take) || 1,

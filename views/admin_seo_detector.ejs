@@ -46,6 +46,8 @@
     // Параметры третьей таблицы
     let table3Params = '';
     if (typeof titlePublishStatus !== 'undefined' && titlePublishStatus) table3Params += '&title_publish_status=' + titlePublishStatus;
+    if (typeof titleSort !== 'undefined' && titleSort !== 'card') table3Params += '&title_sort=' + titleSort;
+    if (typeof titleOrder !== 'undefined' && titleOrder !== 'asc') table3Params += '&title_order=' + titleOrder;
 
     tabsQueryParams += table3Params;
     publishTabsQueryParams += table3Params;
@@ -59,6 +61,15 @@
     if (typeof linkSort !== 'undefined' && linkSort !== 'date') table3PublishParams += '&link_sort=' + linkSort;
     if (typeof linkOrder !== 'undefined' && linkOrder !== 'desc') table3PublishParams += '&link_order=' + linkOrder;
     if (typeof linkPublishStatus !== 'undefined' && linkPublishStatus) table3PublishParams += '&link_publish_status=' + linkPublishStatus;
+
+    // Функция для генерации ссылок сортировки 3-й таблицы
+    function getTitleSortLink(field) {
+        let order = 'asc';
+        if (typeof titleSort !== 'undefined' && titleSort === field && typeof titleOrder !== 'undefined' && titleOrder === 'asc') {
+            order = 'desc';
+        }
+        return `/admin/seo-detector?mode=seo&title_sort=${field}&title_order=${order}${table3PublishParams}#problematic-titles`;
+    }
 
     // Функция для генерации ссылок сортировки
     function getSortLink(field) {
@@ -74,15 +85,18 @@
     if (typeof currentSort !== 'undefined' && currentSort) paginationParams += '&sort=' + currentSort;
     if (typeof currentOrder !== 'undefined' && currentOrder) paginationParams += '&order=' + currentOrder;
 %>
-<details class="bg-slate-800 rounded-xl border border-slate-700 shadow-sm group" open>
+<details class="bg-slate-800 rounded-xl border border-slate-700 shadow-sm group">
     <summary class="p-4 cursor-pointer list-none flex justify-between items-center font-semibold text-white select-none [&::-webkit-details-marker]:hidden border-b border-slate-700 bg-slate-800/50 hover:bg-slate-700/50 transition-colors">
         <div class="flex items-center gap-2">
             <i data-lucide="list-checks" class="w-5 h-5 text-blue-400"></i>
             Качество карточек
         </div>
-        <i data-lucide="chevron-down" class="w-5 h-5 text-slate-400 group-open:rotate-180 transition-transform"></i>
+        <div class="flex items-center gap-3">
+            <span class="text-xs font-medium bg-slate-700 px-2 py-1 rounded-md text-slate-300"><%= total %> шт.</span>
+            <i data-lucide="chevron-down" class="w-5 h-5 text-slate-400 group-open:rotate-180 transition-transform"></i>
+        </div>
     </summary>
-    <div class="flex flex-col h-[calc(100vh-142px)]">
+    <div class="flex flex-col max-h-[500px]">
     <div class="p-3 border-b border-slate-700 bg-slate-800/50">
         <div class="flex items-center justify-end gap-3 text-xs border-b border-slate-700/50 pb-2">
             <div class="flex items-center gap-1.5">
@@ -315,7 +329,7 @@
     </div>
 </details>
 
-<details class="bg-slate-800 rounded-xl border border-slate-700 shadow-sm group mt-4" id="broken-links" open>
+<details class="bg-slate-800 rounded-xl border border-slate-700 shadow-sm group mt-4" id="broken-links">
     <summary class="p-4 cursor-pointer list-none flex justify-between items-center font-semibold text-white select-none [&::-webkit-details-marker]:hidden border-b border-slate-700 bg-slate-800/50 hover:bg-slate-700/50 transition-colors">
         <div class="flex items-center gap-2">
             <i data-lucide="link-2-off" class="w-5 h-5 text-red-400"></i>
@@ -456,7 +470,7 @@
     </div>
 </details>
 
-<details class="bg-slate-800 rounded-xl border border-slate-700 shadow-sm group mt-4" id="problematic-titles" open>
+<details class="bg-slate-800 rounded-xl border border-slate-700 shadow-sm group mt-4" id="problematic-titles">
     <summary class="p-4 cursor-pointer list-none flex justify-between items-center font-semibold text-white select-none [&::-webkit-details-marker]:hidden border-b border-slate-700 bg-slate-800/50 hover:bg-slate-700/50 transition-colors">
         <div class="flex items-center gap-2">
             <i data-lucide="text-cursor-input" class="w-5 h-5 text-yellow-400"></i>
@@ -495,8 +509,24 @@
                     <table class="w-full text-left border-collapse min-w-[700px]">
                         <thead class="sticky top-0 bg-slate-900 border-b border-slate-700 z-10">
                             <tr class="text-slate-300 text-xs">
-                                <th class="px-2 py-2.5 font-medium">Карточка</th>
-                                <th class="px-2 py-2.5 font-medium">Текущий заголовок (seoTitle)</th>
+                                <th class="px-2 py-2.5 font-medium group cursor-pointer hover:bg-slate-800 transition-colors select-none" onclick="window.location.href='<%= getTitleSortLink('card') %>'">
+                                    <div class="flex items-center gap-1">
+                                        Карточка
+                                        <div class="flex flex-col text-[8px] leading-[4px] opacity-50 <%= (titleSort === 'card') ? 'opacity-100 text-blue-400' : 'group-hover:opacity-100' %>">
+                                            <i data-lucide="chevron-up" class="w-3 h-3 <%= (titleSort === 'card' && titleOrder === 'asc') ? 'opacity-100' : 'opacity-30' %>"></i>
+                                            <i data-lucide="chevron-down" class="w-3 h-3 <%= (titleSort === 'card' && titleOrder === 'desc') ? 'opacity-100' : 'opacity-30' %> -mt-1"></i>
+                                        </div>
+                                    </div>
+                                </th>
+                                <th class="px-2 py-2.5 font-medium group cursor-pointer hover:bg-slate-800 transition-colors select-none" onclick="window.location.href='<%= getTitleSortLink('title') %>'">
+                                    <div class="flex items-center gap-1">
+                                        Текущий заголовок (seoTitle)
+                                        <div class="flex flex-col text-[8px] leading-[4px] opacity-50 <%= (titleSort === 'title') ? 'opacity-100 text-blue-400' : 'group-hover:opacity-100' %>">
+                                            <i data-lucide="chevron-up" class="w-3 h-3 <%= (titleSort === 'title' && titleOrder === 'asc') ? 'opacity-100' : 'opacity-30' %>"></i>
+                                            <i data-lucide="chevron-down" class="w-3 h-3 <%= (titleSort === 'title' && titleOrder === 'desc') ? 'opacity-100' : 'opacity-30' %> -mt-1"></i>
+                                        </div>
+                                    </div>
+                                </th>
                                 <th class="px-2 py-2.5 font-medium text-right w-32">Действие</th>
                             </tr>
                         </thead>
