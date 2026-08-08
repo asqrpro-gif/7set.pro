@@ -66,7 +66,7 @@ async function runBatchEnrichment() {
           seoRisk: { in: ['WARNING', 'DANGER'] },
           created_at: { lte: now }
         },
-        orderBy: { created_at: 'asc' }
+        orderBy: { created_at: 'desc' }
       });
 
       // Если опубликованных проблемных карточек нет, берем отложенные
