@@ -214,7 +214,7 @@
                                         <i data-lucide="sparkles" id="enrich-icon-<%= report.id %>" class="w-4 h-4"></i>
                                     </button>
                                 <% } %>
-                                <% const hasRetroLinks = (report.full_analysis_markdown || report.summary || '').includes('ПДД и полезные ресурсы'); %>
+                                <% const hasRetroLinks = (report.full_analysis_markdown || report.summary || '').includes('ПДД и эксплуатация') || (report.full_analysis_markdown || report.summary || '').includes('ПДД и полезные ресурсы'); %>
                                 <button class="btn-enrich-single w-10 h-10 md:w-8 md:h-8 flex items-center justify-center rounded transition-colors <%= hasRetroLinks ? 'text-emerald-400 hover:text-emerald-300' : 'text-rose-400 hover:text-rose-300 hover:bg-slate-700' %>" data-id="<%= report.id %>" title="SEO Обогащение (Словари)">
                                     <i data-lucide="link" class="w-4 h-4"></i>
                                 </button>

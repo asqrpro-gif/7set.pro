@@ -533,7 +533,7 @@ router.get('/seo-detector', async (req, res) => {
             });
             const dbReportsMap = {};
             dbReports.forEach(r => {
-                dbReportsMap[r.id] = (r.full_analysis_markdown || r.summary || '').includes('ПДД и полезные ресурсы');
+                dbReportsMap[r.id] = (r.full_analysis_markdown || r.summary || '').includes('ПДД и эксплуатация') || (r.full_analysis_markdown || r.summary || '').includes('ПДД и полезные ресурсы');
             });
             brokenLinks.forEach(link => {
                 link.hasRetroLinks = !!dbReportsMap[link.id];
