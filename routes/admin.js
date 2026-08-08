@@ -541,8 +541,9 @@ router.get('/seo-detector', async (req, res) => {
         }
 
         // Сбор проблемных SEO-заголовков (по дублям суффикса)
+        const titlePublishStatus = req.query.title_publish_status || '';
         const allReportsForTitles = await prisma.diagnosticReport.findMany({
-            select: { id: true, seoTitle: true, brand: true, model: true, code: true }
+            select: { id: true, seoTitle: true, brand: true, model: true, code: true, created_at: true }
         });
         const suffixMap = {};
         allReportsForTitles.forEach(r => {
@@ -567,10 +568,29 @@ router.get('/seo-detector', async (req, res) => {
         // Убираем дубли, если карточка попала дважды
         problematicTitles = [...new Set(problematicTitles)];
 
+        const nowForTitles = new Date();
+        const titlePublishStats = { total: 0, published: 0, unpublished: 0 };
+        problematicTitles.forEach(t => {
+            titlePublishStats.total++;
+            if (new Date(t.created_at) <= nowForTitles) {
+                titlePublishStats.published++;
+            } else {
+                titlePublishStats.unpublished++;
+            }
+        });
+
+        if (titlePublishStatus === 'PUBLISHED') {
+            problematicTitles = problematicTitles.filter(t => new Date(t.created_at) <= nowForTitles);
+        } else if (titlePublishStatus === 'UNPUBLISHED') {
+            problematicTitles = problematicTitles.filter(t => new Date(t.created_at) > nowForTitles);
+        }
+
         const mode = req.query.mode || 'seo';
 
         res.render('admin_seo_detector', {
             problematicTitles,
+            titlePublishStatus,
+            titlePublishStats,
             reports: reports,
             page,
             totalPages: Math.ceil(total / take) || 1,

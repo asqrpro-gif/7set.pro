@@ -43,6 +43,23 @@
     if (typeof linkSort !== 'undefined' && linkSort !== 'date') table2PublishParams += '&link_sort=' + linkSort;
     if (typeof linkOrder !== 'undefined' && linkOrder !== 'desc') table2PublishParams += '&link_order=' + linkOrder;
 
+    // Параметры третьей таблицы
+    let table3Params = '';
+    if (typeof titlePublishStatus !== 'undefined' && titlePublishStatus) table3Params += '&title_publish_status=' + titlePublishStatus;
+
+    tabsQueryParams += table3Params;
+    publishTabsQueryParams += table3Params;
+    baseQueryParams += table3Params;
+    table1Params += table3Params;
+    table2PublishParams += table3Params;
+
+    // Ссылки для вкладок Publish в третьей таблице
+    let table3PublishParams = table1Params;
+    if (typeof linkFilter !== 'undefined' && linkFilter !== 'ALL') table3PublishParams += '&link_filter=' + linkFilter;
+    if (typeof linkSort !== 'undefined' && linkSort !== 'date') table3PublishParams += '&link_sort=' + linkSort;
+    if (typeof linkOrder !== 'undefined' && linkOrder !== 'desc') table3PublishParams += '&link_order=' + linkOrder;
+    if (typeof linkPublishStatus !== 'undefined' && linkPublishStatus) table3PublishParams += '&link_publish_status=' + linkPublishStatus;
+
     // Функция для генерации ссылок сортировки
     function getSortLink(field) {
         let order = 'asc';
@@ -452,6 +469,22 @@
     </summary>
     <div class="flex flex-col max-h-[500px]">
         <div class="flex-1 overflow-auto bg-[#0f172a]/50 p-4">
+            
+            <!-- Фильтры -->
+            <div class="flex flex-col lg:flex-row justify-end gap-3 lg:items-center mb-4">
+                <div class="flex gap-1.5 flex-wrap w-full lg:w-auto">
+                    <a href="/admin/seo-detector?mode=seo<%= table3PublishParams %>#problematic-titles" class="px-3 py-1.5 rounded-lg text-xs font-medium transition-colors flex items-center gap-2 flex-1 lg:flex-none justify-center <%= (!titlePublishStatus) ? 'bg-slate-600 text-white shadow-inner' : 'bg-slate-800 text-slate-400 hover:bg-slate-700 hover:text-white' %>">
+                        Все статусы <span class="<%= (!titlePublishStatus) ? 'bg-slate-700' : 'bg-slate-900' %> px-1.5 py-0.5 rounded text-[10px]"><%= titlePublishStats.total %></span>
+                    </a>
+                    <a href="/admin/seo-detector?mode=seo&title_publish_status=PUBLISHED<%= table3PublishParams %>#problematic-titles" class="px-3 py-1.5 rounded-lg text-xs font-medium transition-colors flex items-center gap-2 flex-1 lg:flex-none justify-center <%= (titlePublishStatus === 'PUBLISHED') ? 'bg-blue-600 text-white shadow-inner' : 'bg-slate-800 text-slate-400 hover:bg-slate-700 hover:text-white' %>">
+                        Опубликовано <span class="<%= (titlePublishStatus === 'PUBLISHED') ? 'bg-blue-700' : 'bg-slate-900' %> px-1.5 py-0.5 rounded text-[10px]"><%= titlePublishStats.published %></span>
+                    </a>
+                    <a href="/admin/seo-detector?mode=seo&title_publish_status=UNPUBLISHED<%= table3PublishParams %>#problematic-titles" class="px-3 py-1.5 rounded-lg text-xs font-medium transition-colors flex items-center gap-2 flex-1 lg:flex-none justify-center <%= (titlePublishStatus === 'UNPUBLISHED') ? 'bg-purple-600 text-white shadow-inner' : 'bg-slate-800 text-slate-400 hover:bg-slate-700 hover:text-white' %>">
+                        Отложено <span class="<%= (titlePublishStatus === 'UNPUBLISHED') ? 'bg-purple-700' : 'bg-slate-900' %> px-1.5 py-0.5 rounded text-[10px]"><%= titlePublishStats.unpublished %></span>
+                    </a>
+                </div>
+            </div>
+
             <% if (problematicTitles.length === 0) { %>
                 <div class="flex flex-col items-center justify-center h-64 text-slate-500 gap-3">
                     <i data-lucide="check-circle" class="w-12 h-12 text-green-500/50"></i>
