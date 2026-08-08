@@ -439,7 +439,103 @@
     </div>
 </details>
 
+<details class="bg-slate-800 rounded-xl border border-slate-700 shadow-sm group mt-4" id="problematic-titles" open>
+    <summary class="p-4 cursor-pointer list-none flex justify-between items-center font-semibold text-white select-none [&::-webkit-details-marker]:hidden border-b border-slate-700 bg-slate-800/50 hover:bg-slate-700/50 transition-colors">
+        <div class="flex items-center gap-2">
+            <i data-lucide="text-cursor-input" class="w-5 h-5 text-yellow-400"></i>
+            Проблемные SEO-заголовки
+        </div>
+        <div class="flex items-center gap-3">
+            <span class="text-xs font-medium bg-slate-700 px-2 py-1 rounded-md text-slate-300"><%= problematicTitles.length %> шт.</span>
+            <i data-lucide="chevron-down" class="w-5 h-5 text-slate-400 group-open:rotate-180 transition-transform"></i>
+        </div>
+    </summary>
+    <div class="flex flex-col max-h-[500px]">
+        <div class="flex-1 overflow-auto bg-[#0f172a]/50 p-4">
+            <% if (problematicTitles.length === 0) { %>
+                <div class="flex flex-col items-center justify-center h-64 text-slate-500 gap-3">
+                    <i data-lucide="check-circle" class="w-12 h-12 text-green-500/50"></i>
+                    <p>Проблемных заголовков не найдено. Все отлично!</p>
+                </div>
+            <% } else { %>
+                <div class="overflow-x-auto min-h-0">
+                    <table class="w-full text-left border-collapse min-w-[700px]">
+                        <thead class="sticky top-0 bg-slate-900 border-b border-slate-700 z-10">
+                            <tr class="text-slate-300 text-xs">
+                                <th class="px-2 py-2.5 font-medium">Карточка</th>
+                                <th class="px-2 py-2.5 font-medium">Текущий заголовок (seoTitle)</th>
+                                <th class="px-2 py-2.5 font-medium text-right w-32">Действие</th>
+                            </tr>
+                        </thead>
+                        <tbody class="text-sm divide-y divide-slate-700/50">
+                            <% problematicTitles.forEach((t, idx) => { %>
+                                <tr class="hover:bg-slate-700/30 transition-colors">
+                                    <td class="px-2 py-3 w-1/4">
+                                        <a href="/catalog/<%= t.brand.toLowerCase() %>/<%= t.model.toLowerCase() %>/<%= t.code.toLowerCase() %>" target="_blank" class="hover:underline flex flex-col gap-1 w-fit">
+                                            <span class="font-medium text-blue-400 text-sm"><%= t.brand %> <%= t.model %></span>
+                                            <span class="text-slate-300 font-mono font-bold bg-slate-700/50 border border-slate-600 px-1.5 py-0.5 rounded text-xs w-fit"><%= t.code %></span>
+                                        </a>
+                                    </td>
+                                    <td class="px-2 py-3 text-slate-200 font-medium">
+                                        <span id="title-text-<%= t.id %>"><%= t.seoTitle %></span>
+                                    </td>
+                                    <td class="px-2 py-3 text-right">
+                                        <button id="btn-rewrite-<%= t.id %>" onclick="rewriteSeoTitle('<%= t.id %>')" class="inline-flex items-center gap-1.5 bg-slate-700 hover:bg-slate-600 text-white px-3 py-1.5 rounded transition-colors text-xs font-medium">
+                                            <i data-lucide="sparkles" class="w-3.5 h-3.5 text-blue-400"></i> Переделать
+                                        </button>
+                                    </td>
+                                </tr>
+                            <% }) %>
+                        </tbody>
+                    </table>
+                </div>
+            <% } %>
+        </div>
+    </div>
+</details>
+
 <script>
+async function rewriteSeoTitle(id) {
+    const btn = document.getElementById('btn-rewrite-' + id);
+    const titleSpan = document.getElementById('title-text-' + id);
+    
+    const originalHtml = btn.innerHTML;
+    btn.innerHTML = '<i data-lucide="loader-2" class="w-3.5 h-3.5 animate-spin"></i> Думает...';
+    btn.disabled = true;
+    if(typeof lucide !== 'undefined') lucide.createIcons();
+
+    try {
+        const res = await fetch('/admin/api/rewrite-title', {
+            method: 'POST',
+            headers: { 'Content-Type': 'application/json' },
+            body: JSON.stringify({ id })
+        });
+        const data = await res.json();
+        
+        if (data.success) {
+            titleSpan.textContent = data.newTitle;
+            titleSpan.classList.add('text-green-400');
+            btn.innerHTML = '<i data-lucide="check" class="w-3.5 h-3.5 text-green-400"></i> Готово';
+            setTimeout(() => {
+                titleSpan.classList.remove('text-green-400');
+                btn.innerHTML = originalHtml;
+                btn.disabled = false;
+                if(typeof lucide !== 'undefined') lucide.createIcons();
+            }, 3000);
+        } else {
+            alert('Ошибка: ' + (data.error || 'Неизвестная ошибка'));
+            btn.innerHTML = originalHtml;
+            btn.disabled = false;
+        }
+    } catch (e) {
+        alert('Сетевая ошибка');
+        btn.innerHTML = originalHtml;
+        btn.disabled = false;
+    }
+    if(typeof lucide !== 'undefined') lucide.createIcons();
+}
+</script>
+
 async function removeBrokenLink(reportId, brokenUrl, rowIndex) {
     if(!confirm('Автоматически удалить эту ссылку из текста статьи?')) return;
     

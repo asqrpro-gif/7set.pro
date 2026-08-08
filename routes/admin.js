@@ -540,9 +540,37 @@ router.get('/seo-detector', async (req, res) => {
             });
         }
 
+        // Сбор проблемных SEO-заголовков (по дублям суффикса)
+        const allReportsForTitles = await prisma.diagnosticReport.findMany({
+            select: { id: true, seoTitle: true, brand: true, model: true, code: true }
+        });
+        const suffixMap = {};
+        allReportsForTitles.forEach(r => {
+            if (!r.seoTitle) return;
+            const parts = r.seoTitle.split(':');
+            if (parts.length > 1) {
+                const suffix = parts.slice(1).join(':').trim().toLowerCase();
+                if (!suffixMap[suffix]) suffixMap[suffix] = [];
+                suffixMap[suffix].push(r);
+            }
+        });
+        
+        let problematicTitles = [];
+        const badPhrases = ['расшифровка и причины', 'можно ли ехать дальше', 'симптомы и ремонт'];
+        
+        for (const suffix in suffixMap) {
+            const isBadPhrase = badPhrases.some(p => suffix.includes(p));
+            if (suffixMap[suffix].length > 1 || isBadPhrase) {
+                problematicTitles.push(...suffixMap[suffix]);
+            }
+        }
+        // Убираем дубли, если карточка попала дважды
+        problematicTitles = [...new Set(problematicTitles)];
+
         const mode = req.query.mode || 'seo';
 
         res.render('admin_seo_detector', {
+            problematicTitles,
             reports: reports,
             page,
             totalPages: Math.ceil(total / take) || 1,
@@ -843,6 +871,54 @@ router.post('/api/seo-enrich/single/:id', async (req, res) => {
         return res.json({ success: true, recreated: true });
     } catch (err) {
         console.error('Ошибка одиночного обогащения:', err);
+        res.status(500).json({ error: 'Ошибка сервера' });
+    }
+});
+
+router.post('/api/rewrite-title', async (req, res) => {
+    try {
+        const { id } = req.body;
+        const report = await prisma.diagnosticReport.findUnique({ where: { id } });
+        if (!report) return res.status(404).json({ error: 'Отчет не найден' });
+        
+        const text = report.full_analysis_markdown || report.summary || '';
+        const prompt = `Ты топовый SEO-специалист автотематики. Прочитай технический текст ошибки ниже.
+Выведи только 1 короткий SEO-заголовок (строго до 70 символов). 
+Формат свободный, но ОБЯЗАТЕЛЬНО:
+1. Включи Код (${report.code}), Марку (${report.brand}) и Модель (${report.model}).
+2. Включи ТОЧНОЕ техническое название сломанной детали из текста (например: "Датчик кислорода", "Цепь ГРМ").
+3. КАТЕГОРИЧЕСКИ ЗАПРЕЩЕНО использовать слова: "симптомы", "ремонт", "причины", "можно ли ехать дальше". Никаких вопросов и кликбейта.
+
+Текст ошибки:
+${text.substring(0, 1000)}`;
+
+        const fetch = (await import('node-fetch')).default;
+        const API_URL = `https://aged-tree-edb7carcode-proxy.asqr-pro.workers.dev/v1beta/models/gemini-flash-lite-latest:generateContent?key=${process.env.GEMINI_API_KEY}`;
+        
+        const response = await fetch(API_URL, {
+            method: 'POST',
+            headers: { 'Content-Type': 'application/json' },
+            body: JSON.stringify({
+                contents: [{ parts: [{ text: prompt }] }],
+                generationConfig: { temperature: 0.3 }
+            })
+        });
+
+        const data = await response.json();
+        let newTitle = data.candidates?.[0]?.content?.parts?.[0]?.text || '';
+        newTitle = newTitle.replace(/^"|"$/g, '').replace(/\n/g, '').trim();
+
+        if (newTitle) {
+            await prisma.diagnosticReport.update({
+                where: { id: report.id },
+                data: { seoTitle: newTitle }
+            });
+            return res.json({ success: true, newTitle });
+        } else {
+            return res.status(500).json({ error: 'ИИ вернул пустой ответ' });
+        }
+    } catch (err) {
+        console.error('Ошибка перегенерации заголовка:', err);
         res.status(500).json({ error: 'Ошибка сервера' });
     }
 });
