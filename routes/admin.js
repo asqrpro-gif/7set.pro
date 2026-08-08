@@ -540,33 +540,82 @@ router.get('/seo-detector', async (req, res) => {
             });
         }
 
-        // Сбор проблемных SEO-заголовков (по дублям суффикса)
+        // Сбор проблемных SEO-заголовков и описаний (по дублям шаблонов)
         const titlePublishStatus = req.query.title_publish_status || '';
         const allReports = await prisma.diagnosticReport.findMany({
             select: { id: true, seoTitle: true, seoDescription: true, brand: true, model: true, code: true, created_at: true }
         });
-        const suffixMap = {};
+        
+        let problematicTitles = [];
+        let problematicDescriptions = [];
+        
+        const titleMap = {};
+        const descMap = {};
+
         allReports.forEach(r => {
-            if (!r.seoTitle) return;
-            const parts = r.seoTitle.split(':');
-            if (parts.length > 1) {
-                const suffix = parts.slice(1).join(':').trim().toLowerCase();
-                if (!suffixMap[suffix]) suffixMap[suffix] = [];
-                suffixMap[suffix].push(r);
+            const codeLower = r.code.toLowerCase();
+            const brandLower = r.brand.toLowerCase();
+            const modelLower = r.model.toLowerCase();
+
+            // Обработка SEO-заголовков
+            if (r.seoTitle) {
+                let titleTpl = r.seoTitle.toLowerCase();
+                // Экранируем спецсимволы в переменных, если они есть (на всякий случай)
+                const escapeRegExp = (string) => string.replace(/[.*+?^${}()|[\]\\]/g, '\\$&');
+
+                titleTpl = titleTpl.replace(new RegExp(escapeRegExp(codeLower), 'g'), '[code]');
+                titleTpl = titleTpl.replace(new RegExp(escapeRegExp(brandLower), 'g'), '[brand]');
+                titleTpl = titleTpl.replace(new RegExp(escapeRegExp(modelLower), 'g'), '[model]');
+                titleTpl = titleTpl.replace(/\s+/g, ' ').trim();
+
+                if (!titleMap[titleTpl]) titleMap[titleTpl] = [];
+                titleMap[titleTpl].push(r);
+                
+                // Проверка длины заголовка
+                const titleLen = r.seoTitle.trim().length;
+                if (titleLen < 30 || titleLen > 75) {
+                    problematicTitles.push(r);
+                }
+            }
+
+            // Обработка SEO-описаний
+            if (r.seoDescription) {
+                let descTpl = r.seoDescription.toLowerCase();
+                const escapeRegExp = (string) => string.replace(/[.*+?^${}()|[\]\\]/g, '\\$&');
+
+                descTpl = descTpl.replace(new RegExp(escapeRegExp(codeLower), 'g'), '[code]');
+                descTpl = descTpl.replace(new RegExp(escapeRegExp(brandLower), 'g'), '[brand]');
+                descTpl = descTpl.replace(new RegExp(escapeRegExp(modelLower), 'g'), '[model]');
+                descTpl = descTpl.replace(/\s+/g, ' ').trim();
+
+                if (!descMap[descTpl]) descMap[descTpl] = [];
+                descMap[descTpl].push(r);
+                
+                // Проверка длины описания
+                const descLen = r.seoDescription.trim().length;
+                if (descLen < 100 || descLen > 160) {
+                    problematicDescriptions.push(r);
+                }
             }
         });
         
-        let problematicTitles = [];
-        const badPhrases = ['расшифровка и причины', 'можно ли ехать дальше', 'симптомы и ремонт'];
-        
-        for (const suffix in suffixMap) {
-            const isBadPhrase = badPhrases.some(p => suffix.includes(p));
-            if (suffixMap[suffix].length > 1 || isBadPhrase) {
-                problematicTitles.push(...suffixMap[suffix]);
+        // Поиск дублей заголовков
+        for (const tpl in titleMap) {
+            if (titleMap[tpl].length > 1) {
+                problematicTitles.push(...titleMap[tpl]);
             }
         }
-        // Убираем дубли, если карточка попала дважды
+        
+        // Поиск дублей описаний
+        for (const tpl in descMap) {
+            if (descMap[tpl].length > 1) {
+                problematicDescriptions.push(...descMap[tpl]);
+            }
+        }
+
+        // Убираем дубли, если карточка попала дважды (и по длине, и по дублю шаблона)
         problematicTitles = [...new Set(problematicTitles)];
+        problematicDescriptions = [...new Set(problematicDescriptions)];
 
         const nowForTitles = new Date();
         const titlePublishStats = { total: 0, published: 0, unpublished: 0 };
@@ -601,35 +650,9 @@ router.get('/seo-detector', async (req, res) => {
             if (valA < valB) return titleOrder === 'asc' ? -1 : 1;
             if (valA > valB) return titleOrder === 'asc' ? 1 : -1;
             return 0;
-            return 0;
         });
 
-        // Сбор проблемных SEO-описаний
         const descPublishStatus = req.query.desc_publish_status || '';
-        const descSuffixMap = {};
-        allReports.forEach(r => {
-            if (!r.seoDescription) return;
-            const desc = r.seoDescription.trim().toLowerCase();
-            const prefix = desc.substring(0, 70); // Ищем шаблоны по первым 70 символам
-            if (!descSuffixMap[prefix]) descSuffixMap[prefix] = [];
-            descSuffixMap[prefix].push(r);
-        });
-
-        let problematicDescriptions = [];
-        for (const prefix in descSuffixMap) {
-            if (descSuffixMap[prefix].length > 1) {
-                problematicDescriptions.push(...descSuffixMap[prefix]);
-            }
-        }
-        allReports.forEach(r => {
-            if (!r.seoDescription) return;
-            const len = r.seoDescription.trim().length;
-            if (len < 100 || len > 160) {
-                problematicDescriptions.push(r);
-            }
-        });
-        
-        problematicDescriptions = [...new Set(problematicDescriptions)];
 
         const descPublishStats = { total: 0, published: 0, unpublished: 0 };
         problematicDescriptions.forEach(d => {
