@@ -40,6 +40,16 @@ async function runBatchEnrichment() {
         console.log(`🌅 Наступили новые сутки. Лимиты сброшены.`);
       }
 
+      const checkNow = new Date();
+      // Строгий запуск с 00:00 (если счетчик 0, и время уже больше 01:00, ждем до полуночи)
+      if (state.count === 0 && checkNow.getHours() >= 1) {
+        console.log(`🛑 Скрипт настроен на запуск строго с 00:00. Сейчас ${checkNow.getHours()}:${checkNow.getMinutes().toString().padStart(2, '0')}. Спим до полуночи...`);
+        const tomorrow = new Date(checkNow.getFullYear(), checkNow.getMonth(), checkNow.getDate() + 1);
+        const msUntilTomorrow = tomorrow.getTime() - checkNow.getTime();
+        await sleep(msUntilTomorrow);
+        continue;
+      }
+
       // Проверка паузы (например, после 30 карточек)
       if (state.pausedUntil > Date.now()) {
         const waitTime = state.pausedUntil - Date.now();
