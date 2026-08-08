@@ -48,9 +48,9 @@ async function runBatchEnrichment() {
         continue;
       }
 
-      // Проверка суточного лимита (60 карточек)
-      if (state.count >= 60) {
-        console.log(`🛑 Достигнут суточный лимит обогащений (60). Засыпаем до завтра...`);
+      // Проверка суточного лимита (68 карточек)
+      if (state.count >= 68) {
+        console.log(`🛑 Достигнут суточный лимит обогащений (68). Засыпаем до завтра...`);
         const now = new Date();
         const tomorrow = new Date(now.getFullYear(), now.getMonth(), now.getDate() + 1);
         const msUntilTomorrow = tomorrow.getTime() - now.getTime();
@@ -84,18 +84,18 @@ async function runBatchEnrichment() {
         
         state.count += 1;
         
-        if (state.count === 30) {
-          console.log(`⏳ Достигнуто 30 обогащений. Ставим скрипт на паузу 1 час...`);
+        if (state.count > 0 && state.count % 17 === 0 && state.count < 68) {
+          console.log(`⏳ Выполнено ${state.count} обогащений (завершена пачка из 17 шт.). Ставим скрипт на паузу 1 час...`);
           state.pausedUntil = Date.now() + 60 * 60 * 1000;
           await saveDailyState(state);
           await sleep(60 * 60 * 1000);
-        } else if (state.count >= 60) {
-          console.log(`🛑 Достигнуто 60 обогащений. Суточный лимит исчерпан.`);
+        } else if (state.count >= 68) {
+          console.log(`🛑 Достигнуто 68 обогащений. Суточный лимит исчерпан.`);
           await saveDailyState(state);
         } else {
-          console.log(`⏳ Ожидание 3.5 минуты перед следующей карточкой... (Выполнено ${state.count}/60 за сегодня)`);
+          console.log(`⏳ Ожидание 2 минуты перед следующей карточкой... (Выполнено ${state.count}/68 за сегодня)`);
           await saveDailyState(state);
-          await sleep(210000);
+          await sleep(120000);
         }
       } else {
         console.error(`❌ Ошибка обогащения:`, result.error);
