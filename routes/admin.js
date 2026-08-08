@@ -542,11 +542,11 @@ router.get('/seo-detector', async (req, res) => {
 
         // Сбор проблемных SEO-заголовков (по дублям суффикса)
         const titlePublishStatus = req.query.title_publish_status || '';
-        const allReportsForTitles = await prisma.diagnosticReport.findMany({
-            select: { id: true, seoTitle: true, brand: true, model: true, code: true, created_at: true }
+        const allReports = await prisma.diagnosticReport.findMany({
+            select: { id: true, seoTitle: true, seoDescription: true, brand: true, model: true, code: true, created_at: true }
         });
         const suffixMap = {};
-        allReportsForTitles.forEach(r => {
+        allReports.forEach(r => {
             if (!r.seoTitle) return;
             const parts = r.seoTitle.split(':');
             if (parts.length > 1) {
@@ -601,6 +601,68 @@ router.get('/seo-detector', async (req, res) => {
             if (valA < valB) return titleOrder === 'asc' ? -1 : 1;
             if (valA > valB) return titleOrder === 'asc' ? 1 : -1;
             return 0;
+            return 0;
+        });
+
+        // Сбор проблемных SEO-описаний
+        const descPublishStatus = req.query.desc_publish_status || '';
+        const descSuffixMap = {};
+        allReports.forEach(r => {
+            if (!r.seoDescription) return;
+            const desc = r.seoDescription.trim().toLowerCase();
+            const prefix = desc.substring(0, 70); // Ищем шаблоны по первым 70 символам
+            if (!descSuffixMap[prefix]) descSuffixMap[prefix] = [];
+            descSuffixMap[prefix].push(r);
+        });
+
+        let problematicDescriptions = [];
+        for (const prefix in descSuffixMap) {
+            if (descSuffixMap[prefix].length > 1) {
+                problematicDescriptions.push(...descSuffixMap[prefix]);
+            }
+        }
+        allReports.forEach(r => {
+            if (!r.seoDescription) return;
+            const len = r.seoDescription.trim().length;
+            if (len < 100 || len > 160) {
+                problematicDescriptions.push(r);
+            }
+        });
+        
+        problematicDescriptions = [...new Set(problematicDescriptions)];
+
+        const descPublishStats = { total: 0, published: 0, unpublished: 0 };
+        problematicDescriptions.forEach(d => {
+            descPublishStats.total++;
+            if (new Date(d.created_at) <= nowForTitles) {
+                descPublishStats.published++;
+            } else {
+                descPublishStats.unpublished++;
+            }
+        });
+
+        if (descPublishStatus === 'PUBLISHED') {
+            problematicDescriptions = problematicDescriptions.filter(d => new Date(d.created_at) <= nowForTitles);
+        } else if (descPublishStatus === 'UNPUBLISHED') {
+            problematicDescriptions = problematicDescriptions.filter(d => new Date(d.created_at) > nowForTitles);
+        }
+
+        const descSort = req.query.desc_sort || 'card';
+        const descOrder = req.query.desc_order === 'desc' ? 'desc' : 'asc';
+
+        problematicDescriptions.sort((a, b) => {
+            let valA = '';
+            let valB = '';
+            if (descSort === 'card') {
+                valA = `${a.brand} ${a.model} ${a.code}`.toLowerCase();
+                valB = `${b.brand} ${b.model} ${b.code}`.toLowerCase();
+            } else if (descSort === 'desc') {
+                valA = a.seoDescription ? a.seoDescription.toLowerCase() : '';
+                valB = b.seoDescription ? b.seoDescription.toLowerCase() : '';
+            }
+            if (valA < valB) return descOrder === 'asc' ? -1 : 1;
+            if (valA > valB) return descOrder === 'asc' ? 1 : -1;
+            return 0;
         });
 
         const mode = req.query.mode || 'seo';
@@ -611,6 +673,11 @@ router.get('/seo-detector', async (req, res) => {
             titlePublishStats,
             titleSort,
             titleOrder,
+            problematicDescriptions,
+            descPublishStatus,
+            descPublishStats,
+            descSort,
+            descOrder,
             reports: reports,
             page,
             totalPages: Math.ceil(total / take) || 1,
@@ -960,6 +1027,55 @@ ${text.substring(0, 1000)}`;
         }
     } catch (err) {
         console.error('Ошибка перегенерации заголовка:', err);
+        res.status(500).json({ error: 'Ошибка сервера' });
+    }
+});
+
+router.post('/api/rewrite-description', async (req, res) => {
+    try {
+        const { id } = req.body;
+        const report = await prisma.diagnosticReport.findUnique({ where: { id } });
+        if (!report) return res.status(404).json({ error: 'Отчет не найден' });
+        
+        const text = report.full_analysis_markdown || report.summary || '';
+        const prompt = `Ты топовый SEO-специалист автотематики. Прочитай технический текст ошибки ниже.
+Выведи только 1 мета-описание (meta description) для страницы ошибки.
+Формат свободный, но ОБЯЗАТЕЛЬНО:
+1. Включи Код (${report.code}), Марку (${report.brand}) и Модель (${report.model}).
+2. Длина СТРОГО от 140 до 160 символов (без исключений).
+3. Кратко опиши суть технической проблемы и добавь призыв к действию (например: "Узнайте причины поломки и способы решения").
+4. ВАЖНО: Предыдущее описание было "${report.seoDescription || ''}". Сделай ПРИНЦИПИАЛЬНО НОВЫЙ и уникальный вариант, выделив другую техническую специфику ошибки (если это возможно), не повторяй старую конструкцию и шаблон. Никаких кавычек вокруг ответа.
+
+Текст ошибки:
+${text.substring(0, 1000)}`;
+
+        const fetch = (await import('node-fetch')).default;
+        const API_URL = `https://aged-tree-edb7carcode-proxy.asqr-pro.workers.dev/v1beta/models/gemini-flash-lite-latest:generateContent?key=${process.env.GEMINI_API_KEY}`;
+        
+        const response = await fetch(API_URL, {
+            method: 'POST',
+            headers: { 'Content-Type': 'application/json' },
+            body: JSON.stringify({
+                contents: [{ parts: [{ text: prompt }] }],
+                generationConfig: { temperature: 0.7 } // Повышенная креативность для разнообразия описаний
+            })
+        });
+
+        const data = await response.json();
+        let newDesc = data.candidates?.[0]?.content?.parts?.[0]?.text || '';
+        newDesc = newDesc.replace(/^"|"$/g, '').replace(/\n/g, ' ').trim();
+
+        if (newDesc) {
+            await prisma.diagnosticReport.update({
+                where: { id: report.id },
+                data: { seoDescription: newDesc }
+            });
+            return res.json({ success: true, newDesc });
+        } else {
+            return res.status(500).json({ error: 'ИИ вернул пустой ответ' });
+        }
+    } catch (err) {
+        console.error('Ошибка перегенерации описания:', err);
         res.status(500).json({ error: 'Ошибка сервера' });
     }
 });
