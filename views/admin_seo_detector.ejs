@@ -150,11 +150,10 @@
     });
 </script>
 
-<div id="tab-quality" class="tab-content bg-slate-800 rounded-xl border border-slate-700 shadow-sm hidden">
-    <div class="flex flex-col max-h-[500px]">
-    <div class="flex-1 overflow-auto bg-[#0f172a]/50 p-4">
-        <div class="mb-4">
-        <div class="flex items-center justify-end gap-3 text-xs border-b border-slate-700/50 pb-2">
+<div id="tab-quality" class="tab-content hidden h-full">
+    <div class="flex flex-col h-full bg-slate-800 rounded-xl border border-slate-700 shadow-sm overflow-hidden">
+        <div class="p-4 shrink-0 border-b border-slate-700/50">
+        <div class="flex items-center justify-end gap-3 text-xs pb-2 border-b border-slate-700/50">
             <div class="flex items-center gap-1.5">
                 <span class="text-slate-400">Скан:</span>
                 <span class="font-medium text-white"><%= scanStats.scanned %>/<%= scanStats.total %></span>
@@ -196,7 +195,7 @@
         </div>
     </div>
 
-    <div class="overflow-auto flex-1 p-0 min-h-0">
+    <div class="flex-1 overflow-auto bg-[#0f172a]/50 min-h-0">
         <table class="w-full text-left border-collapse min-w-[900px]">
             <thead class="sticky top-0 bg-slate-900 border-b border-slate-700 z-10">
                 <tr class="text-slate-300 text-xs">
@@ -329,7 +328,8 @@
     </div>
 
     <!-- Пагинация -->
-    <div class="mt-4 flex flex-col md:flex-row justify-between items-center gap-4">
+    <div class="p-4 shrink-0 border-t border-slate-700 bg-slate-800">
+    <div class="flex flex-col md:flex-row justify-between items-center gap-4">
         <div class="text-sm text-slate-400">
             Всего карточек: <strong><%= currentRisk === 'ALL' ? stats.total : (currentRisk === 'SAFE' ? stats.safe : (currentRisk === 'WARNING' ? stats.warning : stats.danger)) %></strong>
         </div>
@@ -381,17 +381,15 @@
                 </span>
             <% } %>
         </div>
+        </div>
     </div>
-    </div>
 </div>
 </div>
-</div>
-<div id="tab-titles" class="tab-content bg-slate-800 rounded-xl border border-slate-700 shadow-sm hidden">
-    <div class="flex flex-col max-h-[500px]">
-        <div class="flex-1 overflow-auto bg-[#0f172a]/50 p-4">
-            
-            <!-- Фильтры -->
-            <div class="flex flex-col lg:flex-row justify-end gap-3 lg:items-center mb-4">
+<div id="tab-titles" class="tab-content hidden h-full">
+    <div class="flex flex-col h-full bg-slate-800 rounded-xl border border-slate-700 shadow-sm overflow-hidden">
+        <!-- Фильтры -->
+        <div class="p-4 shrink-0 border-b border-slate-700/50">
+            <div class="flex flex-col lg:flex-row justify-end gap-3 lg:items-center">
                 <div class="flex gap-1.5 flex-wrap w-full lg:w-auto">
                     <a href="/admin/seo-detector?mode=seo<%= table3PublishParams %>#tab-titles" class="px-3 py-1.5 rounded-lg text-xs font-medium transition-colors flex items-center gap-2 flex-1 lg:flex-none justify-center <%= (!titlePublishStatus) ? 'bg-slate-600 text-white shadow-inner' : 'bg-slate-800 text-slate-400 hover:bg-slate-700 hover:text-white' %>">
                         Все статусы <span class="<%= (!titlePublishStatus) ? 'bg-slate-700' : 'bg-slate-900' %> px-1.5 py-0.5 rounded text-[10px]"><%= titlePublishStats.total %></span>
@@ -404,14 +402,16 @@
                     </a>
                 </div>
             </div>
+        </div>
 
+        <!-- Table Container -->
+        <div class="flex-1 overflow-auto bg-[#0f172a]/50 p-0 min-h-0">
             <% if (problematicTitles.length === 0) { %>
-                <div class="flex flex-col items-center justify-center h-64 text-slate-500 gap-3">
+                <div class="flex flex-col items-center justify-center h-64 text-slate-500 gap-3 mt-8">
                     <i data-lucide="check-circle" class="w-12 h-12 text-green-500/50"></i>
                     <p>Проблемных заголовков не найдено. Все отлично!</p>
                 </div>
             <% } else { %>
-                <div class="overflow-x-auto min-h-0">
                     <table class="w-full text-left border-collapse min-w-[900px]">
                         <thead class="sticky top-0 bg-slate-900 border-b border-slate-700 z-10">
                             <tr class="text-slate-300 text-xs">
@@ -457,17 +457,15 @@
                             <% }) %>
                         </tbody>
                     </table>
-                </div>
             <% } %>
         </div>
     </div>
 </div>
-<div id="tab-descriptions" class="tab-content bg-slate-800 rounded-xl border border-slate-700 shadow-sm hidden">
-    <div class="flex flex-col max-h-[500px]">
-        <div class="flex-1 overflow-auto bg-[#0f172a]/50 p-4">
-            
-            <!-- Фильтры -->
-            <div class="flex flex-col lg:flex-row justify-end gap-3 lg:items-center mb-4">
+<div id="tab-descriptions" class="tab-content hidden h-full">
+    <div class="flex flex-col h-full bg-slate-800 rounded-xl border border-slate-700 shadow-sm overflow-hidden">
+        <!-- Фильтры -->
+        <div class="p-4 shrink-0 border-b border-slate-700/50">
+            <div class="flex flex-col lg:flex-row justify-end gap-3 lg:items-center">
                 <div class="flex gap-1.5 flex-wrap w-full lg:w-auto">
                     <a href="/admin/seo-detector?mode=seo<%= table4PublishParams %>#tab-descriptions" class="px-3 py-1.5 rounded-lg text-xs font-medium transition-colors flex items-center gap-2 flex-1 lg:flex-none justify-center <%= (!descPublishStatus) ? 'bg-slate-600 text-white shadow-inner' : 'bg-slate-800 text-slate-400 hover:bg-slate-700 hover:text-white' %>">
                         Все статусы <span class="<%= (!descPublishStatus) ? 'bg-slate-700' : 'bg-slate-900' %> px-1.5 py-0.5 rounded text-[10px]"><%= descPublishStats.total %></span>
@@ -480,14 +478,16 @@
                     </a>
                 </div>
             </div>
+        </div>
 
+        <!-- Table Container -->
+        <div class="flex-1 overflow-auto bg-[#0f172a]/50 p-0 min-h-0">
             <% if (problematicDescriptions.length === 0) { %>
-                <div class="flex flex-col items-center justify-center h-64 text-slate-500 gap-3">
+                <div class="flex flex-col items-center justify-center h-64 text-slate-500 gap-3 mt-8">
                     <i data-lucide="check-circle" class="w-12 h-12 text-green-500/50"></i>
                     <p>Проблемных описаний не найдено. Все отлично!</p>
                 </div>
             <% } else { %>
-                <div class="overflow-x-auto min-h-0">
                     <table class="w-full text-left border-collapse min-w-[900px]">
                         <thead class="sticky top-0 bg-slate-900 border-b border-slate-700 z-10">
                             <tr class="text-slate-300 text-xs">
@@ -533,17 +533,16 @@
                             <% }) %>
                         </tbody>
                     </table>
-                </div>
             <% } %>
         </div>
     </div>
 </div>
-<div id="tab-links" class="tab-content bg-slate-800 rounded-xl border border-slate-700 shadow-sm hidden">
-    <div class="flex flex-col max-h-[500px]">
-        <div class="flex-1 overflow-auto bg-[#0f172a]/50 p-4">
-            
-            <!-- Фильтры -->
-            <div class="flex flex-col lg:flex-row justify-between gap-3 lg:items-center mb-4">
+</div>
+<div id="tab-links" class="tab-content hidden h-full">
+    <div class="flex flex-col h-full bg-slate-800 rounded-xl border border-slate-700 shadow-sm overflow-hidden">
+        <!-- Фильтры -->
+        <div class="p-4 shrink-0 border-b border-slate-700/50">
+            <div class="flex flex-col lg:flex-row justify-between gap-3 lg:items-center">
                 <div class="flex flex-wrap items-center gap-2">
                     <a href="/admin/seo-detector?mode=seo&link_filter=ALL&link_sort=<%= linkSort %>&link_order=<%= linkOrder %><%= table1Params %>#broken-links" class="px-3 py-1.5 rounded-lg text-xs font-medium transition-colors flex items-center gap-2 <%= linkFilter === 'ALL' ? 'bg-blue-600 text-white' : 'bg-slate-800 text-slate-400 hover:bg-slate-700 hover:text-white' %>">
                         Все <span class="<%= linkFilter === 'ALL' ? 'bg-blue-700' : 'bg-slate-900' %> px-1.5 py-0.5 rounded text-[10px]"><%= brokenLinksStats.total %></span>
@@ -575,14 +574,16 @@
                     </a>
                 </div>
             </div>
+        </div>
 
+        <!-- Table Container -->
+        <div class="flex-1 overflow-auto bg-[#0f172a]/50 p-0 min-h-0">
             <% if (brokenLinks.length === 0) { %>
-                <div class="flex flex-col items-center justify-center h-64 text-slate-500 gap-3">
+                <div class="flex flex-col items-center justify-center h-64 text-slate-500 gap-3 mt-8">
                     <i data-lucide="check-circle" class="w-12 h-12 text-green-500/50"></i>
                     <p>По выбранному фильтру ничего не найдено.</p>
                 </div>
             <% } else { %>
-                <div class="overflow-x-auto min-h-0">
                     <table class="w-full text-left border-collapse min-w-[900px]">
                         <thead class="sticky top-0 bg-slate-900 border-b border-slate-700 z-10">
                             <tr class="text-slate-300 text-xs">
@@ -663,7 +664,6 @@
                             <% }) %>
                         </tbody>
                     </table>
-                </div>
             <% } %>
         </div>
     </div>
