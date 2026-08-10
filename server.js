@@ -2,8 +2,10 @@ import 'dotenv/config';
 import express from 'express';
 import cookieParser from 'cookie-parser';
 import { PrismaClient } from '@prisma/client';
-import { analyzeCarErrorFast, analyzeCarErrorDeep, getFactFromDB } from './lib/gemini_clean.js';
+import { analyzeCarErrorFast, analyzeCarErrorDeep } from './lib/gemini_clean.js';
 import { renderErrorCodePage } from './lib/error_code.js';
+import { getFactFromDB } from './lib/obd_db.js';
+import { enrichReportText } from './lib/seoEnricher.js';
 import { marked } from 'marked';
 
 // Настраиваем marked для открытия всех ссылок в новой вкладке
@@ -328,7 +330,7 @@ app.get('/diagnostic/:make/:model/:code', (req, res) => {
 app.get('/search', (req, res) => {
   const { brand, model, code } = req.query;
   if (!brand || !model || !code) return res.redirect('/');
-  res.redirect(`/catalog/${brand.toLowerCase().trim()}/${model.toLowerCase().trim()}/${code.toUpperCase().trim()}`);
+  res.redirect(`/catalog/${brand.toLowerCase().trim()}/${model.toLowerCase().trim()}/${code.toUpperCase().trim()}?source=search`);
 });
 
 // 5. Публичная SEO-страница диагностики
@@ -369,13 +371,21 @@ app.get('/catalog/:brand/:model/:code', async (req, res) => {
       where: { brand: targetBrand, model: targetModel, code: targetCode }
     });
 
-    // Если пользователь запросил отложенную карточку (которая ждала публикации), мы публикуем её прямо сейчас!
+    // Если пользователь запросил отложенную карточку    // Управление отложенной публикацией
     if (existingReport && new Date(existingReport.created_at) > new Date() && !isUnsupported) {
-      console.log(`🚀 [АВТО-ПУБЛИКАЦИЯ] Пользователь запросил отложенную карточку: ${brand} ${model} ${code}. Публикуем мгновенно!`);
-      existingReport = await prisma.diagnosticReport.update({
-        where: { id: existingReport.id },
-        data: { created_at: new Date() }
-      });
+      if (req.query.source === 'search') {
+        console.log(`🚀 [АВТО-ПУБЛИКАЦИЯ] Пользователь явно запросил отложенную карточку через форму: ${brand} ${model} ${code}. Публикуем мгновенно!`);
+        existingReport = await prisma.diagnosticReport.update({
+          where: { id: existingReport.id },
+          data: { created_at: new Date() }
+        });
+      } else if (req.query.preview === 'admin') {
+        console.log(`👁️ [ПРЕВЬЮ] Админ просматривает скрытую карточку: ${brand} ${model} ${code}.`);
+        // Просто продолжаем выполнение, не обновляя дату и не выдавая 404
+      } else {
+        console.log(`⏳ [ОТЛОЖЕННАЯ ПУБЛИКАЦИЯ] Запрошена скрытая карточка в обход формы: ${brand} ${model} ${code}. Возвращаем 404.`);
+        return res.status(404).send(renderErrorCodePage(brand, cleanRequestedCode));
+      }
     }
 
     if (existingReport) {
@@ -464,10 +474,13 @@ app.get('/catalog/:brand/:model/:code', async (req, res) => {
       if (!isUnsupported) {
         analyzeCarErrorDeep(brand, model, code, baseDescription).then(async (deepData) => {
           try {
+            // ФОНОВОЕ ОБОГАЩЕНИЕ: сразу же накидываем белые SEO-ссылки на сгенерированный текст
+            const enrichedMarkdown = enrichReportText(deepData.full_analysis_markdown, brand, model, code, safeDrivability);
+
             await prisma.diagnosticReport.update({
               where: { id: newReport.id },
               data: {
-                full_analysis_markdown: deepData.full_analysis_markdown,
+                full_analysis_markdown: enrichedMarkdown,
                 sto_protection_tips: deepData.sto_protection_tips,
                 diy_instructions: deepData.diy_instructions,
                 price_parts: deepData.price_parts,
@@ -543,8 +556,8 @@ app.get('/catalog/:brand/:model/:code', async (req, res) => {
         relatedReports = allRelated.sort(() => 0.5 - Math.random()).slice(0, 6);
       } else if (report) {
         let fallback = await prisma.diagnosticReport.findMany({
-          where: { 
-            is_complete: true, 
+          where: {
+            is_complete: true,
             id: { not: report.id },
             seoRisk: { in: ['SAFE', 'WARNING'] }
           },
@@ -648,10 +661,10 @@ app.get('/catalog/:brand/:model/:code', async (req, res) => {
         rawFullAnalysis = rawFullAnalysis.substring(0, footerMatch.index).trim();
       }
     }
-    
+
     // Удаляем заголовок, так как он уже есть в аккордеоне
     if (rawSeoFooter) {
-        rawSeoFooter = rawSeoFooter.replace(footerRegex, '').trim();
+      rawSeoFooter = rawSeoFooter.replace(footerRegex, '').trim();
     }
 
     let fullAnalysisHtml = cleanReportHtml(marked.parse(formatReportMarkdown(rawFullAnalysis)));

@@ -236,7 +236,7 @@
                 <% reports.forEach(report => { %>
                     <tr class="hover:bg-slate-700/30 transition-colors" data-report-id="<%= report.id %>">
                         <td class="px-2 py-2">
-                            <a href="/catalog/<%= report.brand.toLowerCase() %>/<%= report.model.toLowerCase() %>/<%= report.code.toLowerCase() %>" target="_blank" class="hover:underline flex items-center gap-1.5 w-fit">
+                            <a href="/catalog/<%= report.brand.toLowerCase() %>/<%= report.model.toLowerCase() %>/<%= report.code.toLowerCase() %>?preview=admin" target="_blank" class="hover:underline flex items-center gap-1.5 w-fit">
                                 <span class="font-medium text-blue-400 text-xs sm:text-sm whitespace-nowrap"><%= report.brand.charAt(0).toUpperCase() + report.brand.slice(1).toLowerCase() %> <%= report.model.charAt(0).toUpperCase() + report.model.slice(1).toLowerCase() %></span>
                                 <span class="text-slate-300 font-mono font-bold bg-slate-700/50 border border-slate-600 px-1 rounded text-[10px] sm:text-xs"><%= report.code.toUpperCase() %></span>
                             </a>
@@ -440,7 +440,7 @@
                             <% problematicTitles.forEach((t, idx) => { %>
                                 <tr class="hover:bg-slate-700/30 transition-colors">
                                     <td class="px-2 py-3 w-1/4">
-                                        <a href="/catalog/<%= t.brand.toLowerCase() %>/<%= t.model.toLowerCase() %>/<%= t.code.toLowerCase() %>" target="_blank" class="hover:underline flex flex-col gap-1 w-fit">
+                                        <a href="/catalog/<%= t.brand.toLowerCase() %>/<%= t.model.toLowerCase() %>/<%= t.code.toLowerCase() %>?preview=admin" target="_blank" class="hover:underline flex flex-col gap-1 w-fit">
                                             <span class="font-medium text-blue-400 text-sm"><%= t.brand %> <%= t.model %></span>
                                             <span class="text-slate-300 font-mono font-bold bg-slate-700/50 border border-slate-600 px-1.5 py-0.5 rounded text-xs w-fit"><%= t.code %></span>
                                         </a>
@@ -516,7 +516,7 @@
                             <% problematicDescriptions.forEach((t, idx) => { %>
                                 <tr class="hover:bg-slate-700/30 transition-colors">
                                     <td class="px-2 py-3 w-1/4">
-                                        <a href="/catalog/<%= t.brand.toLowerCase() %>/<%= t.model.toLowerCase() %>/<%= t.code.toLowerCase() %>" target="_blank" class="hover:underline flex flex-col gap-1 w-fit">
+                                        <a href="/catalog/<%= t.brand.toLowerCase() %>/<%= t.model.toLowerCase() %>/<%= t.code.toLowerCase() %>?preview=admin" target="_blank" class="hover:underline flex flex-col gap-1 w-fit">
                                             <span class="font-medium text-blue-400 text-sm"><%= t.brand %> <%= t.model %></span>
                                             <span class="text-slate-300 font-mono font-bold bg-slate-700/50 border border-slate-600 px-1.5 py-0.5 rounded text-xs w-fit"><%= t.code %></span>
                                         </a>
