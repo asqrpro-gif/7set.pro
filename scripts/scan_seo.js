@@ -7,6 +7,7 @@ import { fileURLToPath } from 'url';
 const __filename = fileURLToPath(import.meta.url);
 const __dirname = path.dirname(__filename);
 const REPORT_FILE = path.join(__dirname, 'bad_cards_report.json');
+const META_REPORT_FILE = path.join(__dirname, 'bad_seo_meta.json');
 
 const prisma = new PrismaClient();
 
@@ -49,6 +50,7 @@ async function main() {
       select: {
         id: true, code: true, brand: true, model: true,
         summary: true, full_analysis_markdown: true, diy_instructions: true,
+        seoTitle: true, seoDescription: true,
         created_at: true, uniquenessScore: true
       }
     });
@@ -161,6 +163,93 @@ async function main() {
     // Сохраняем в JSON
     console.log(`💾 Сохранение отчета в bad_cards_report.json...`);
     await fs.writeFile(REPORT_FILE, JSON.stringify(processedCards, null, 2), 'utf-8');
+
+    // -------------------------------------------------------------
+    // АНАЛИЗ SEO ЗАГОЛОВКОВ И ОПИСАНИЙ (Длины и дубликаты шаблонов)
+    // -------------------------------------------------------------
+    console.log('🔍 Проверка длин и дубликатов шаблонов SEO-мета...');
+    let problematicTitles = [];
+    let problematicDescriptions = [];
+    
+    const titleMap = {};
+    const descMap = {};
+
+    allCards.forEach(r => {
+        const codeLower = r.code.toLowerCase();
+        const brandLower = r.brand.toLowerCase();
+        const modelLower = r.model.toLowerCase();
+
+        // Обработка SEO-заголовков
+        if (r.seoTitle) {
+            let titleTpl = r.seoTitle.toLowerCase();
+            const escapeRegExp = (string) => string.replace(/[.*+?^${}()|[\]\\]/g, '\\$&');
+
+            titleTpl = titleTpl.replace(new RegExp(escapeRegExp(codeLower), 'g'), '[code]');
+            titleTpl = titleTpl.replace(new RegExp(escapeRegExp(brandLower), 'g'), '[brand]');
+            titleTpl = titleTpl.replace(new RegExp(escapeRegExp(modelLower), 'g'), '[model]');
+            titleTpl = titleTpl.replace(/\s+/g, ' ').trim();
+
+            if (!titleMap[titleTpl]) titleMap[titleTpl] = [];
+            titleMap[titleTpl].push(r);
+            
+            // Проверка длины заголовка
+            const titleLen = r.seoTitle.trim().length;
+            if (titleLen < 30 || titleLen > 75) {
+                problematicTitles.push(r);
+            }
+        }
+
+        // Обработка SEO-описаний
+        if (r.seoDescription) {
+            let descTpl = r.seoDescription.toLowerCase();
+            const escapeRegExp = (string) => string.replace(/[.*+?^${}()|[\]\\]/g, '\\$&');
+
+            descTpl = descTpl.replace(new RegExp(escapeRegExp(codeLower), 'g'), '[code]');
+            descTpl = descTpl.replace(new RegExp(escapeRegExp(brandLower), 'g'), '[brand]');
+            descTpl = descTpl.replace(new RegExp(escapeRegExp(modelLower), 'g'), '[model]');
+            descTpl = descTpl.replace(/\s+/g, ' ').trim();
+
+            if (!descMap[descTpl]) descMap[descTpl] = [];
+            descMap[descTpl].push(r);
+            
+            // Проверка длины описания
+            const descLen = r.seoDescription.trim().length;
+            if (descLen < 140 || descLen > 160) {
+                problematicDescriptions.push(r);
+            }
+        }
+    });
+    
+    // Поиск дублей заголовков
+    for (const tpl in titleMap) {
+        if (titleMap[tpl].length > 1) {
+            problematicTitles.push(...titleMap[tpl]);
+        }
+    }
+    
+    // Поиск дублей описаний
+    for (const tpl in descMap) {
+        if (descMap[tpl].length > 1) {
+            problematicDescriptions.push(...descMap[tpl]);
+        }
+    }
+
+    // Убираем дубли, если карточка попала дважды (и по длине, и по дублю шаблона)
+    // Так как Set работает по ссылкам на объекты, используем фильтрацию по ID
+    const uniqueTitlesMap = new Map();
+    problematicTitles.forEach(t => uniqueTitlesMap.set(t.id, t));
+    problematicTitles = Array.from(uniqueTitlesMap.values());
+
+    const uniqueDescMap = new Map();
+    problematicDescriptions.forEach(t => uniqueDescMap.set(t.id, t));
+    problematicDescriptions = Array.from(uniqueDescMap.values());
+
+    console.log(`⚠️ Найдено проблемных SEO-заголовков: ${problematicTitles.length}`);
+    console.log(`⚠️ Найдено проблемных SEO-описаний: ${problematicDescriptions.length}`);
+    
+    console.log(`💾 Сохранение отчета в bad_seo_meta.json...`);
+    await fs.writeFile(META_REPORT_FILE, JSON.stringify({ problematicTitles, problematicDescriptions }, null, 2), 'utf-8');
+
 
     console.log('\n🎉 Сканирование успешно завершено!');
     console.log('👉 Теперь вы можете просмотреть и удалить эти карточки в разделе "Операции SEO"');

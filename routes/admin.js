@@ -15,6 +15,7 @@ const __dirname = path.dirname(__filename);
 const scriptsPath = path.join(__dirname, '../scripts');
 const STATE_FILE = path.join(scriptsPath, 'generation_state.json');
 const REPORT_FILE = path.join(scriptsPath, 'bad_cards_report.json');
+const META_REPORT_FILE = path.join(scriptsPath, 'bad_seo_meta.json');
 const PING_FILE = path.join(scriptsPath, 'sitemap_ping.json');
 
 // HTTP Basic Auth Middleware
@@ -562,80 +563,19 @@ router.get('/seo-detector', async (req, res) => {
 
         // Сбор проблемных SEO-заголовков и описаний (по дублям шаблонов)
         const titlePublishStatus = req.query.title_publish_status || '';
-        const allReports = await prisma.diagnosticReport.findMany({
-            select: { id: true, seoTitle: true, seoDescription: true, brand: true, model: true, code: true, created_at: true }
-        });
         
         let problematicTitles = [];
         let problematicDescriptions = [];
         
-        const titleMap = {};
-        const descMap = {};
-
-        allReports.forEach(r => {
-            const codeLower = r.code.toLowerCase();
-            const brandLower = r.brand.toLowerCase();
-            const modelLower = r.model.toLowerCase();
-
-            // Обработка SEO-заголовков
-            if (r.seoTitle) {
-                let titleTpl = r.seoTitle.toLowerCase();
-                // Экранируем спецсимволы в переменных, если они есть (на всякий случай)
-                const escapeRegExp = (string) => string.replace(/[.*+?^${}()|[\]\\]/g, '\\$&');
-
-                titleTpl = titleTpl.replace(new RegExp(escapeRegExp(codeLower), 'g'), '[code]');
-                titleTpl = titleTpl.replace(new RegExp(escapeRegExp(brandLower), 'g'), '[brand]');
-                titleTpl = titleTpl.replace(new RegExp(escapeRegExp(modelLower), 'g'), '[model]');
-                titleTpl = titleTpl.replace(/\s+/g, ' ').trim();
-
-                if (!titleMap[titleTpl]) titleMap[titleTpl] = [];
-                titleMap[titleTpl].push(r);
-                
-                // Проверка длины заголовка
-                const titleLen = r.seoTitle.trim().length;
-                if (titleLen < 30 || titleLen > 75) {
-                    problematicTitles.push(r);
-                }
+        try {
+            if (fs.existsSync(META_REPORT_FILE)) {
+                const metaData = JSON.parse(fs.readFileSync(META_REPORT_FILE, 'utf-8'));
+                if (metaData.problematicTitles) problematicTitles = metaData.problematicTitles;
+                if (metaData.problematicDescriptions) problematicDescriptions = metaData.problematicDescriptions;
             }
-
-            // Обработка SEO-описаний
-            if (r.seoDescription) {
-                let descTpl = r.seoDescription.toLowerCase();
-                const escapeRegExp = (string) => string.replace(/[.*+?^${}()|[\]\\]/g, '\\$&');
-
-                descTpl = descTpl.replace(new RegExp(escapeRegExp(codeLower), 'g'), '[code]');
-                descTpl = descTpl.replace(new RegExp(escapeRegExp(brandLower), 'g'), '[brand]');
-                descTpl = descTpl.replace(new RegExp(escapeRegExp(modelLower), 'g'), '[model]');
-                descTpl = descTpl.replace(/\s+/g, ' ').trim();
-
-                if (!descMap[descTpl]) descMap[descTpl] = [];
-                descMap[descTpl].push(r);
-                
-                // Проверка длины описания
-                const descLen = r.seoDescription.trim().length;
-                if (descLen < 100 || descLen > 160) {
-                    problematicDescriptions.push(r);
-                }
-            }
-        });
-        
-        // Поиск дублей заголовков
-        for (const tpl in titleMap) {
-            if (titleMap[tpl].length > 1) {
-                problematicTitles.push(...titleMap[tpl]);
-            }
+        } catch (e) {
+            console.error('Ошибка чтения bad_seo_meta.json', e);
         }
-        
-        // Поиск дублей описаний
-        for (const tpl in descMap) {
-            if (descMap[tpl].length > 1) {
-                problematicDescriptions.push(...descMap[tpl]);
-            }
-        }
-
-        // Убираем дубли, если карточка попала дважды (и по длине, и по дублю шаблона)
-        problematicTitles = [...new Set(problematicTitles)];
-        problematicDescriptions = [...new Set(problematicDescriptions)];
 
         const nowForTitles = new Date();
         const titlePublishStats = { total: 0, published: 0, unpublished: 0 };
@@ -1085,9 +1025,9 @@ router.post('/api/rewrite-description', async (req, res) => {
 Выведи только 1 мета-описание (meta description) для страницы ошибки.
 Формат свободный, но ОБЯЗАТЕЛЬНО:
 1. Включи Код (${report.code}), Марку (${report.brand}) и Модель (${report.model}).
-2. Длина СТРОГО от 140 до 160 символов (без исключений).
-3. Кратко опиши суть технической проблемы и добавь призыв к действию (например: "Узнайте причины поломки и способы решения").
-4. ВАЖНО: Предыдущее описание было "${report.seoDescription || ''}". Сделай ПРИНЦИПИАЛЬНО НОВЫЙ и уникальный вариант, выделив другую техническую специфику ошибки (если это возможно), не повторяй старую конструкцию и шаблон. Никаких кавычек вокруг ответа.
+2. МИНИМАЛЬНАЯ длина - 140 символов, МАКСИМАЛЬНАЯ - 160 символов. Пиши развернуто, чтобы заполнить лимит символов.
+3. Подробно опиши суть проблемы, симптомы и добавь призыв к действию (например: "Узнайте причины поломки и способы решения").
+4. ВАЖНО: Предыдущее описание было "${report.seoDescription || ''}". Сделай ПРИНЦИПИАЛЬНО НОВЫЙ и уникальный вариант, выделив другую техническую специфику ошибки, не повторяй шаблон. Никаких кавычек в ответе.
 
 Текст ошибки:
 ${text.substring(0, 1000)}`;
