@@ -32,6 +32,7 @@ async function main() {
           { summary: { contains: 'не зарегистрирован' } },
           { summary: { contains: 'информация по данному коду отсутствует' } },
           { summary: { contains: 'к сожалению, я не могу найти информацию' } },
+          { summary: { contains: 'официально расшифровывается как:' } },
           { seoTitle: { contains: 'Неизвестный' } },
           { severity: 'universal' },
           { code: 'UNSUPPORTED' },
@@ -83,16 +84,20 @@ async function main() {
       if (starsCount % 2 !== 0) {
         isBroken = true;
         reason = 'Обрыв генерации (незакрытый тег **)';
+      } else if (/\*\*[^\*]*\n[^\*]*\*\*/.test(textToScan)) {
+        // Жирный шрифт оборван переносом строки (ломает markdown парсер)
+        isBroken = true;
+        reason = 'Обрыв генерации (перенос строки внутри жирного шрифта **)';
       }
 
       // 3. Отсутствие бесплатного блока (summary или teaser_text пустые или содержат только мусор)
       const cleanSummary = card.summary ? card.summary.replace(/<[^>]*>/g, '').replace(/&nbsp;/g, '').trim() : '';
       const cleanTeaser = card.teaser_text ? card.teaser_text.replace(/<[^>]*>/g, '').replace(/&nbsp;/g, '').trim() : '';
 
-      if (!cleanSummary || cleanSummary === 'null' || cleanSummary === 'undefined' || cleanSummary === '-' ||
-          !cleanTeaser || cleanTeaser === 'null' || cleanTeaser === 'undefined' || cleanTeaser === '-') {
+      if (!cleanSummary || cleanSummary === 'null' || cleanSummary === 'undefined' || cleanSummary === '-' || cleanSummary.length < 15 ||
+          !cleanTeaser || cleanTeaser === 'null' || cleanTeaser === 'undefined' || cleanTeaser === '-' || cleanTeaser.length < 15) {
         isBroken = true;
-        reason = 'Отсутствует или сломан бесплатный контент (summary/teaser)';
+        reason = 'Отсутствует или сломан бесплатный контент (summary/teaser слишком короткие)';
       }
 
       // 4. Обрыв на полуслове или отсутствие завершающего знака препинания в конце длинного текста

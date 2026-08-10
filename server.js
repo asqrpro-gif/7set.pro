@@ -414,6 +414,10 @@ app.get('/catalog/:brand/:model/:code', async (req, res) => {
 
     if (!report && existingReport) {
       report = existingReport;
+      reportId = existingReport.id;
+      severityLevel = existingReport.severity;
+      summaryText = existingReport.summary;
+      teaserText = existingReport.teaser_text;
     }
 
     if (!report) {
