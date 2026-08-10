@@ -3,6 +3,7 @@ import { PrismaClient } from '@prisma/client';
 import fs from 'fs/promises';
 import path from 'path';
 import { fileURLToPath } from 'url';
+import { marked } from 'marked';
 
 const __filename = fileURLToPath(import.meta.url);
 const __dirname = path.dirname(__filename);
@@ -80,8 +81,10 @@ async function main() {
       }
       
       // 2. Незакрытые теги жирного шрифта или жирный шрифт с переносом строки (ломает markdown парсер)
-      const textWithoutValidBold = textToScan.replace(/\*\*.*?\*\*/g, '');
-      if (textWithoutValidBold.includes('**')) {
+      // Идеальное решение: прогоняем текст через реальный парсер, как на сайте!
+      // Если после конвертации в HTML остались символы **, значит они будут видны пользователю!
+      const htmlOutput = marked.parse(textToScan);
+      if (htmlOutput.includes('**')) {
         isBroken = true;
         reason = 'Обрыв генерации (ошибка разметки жирного шрифта **)';
       }
