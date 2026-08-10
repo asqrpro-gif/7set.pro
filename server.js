@@ -2,9 +2,8 @@ import 'dotenv/config';
 import express from 'express';
 import cookieParser from 'cookie-parser';
 import { PrismaClient } from '@prisma/client';
-import { analyzeCarErrorFast, analyzeCarErrorDeep } from './lib/gemini_clean.js';
+import { analyzeCarErrorFast, analyzeCarErrorDeep, getFactFromDB } from './lib/gemini_clean.js';
 import { renderErrorCodePage } from './lib/error_code.js';
-import { getFactFromDB } from './lib/obd_db.js';
 import { enrichReportText } from './lib/seoEnricher.js';
 import { marked } from 'marked';
 
