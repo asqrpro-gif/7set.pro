@@ -14,6 +14,25 @@ const prisma = new PrismaClient();
 
 const sleep = (ms) => new Promise(resolve => setTimeout(resolve, ms));
 
+// Копия функции форматирования из server.js для точной симуляции рендера сайта
+const formatReportMarkdown = (text) => {
+  if (!text) return '';
+  let str = text.replace(/\\n/g, '\n');
+  str = str.replace(/^[ \t]*#{1,6}[ \t]*$/gm, '');
+  str = str.replace(/^([^\n]+)\n[ \t]*[=-]{2,}[ \t]*$/gm, '### $1');
+  str = str.replace(/<h[1-6][^>]*>([\s\S]*?)<\/h[1-6]>/ig, '### $1');
+  str = str.replace(/^[ \t]*#{1,6}\s+(?=\S)/gm, '### ');
+  str = str.replace(/([^\n])\s*(#{1,3}\s+)/g, '$1\n\n$2');
+  str = str.replace(/([^\n>#*])\s+(#{0,3}\s*(?:<[^>]+>\s*)?(?:\*\*)?Шаг\s+\d+)/ig, '$1\n\n$2');
+  str = str.replace(/(#{1,3}\s*(?:<[^>]+>|[^\n:.!?]){2,100}(?::|(?<!\d)[.!?]))\s+([А-ЯA-Z1-9«"'][^\n])/g, '$1\n\n$2');
+  str = str.replace(/(Как не лохануться на СТО:?)\s*([^\n])/ig, '$1\n\n$2');
+  str = str.replace(/(Специфика\s+[^\n:]{3,35}:?)\s+([А-ЯA-Z«"'][а-яa-z0-9])/g, '$1\n\n$2');
+  str = str.replace(/(Основные[^:\n]+:)\s*([^\n])/ig, '$1\n\n$2');
+  str = str.replace(/(?<!#[^\n]*)(?<!Шаг\s*)(?<!Step\s*)([^\n])\s+(\d+\.\s+\S)/ig, '$1\n\n$2');
+  str = str.replace(/(?<!#[^\n]*)([^\n])\s+(-\s+\S)/g, '$1\n\n$2');
+  return str;
+};
+
 async function main() {
   console.log('🚀 Запуск scan_seo.js: Сканирование базы на предмет SEO-мусора...');
   console.log('📊 Подключение к базе данных...');
@@ -82,8 +101,9 @@ async function main() {
       
       // 2. Незакрытые теги жирного шрифта или жирный шрифт с переносом строки (ломает markdown парсер)
       // Идеальное решение: прогоняем текст через реальный парсер, как на сайте!
-      // Если после конвертации в HTML остались символы **, значит они будут видны пользователю!
-      const htmlOutput = marked.parse(textToScan);
+      // Сначала применяем внутренние фильтры сайта (formatReportMarkdown), которые часто сами ломают разметку ИИ!
+      const formattedText = formatReportMarkdown(textToScan);
+      const htmlOutput = marked.parse(formattedText);
       if (htmlOutput.includes('**')) {
         isBroken = true;
         reason = 'Обрыв генерации (ошибка разметки жирного шрифта **)';
