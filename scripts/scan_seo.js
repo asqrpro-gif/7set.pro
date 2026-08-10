@@ -79,15 +79,11 @@ async function main() {
         reason = 'Обрыв генерации (висячая цифра списка)';
       }
       
-      // 2. Незакрытые теги жирного шрифта (нечетное количество **)
-      const starsCount = (textToScan.match(/\*\*/g) || []).length;
-      if (starsCount % 2 !== 0) {
+      // 2. Незакрытые теги жирного шрифта или жирный шрифт с переносом строки (ломает markdown парсер)
+      const textWithoutValidBold = textToScan.replace(/\*\*.*?\*\*/g, '');
+      if (textWithoutValidBold.includes('**')) {
         isBroken = true;
-        reason = 'Обрыв генерации (незакрытый тег **)';
-      } else if (/\*\*[^\*]*\n[^\*]*\*\*/.test(textToScan)) {
-        // Жирный шрифт оборван переносом строки (ломает markdown парсер)
-        isBroken = true;
-        reason = 'Обрыв генерации (перенос строки внутри жирного шрифта **)';
+        reason = 'Обрыв генерации (ошибка разметки жирного шрифта **)';
       }
 
       // 3. Отсутствие бесплатного блока (summary или teaser_text пустые или содержат только мусор)
