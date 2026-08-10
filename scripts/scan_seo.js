@@ -40,7 +40,71 @@ async function main() {
       orderBy: { created_at: 'desc' }
     });
 
-    console.log(`⚠️ Найдено мусорных карточек: ${badCards.length}`);
+    console.log(`⚠️ Найдено мусорных карточек (по шаблонам): ${badCards.length}`);
+
+    console.log('🔍 Поиск обрывов генерации, висячих цифр и непереведенного текста...');
+    await sleep(2000);
+
+    const allCards = await prisma.diagnosticReport.findMany({
+      select: {
+        id: true, code: true, brand: true, model: true,
+        summary: true, full_analysis_markdown: true, diy_instructions: true,
+        created_at: true, uniquenessScore: true
+      }
+    });
+
+    let brokenGenerationsCount = 0;
+    
+    // Множество ID уже найденных плохих карточек, чтобы не дублировать
+    const badCardsIds = new Set(badCards.map(c => c.id));
+
+    for (const card of allCards) {
+      if (badCardsIds.has(card.id)) continue; // Уже в списке мусора
+
+      const textToScan = [
+        card.summary || '',
+        card.full_analysis_markdown || '',
+        card.diy_instructions || ''
+      ].join('\n');
+
+      let isBroken = false;
+      let reason = '';
+
+      // 1. Висячие цифры (обрыв списка: "1. ", "2." в конце текста или перед пустой строкой без продолжения)
+      if (/(?:^|\n)\s*\d+\.\s*$/.test(textToScan)) {
+        isBroken = true;
+        reason = 'Обрыв генерации (висячая цифра списка)';
+      }
+      
+      // 2. Незакрытые теги жирного шрифта (нечетное количество **)
+      const starsCount = (textToScan.match(/\*\*/g) || []).length;
+      if (starsCount % 2 !== 0) {
+        isBroken = true;
+        reason = 'Обрыв генерации (незакрытый тег **)';
+      }
+
+      // 3. Явный непереведенный текст (например, Injector Circuit Malfunction)
+      if (/[a-zA-Z]{5,} [a-zA-Z]{5,}/.test(textToScan) && textToScan.includes('Circuit')) {
+        // Упрощенная эвристика для непереведенных OBD кодов
+        isBroken = true;
+        reason = 'Непереведенный английский текст';
+      }
+
+      // 4. Обрыв на полуслове или отсутствие завершающего знака препинания в конце длинного текста
+      // (Опционально, можно добавить, если нужно)
+
+      if (isBroken) {
+        badCards.push({
+          ...card,
+          reason
+        });
+        badCardsIds.add(card.id);
+        brokenGenerationsCount++;
+      }
+    }
+
+    console.log(`⚠️ Найдено карточек с обрывами генерации: ${brokenGenerationsCount}`);
+
     
     // Поиск дубликатов
     console.log('🔍 Проверка дубликатов по (brand, model, code)...');
