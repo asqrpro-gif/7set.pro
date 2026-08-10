@@ -43,7 +43,7 @@ async function main() {
 
     console.log(`⚠️ Найдено мусорных карточек (по шаблонам): ${badCards.length}`);
 
-    console.log('🔍 Поиск обрывов генерации, висячих цифр и непереведенного текста...');
+    console.log('🔍 Поиск пустых бесплатных блоков (summary/teaser) и обрывов генерации...');
     await sleep(2000);
 
     const allCards = await prisma.diagnosticReport.findMany({
@@ -85,10 +85,14 @@ async function main() {
         reason = 'Обрыв генерации (незакрытый тег **)';
       }
 
-      // 3. Отсутствие бесплатного блока (summary или teaser_text пустые)
-      if (!card.summary || card.summary.trim() === '' || !card.teaser_text || card.teaser_text.trim() === '') {
+      // 3. Отсутствие бесплатного блока (summary или teaser_text пустые или содержат только мусор)
+      const cleanSummary = card.summary ? card.summary.replace(/<[^>]*>/g, '').replace(/&nbsp;/g, '').trim() : '';
+      const cleanTeaser = card.teaser_text ? card.teaser_text.replace(/<[^>]*>/g, '').replace(/&nbsp;/g, '').trim() : '';
+
+      if (!cleanSummary || cleanSummary === 'null' || cleanSummary === 'undefined' || cleanSummary === '-' ||
+          !cleanTeaser || cleanTeaser === 'null' || cleanTeaser === 'undefined' || cleanTeaser === '-') {
         isBroken = true;
-        reason = 'Отсутствует бесплатный контент (summary или teaser_text)';
+        reason = 'Отсутствует или сломан бесплатный контент (summary/teaser)';
       }
 
       // 4. Обрыв на полуслове или отсутствие завершающего знака препинания в конце длинного текста
