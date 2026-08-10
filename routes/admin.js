@@ -450,6 +450,26 @@ router.get('/seo-detector', async (req, res) => {
                 
                 brokenLinks = (Array.isArray(data.brokenLinks) ? data.brokenLinks : []).concat(mappedOrphans);
                 
+                // Добавляем карточки с ошибками генерации из отчета scan_seo.js
+                try {
+                    if (fs.existsSync(REPORT_FILE)) {
+                        const badCardsData = JSON.parse(fs.readFileSync(REPORT_FILE, 'utf-8'));
+                        if (Array.isArray(badCardsData)) {
+                            let mappedBadCards = badCardsData.map(c => ({
+                                id: c.id,
+                                title: `${c.brand} ${c.model} ${c.code}`,
+                                text: c.reason || 'Ошибка генерации',
+                                url: 'ОШИБКА ВЕРСТКИ',
+                                field: 'Контент/SEO',
+                                created_at: c.created_at || new Date().toISOString()
+                            }));
+                            brokenLinks = brokenLinks.concat(mappedBadCards);
+                        }
+                    }
+                } catch (e) {
+                    console.error('Ошибка чтения bad_cards_report.json', e);
+                }
+                
                 // Подсчет статистики для фильтров (Тип)
                 linkStatsObj.total = brokenLinks.length;
                 brokenLinks.forEach(link => {
