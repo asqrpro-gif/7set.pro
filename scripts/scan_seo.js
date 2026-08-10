@@ -49,7 +49,7 @@ async function main() {
     const allCards = await prisma.diagnosticReport.findMany({
       select: {
         id: true, code: true, brand: true, model: true,
-        summary: true, full_analysis_markdown: true, diy_instructions: true,
+        summary: true, teaser_text: true, full_analysis_markdown: true, diy_instructions: true,
         seoTitle: true, seoDescription: true,
         created_at: true, uniquenessScore: true
       }
@@ -85,11 +85,10 @@ async function main() {
         reason = 'Обрыв генерации (незакрытый тег **)';
       }
 
-      // 3. Явный непереведенный текст (например, Injector Circuit Malfunction)
-      if (/[a-zA-Z]{5,} [a-zA-Z]{5,}/.test(textToScan) && textToScan.includes('Circuit')) {
-        // Упрощенная эвристика для непереведенных OBD кодов
+      // 3. Отсутствие бесплатного блока (summary или teaser_text пустые)
+      if (!card.summary || card.summary.trim() === '' || !card.teaser_text || card.teaser_text.trim() === '') {
         isBroken = true;
-        reason = 'Непереведенный английский текст';
+        reason = 'Отсутствует бесплатный контент (summary или teaser_text)';
       }
 
       // 4. Обрыв на полуслове или отсутствие завершающего знака препинания в конце длинного текста
