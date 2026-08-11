@@ -222,7 +222,7 @@ async function main() {
             // Проверка длины заголовка
             const titleLen = r.seoTitle.trim().length;
             if (titleLen < 30 || titleLen > 75) {
-                problematicTitles.push(r);
+                problematicTitles.push({ ...r, reason: 'Длина' });
             }
         }
 
@@ -242,7 +242,7 @@ async function main() {
             // Проверка длины описания
             const descLen = r.seoDescription.trim().length;
             if (descLen < 140 || descLen > 160) {
-                problematicDescriptions.push(r);
+                problematicDescriptions.push({ ...r, reason: 'Длина' });
             }
         }
     });
@@ -250,25 +250,44 @@ async function main() {
     // Поиск дублей заголовков
     for (const tpl in titleMap) {
         if (titleMap[tpl].length > 1) {
-            problematicTitles.push(...titleMap[tpl]);
+            titleMap[tpl].forEach(r => problematicTitles.push({ ...r, reason: 'Дубликат' }));
         }
     }
     
     // Поиск дублей описаний
     for (const tpl in descMap) {
         if (descMap[tpl].length > 1) {
-            problematicDescriptions.push(...descMap[tpl]);
+            descMap[tpl].forEach(r => problematicDescriptions.push({ ...r, reason: 'Дубликат' }));
         }
     }
 
     // Убираем дубли, если карточка попала дважды (и по длине, и по дублю шаблона)
-    // Так как Set работает по ссылкам на объекты, используем фильтрацию по ID
+    // Убираем дубли, если карточка попала дважды (и по длине, и по дублю шаблона)
+    // Объединяем причины (reason)
     const uniqueTitlesMap = new Map();
-    problematicTitles.forEach(t => uniqueTitlesMap.set(t.id, t));
+    problematicTitles.forEach(t => {
+        if (uniqueTitlesMap.has(t.id)) {
+            const existing = uniqueTitlesMap.get(t.id);
+            if (existing.reason && t.reason && !existing.reason.includes(t.reason)) {
+                existing.reason += ', ' + t.reason;
+            }
+        } else {
+            uniqueTitlesMap.set(t.id, t);
+        }
+    });
     problematicTitles = Array.from(uniqueTitlesMap.values());
 
     const uniqueDescMap = new Map();
-    problematicDescriptions.forEach(t => uniqueDescMap.set(t.id, t));
+    problematicDescriptions.forEach(t => {
+        if (uniqueDescMap.has(t.id)) {
+            const existing = uniqueDescMap.get(t.id);
+            if (existing.reason && t.reason && !existing.reason.includes(t.reason)) {
+                existing.reason += ', ' + t.reason;
+            }
+        } else {
+            uniqueDescMap.set(t.id, t);
+        }
+    });
     problematicDescriptions = Array.from(uniqueDescMap.values());
 
     console.log(`⚠️ Найдено проблемных SEO-заголовков: ${problematicTitles.length}`);
