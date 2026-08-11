@@ -4,6 +4,7 @@
     if (typeof currentRisk !== 'undefined' && currentRisk && currentRisk !== 'ALL' && !showDuplicates) baseQueryParams += '&risk=' + currentRisk;
     if (typeof showDuplicates !== 'undefined' && showDuplicates) baseQueryParams += '&duplicates=true';
     if (typeof currentPublishStatus !== 'undefined' && currentPublishStatus) baseQueryParams += '&publish_status=' + currentPublishStatus;
+    if (typeof limit !== 'undefined' && limit) baseQueryParams += '&limit=' + limit;
     
     // Для ссылок во вкладках (сохраняют publish_status, но меняют risk/duplicates)
     let tabsQueryParams = '';
@@ -131,7 +132,7 @@
             el.classList.add('text-slate-400');
         });
         
-        const activeTab = document.getElementById(tabId);
+        const activeTab = document.getElementById('content-' + tabId);
         const activeBtn = document.getElementById('btn-' + tabId);
         
         if (activeTab) activeTab.classList.remove('hidden');
@@ -140,29 +141,55 @@
             activeBtn.classList.add('text-blue-400', 'border-b-2', 'border-blue-400', 'bg-slate-800/50');
         }
         
-        window.location.hash = tabId;
+        if (window.location.hash !== '#' + tabId) {
+            window.history.replaceState(null, null, '#' + tabId);
+        }
         if(typeof lucide !== 'undefined') lucide.createIcons();
     }
     
+    function changeLimit(tabId, ignoreLimitParam, ignorePageParam, value) {
+        try {
+            document.cookie = "seo_table_limit=" + value + "; path=/; max-age=31536000";
+            let u = new URL(window.location.href);
+            u.searchParams.set('limit', value);
+            u.searchParams.delete('title_limit');
+            u.searchParams.delete('desc_limit');
+            u.searchParams.delete('link_limit');
+            u.searchParams.delete('page');
+            u.searchParams.delete('title_page');
+            u.searchParams.delete('desc_page');
+            u.searchParams.delete('link_page');
+            u.hash = tabId;
+            window.location.href = u.toString();
+        } catch(e) {
+            console.error('URL error:', e);
+            document.cookie = "seo_table_limit=" + value + "; path=/; max-age=31536000";
+            window.location.href = '?limit='+value+'#'+tabId;
+        }
+    }
+
+    function changePage(tabId, pageParam, value) {
+        try {
+            let u = new URL(window.location.href);
+            u.searchParams.set(pageParam, value);
+            u.hash = tabId;
+            window.location.href = u.toString();
+        } catch(e) {
+            console.error('URL error:', e);
+            window.location.href = '?'+pageParam+'='+value+'#'+tabId;
+        }
+    }
+
     document.addEventListener('DOMContentLoaded', () => {
         const hash = window.location.hash.substring(1) || 'tab-quality';
         switchTab(hash);
     });
 </script>
 
-<div id="tab-quality" class="tab-content hidden h-full">
-    <div class="flex flex-col h-full bg-slate-800 rounded-xl border border-slate-700 shadow-sm overflow-hidden">
+<div id="content-tab-quality" class="tab-content hidden">
+    <div class="flex flex-col bg-slate-800 rounded-xl border border-slate-700 shadow-sm overflow-hidden">
         <div class="p-4 shrink-0 border-b border-slate-700/50">
-        <div class="flex items-center justify-end gap-3 text-xs pb-2 border-b border-slate-700/50">
-            <div class="flex items-center gap-1.5">
-                <span class="text-slate-400">Скан:</span>
-                <span class="font-medium text-white"><%= scanStats.scanned %>/<%= scanStats.total %></span>
-                <% if (scanStats.scanned < scanStats.total) { %><i data-lucide="loader-2" class="w-3 h-3 text-blue-400 animate-spin"></i><% } else { %><i data-lucide="check-circle" class="w-3 h-3 text-green-400"></i><% } %>
-            </div>
-            <% if (scanStats.lastScanTime) { %><div class="text-slate-500 border-l border-slate-700 pl-3"><%= scanStats.lastScanTime %></div><% } %>
-        </div>
-
-        <div class="mt-3 flex flex-col lg:flex-row justify-between gap-3 lg:items-center">
+        <div class="flex flex-col lg:flex-row justify-between gap-3 lg:items-center">
             <!-- Вкладки Risk -->
             <div class="flex gap-1.5 flex-wrap w-full lg:w-auto">
                 <a href="/admin/seo-detector?risk=ALL<%= tabsQueryParams %>" class="px-3 py-1.5 rounded-lg text-xs font-medium transition-colors flex items-center gap-2 flex-1 lg:flex-none justify-center <%= currentRisk === 'ALL' && !showDuplicates ? 'bg-blue-600 text-white' : 'bg-slate-700 text-slate-300 hover:bg-slate-600 hover:text-white' %>">
@@ -195,7 +222,15 @@
         </div>
     </div>
 
-    <div class="flex-1 overflow-auto bg-[#0f172a]/50 min-h-0">
+    <% if (reports.length === 0) { %>
+        <div class="overflow-x-auto bg-[#0f172a]/50 p-0">
+            <div class="flex flex-col items-center justify-center h-64 text-slate-500 gap-3 mt-8">
+                <i data-lucide="check-circle" class="w-12 h-12 text-green-500/50"></i>
+                <p>По выбранному фильтру ничего не найдено.</p>
+            </div>
+        </div>
+    <% } else { %>
+    <div class="overflow-x-auto bg-[#0f172a]/50">
         <table class="w-full text-left border-collapse min-w-[900px]">
             <thead class="sticky top-0 bg-slate-900 border-b border-slate-700 z-10">
                 <tr class="text-slate-300 text-xs">
@@ -330,17 +365,29 @@
     <!-- Пагинация -->
     <div class="p-4 shrink-0 border-t border-slate-700 bg-slate-800">
     <div class="flex flex-col md:flex-row justify-between items-center gap-4">
-        <div class="text-sm text-slate-400">
-            Всего карточек: <strong><%= currentRisk === 'ALL' ? stats.total : (currentRisk === 'SAFE' ? stats.safe : (currentRisk === 'WARNING' ? stats.warning : stats.danger)) %></strong>
+        <div class="flex flex-col sm:flex-row items-center gap-4">
+            <div class="text-sm text-slate-400">
+                Всего карточек: <strong><%= currentRisk === 'ALL' ? stats.total : (currentRisk === 'SAFE' ? stats.safe : (currentRisk === 'WARNING' ? stats.warning : stats.danger)) %></strong>
+            </div>
+            
+            <div class="flex items-center gap-2 text-sm text-slate-400 sm:border-l sm:border-slate-700 sm:pl-4">
+                Показывать:
+                <select onchange="changeLimit('tab-quality', 'limit', 'page', this.value)" class="bg-slate-900 border border-slate-700 rounded px-2 py-1 text-white text-xs outline-none cursor-pointer">
+                    <option value="10" <%= limit === 10 ? 'selected' : '' %>>10</option>
+                    <option value="25" <%= limit === 25 ? 'selected' : '' %>>25</option>
+                    <option value="50" <%= limit === 50 ? 'selected' : '' %>>50</option>
+                    <option value="100" <%= limit === 100 ? 'selected' : '' %>>100</option>
+                </select>
+            </div>
         </div>
         
         <div class="flex items-center gap-1">
             <!-- Кнопки Назад -->
             <% if (page > 1) { %>
-                <a href="?page=1<%= paginationParams %>" class="p-1.5 bg-slate-700 text-slate-300 rounded hover:text-white hover:bg-slate-600 transition-colors" title="Первая страница">
+                <a href="?page=1<%= paginationParams %>#tab-quality" class="p-1.5 bg-slate-700 text-slate-300 rounded hover:text-white hover:bg-slate-600 transition-colors" title="Первая страница">
                     <i data-lucide="chevrons-left" class="w-4 h-4"></i>
                 </a>
-                <a href="?page=<%= page - 1 %><%= paginationParams %>" class="p-1.5 bg-slate-700 text-slate-300 rounded hover:text-white hover:bg-slate-600 transition-colors" title="Предыдущая">
+                <a href="?page=<%= page - 1 %><%= paginationParams %>#tab-quality" class="p-1.5 bg-slate-700 text-slate-300 rounded hover:text-white hover:bg-slate-600 transition-colors" title="Предыдущая">
                     <i data-lucide="chevron-left" class="w-4 h-4"></i>
                 </a>
             <% } else { %>
@@ -353,12 +400,13 @@
             <% } %>
 
             <!-- Поле ввода -->
-            <form method="GET" action="/admin/seo-detector" class="flex items-center mx-2 bg-slate-900/50 rounded border border-slate-700">
+            <form method="GET" action="/admin/seo-detector#tab-quality" class="flex items-center mx-2 bg-slate-900/50 rounded border border-slate-700">
                 <% if (typeof currentRisk !== 'undefined' && currentRisk && currentRisk !== 'ALL' && !showDuplicates) { %><input type="hidden" name="risk" value="<%= currentRisk %>"><% } %>
                 <% if (typeof showDuplicates !== 'undefined' && showDuplicates) { %><input type="hidden" name="duplicates" value="true"><% } %>
                 <% if (typeof currentPublishStatus !== 'undefined' && currentPublishStatus) { %><input type="hidden" name="publish_status" value="<%= currentPublishStatus %>"><% } %>
                 <% if (typeof currentSort !== 'undefined' && currentSort) { %><input type="hidden" name="sort" value="<%= currentSort %>"><% } %>
                 <% if (typeof currentOrder !== 'undefined' && currentOrder) { %><input type="hidden" name="order" value="<%= currentOrder %>"><% } %>
+                <% if (typeof limit !== 'undefined' && limit) { %><input type="hidden" name="limit" value="<%= limit %>"><% } %>
                 
                 <input type="number" name="page" value="<%= page %>" min="1" max="<%= totalPages %>" class="w-12 px-1 py-1 text-center bg-transparent text-white text-sm outline-none no-spinners">
                 <span class="text-slate-500 text-sm px-2 border-l border-slate-700">из <%= totalPages %></span>
@@ -366,10 +414,10 @@
 
             <!-- Кнопки Вперед -->
             <% if (page < totalPages) { %>
-                <a href="?page=<%= page + 1 %><%= paginationParams %>" class="p-1.5 bg-slate-700 text-slate-300 rounded hover:text-white hover:bg-slate-600 transition-colors" title="Следующая">
+                <a href="?page=<%= page + 1 %><%= paginationParams %>#tab-quality" class="p-1.5 bg-slate-700 text-slate-300 rounded hover:text-white hover:bg-slate-600 transition-colors" title="Следующая">
                     <i data-lucide="chevron-right" class="w-4 h-4"></i>
                 </a>
-                <a href="?page=<%= totalPages %><%= paginationParams %>" class="p-1.5 bg-slate-700 text-slate-300 rounded hover:text-white hover:bg-slate-600 transition-colors" title="Последняя страница">
+                <a href="?page=<%= totalPages %><%= paginationParams %>#tab-quality" class="p-1.5 bg-slate-700 text-slate-300 rounded hover:text-white hover:bg-slate-600 transition-colors" title="Последняя страница">
                     <i data-lucide="chevrons-right" class="w-4 h-4"></i>
                 </a>
             <% } else { %>
@@ -383,55 +431,52 @@
         </div>
         </div>
     </div>
+    <% } %>
 </div>
 </div>
-<div id="tab-titles" class="tab-content hidden h-full">
-    <div class="flex flex-col h-full bg-slate-800 rounded-xl border border-slate-700 shadow-sm overflow-hidden">
+<div id="content-tab-titles" class="tab-content hidden">
+    <div class="flex flex-col bg-slate-800 rounded-xl border border-slate-700 shadow-sm overflow-hidden">
         <!-- Фильтры -->
         <div class="p-4 shrink-0 border-b border-slate-700/50">
             <div class="flex flex-col lg:flex-row justify-end gap-3 lg:items-center">
                 <div class="flex gap-1.5 flex-wrap w-full lg:w-auto">
-                    <a href="/admin/seo-detector?mode=seo<%= table3PublishParams %>#tab-titles" class="px-3 py-1.5 rounded-lg text-xs font-medium transition-colors flex items-center gap-2 flex-1 lg:flex-none justify-center <%= (!titlePublishStatus) ? 'bg-slate-600 text-white shadow-inner' : 'bg-slate-800 text-slate-400 hover:bg-slate-700 hover:text-white' %>">
-                        Все статусы <span class="<%= (!titlePublishStatus) ? 'bg-slate-700' : 'bg-slate-900' %> px-1.5 py-0.5 rounded text-[10px]"><%= titlePublishStats.total %></span>
+                    <a href="/admin/seo-detector?mode=seo<%= table3PublishParams %>#tab-titles" class="px-3 py-1.5 rounded-lg text-xs font-medium transition-colors flex items-center gap-2 flex-1 lg:flex-none justify-center <%= (!titlePublishStatus) ? 'bg-slate-600 text-white shadow-inner' : 'bg-slate-700 text-slate-300 hover:bg-slate-600 hover:text-white' %>">
+                        Все статусы <span class="<%= (!titlePublishStatus) ? 'bg-slate-700' : 'bg-slate-800' %> px-1.5 py-0.5 rounded text-[10px]"><%= titlePublishStats.total %></span>
                     </a>
-                    <a href="/admin/seo-detector?mode=seo&title_publish_status=PUBLISHED<%= table3PublishParams %>#tab-titles" class="px-3 py-1.5 rounded-lg text-xs font-medium transition-colors flex items-center gap-2 flex-1 lg:flex-none justify-center <%= (titlePublishStatus === 'PUBLISHED') ? 'bg-blue-600 text-white shadow-inner' : 'bg-slate-800 text-slate-400 hover:bg-slate-700 hover:text-white' %>">
-                        Опубликовано <span class="<%= (titlePublishStatus === 'PUBLISHED') ? 'bg-blue-700' : 'bg-slate-900' %> px-1.5 py-0.5 rounded text-[10px]"><%= titlePublishStats.published %></span>
+                    <a href="/admin/seo-detector?mode=seo&title_publish_status=PUBLISHED<%= table3PublishParams %>#tab-titles" class="px-3 py-1.5 rounded-lg text-xs font-medium transition-colors flex items-center gap-2 flex-1 lg:flex-none justify-center <%= (titlePublishStatus === 'PUBLISHED') ? 'bg-blue-600 text-white shadow-inner' : 'bg-slate-700 text-slate-300 hover:bg-slate-600 hover:text-white' %>">
+                        Опубликовано <span class="<%= (titlePublishStatus === 'PUBLISHED') ? 'bg-blue-700' : 'bg-slate-800' %> px-1.5 py-0.5 rounded text-[10px]"><%= titlePublishStats.published %></span>
                     </a>
-                    <a href="/admin/seo-detector?mode=seo&title_publish_status=UNPUBLISHED<%= table3PublishParams %>#tab-titles" class="px-3 py-1.5 rounded-lg text-xs font-medium transition-colors flex items-center gap-2 flex-1 lg:flex-none justify-center <%= (titlePublishStatus === 'UNPUBLISHED') ? 'bg-purple-600 text-white shadow-inner' : 'bg-slate-800 text-slate-400 hover:bg-slate-700 hover:text-white' %>">
-                        Отложено <span class="<%= (titlePublishStatus === 'UNPUBLISHED') ? 'bg-purple-700' : 'bg-slate-900' %> px-1.5 py-0.5 rounded text-[10px]"><%= titlePublishStats.unpublished %></span>
+                    <a href="/admin/seo-detector?mode=seo&title_publish_status=UNPUBLISHED<%= table3PublishParams %>#tab-titles" class="px-3 py-1.5 rounded-lg text-xs font-medium transition-colors flex items-center gap-2 flex-1 lg:flex-none justify-center <%= (titlePublishStatus === 'UNPUBLISHED') ? 'bg-purple-600 text-white shadow-inner' : 'bg-slate-700 text-slate-300 hover:bg-slate-600 hover:text-white' %>">
+                        Отложено <span class="<%= (titlePublishStatus === 'UNPUBLISHED') ? 'bg-purple-700' : 'bg-slate-800' %> px-1.5 py-0.5 rounded text-[10px]"><%= titlePublishStats.unpublished %></span>
                     </a>
                 </div>
             </div>
         </div>
 
         <!-- Table Container -->
-        <div class="flex-1 overflow-auto bg-[#0f172a]/50 p-0 min-h-0">
-            <% if (problematicTitles.length === 0) { %>
+        <% if (problematicTitles.length === 0) { %>
+            <div class="overflow-x-auto bg-[#0f172a]/50 p-0">
                 <div class="flex flex-col items-center justify-center h-64 text-slate-500 gap-3 mt-8">
                     <i data-lucide="check-circle" class="w-12 h-12 text-green-500/50"></i>
                     <p>Проблемных заголовков не найдено. Все отлично!</p>
                 </div>
-            <% } else { %>
-                    <table class="w-full text-left border-collapse min-w-[900px]">
+            </div>
+        <% } else { %>
+            <div class="overflow-x-auto bg-[#0f172a]/50 p-0">
+                <table class="w-full text-left border-collapse min-w-[900px]">
                         <thead class="sticky top-0 bg-slate-900 border-b border-slate-700 z-10">
                             <tr class="text-slate-300 text-xs">
-                                <th class="px-2 py-2.5 font-medium group cursor-pointer hover:bg-slate-800 transition-colors select-none" onclick="window.location.href='<%= getTitleSortLink('card') %>'">
-                                    <div class="flex items-center gap-1">
+                                <th class="px-2 py-2.5 font-medium text-left">
+                                    <a href="<%= getTitleSortLink('card') %>" class="inline-flex items-center gap-1 hover:text-white transition-colors">
                                         Карточка
-                                        <div class="flex flex-col text-[8px] leading-[4px] opacity-50 <%= (titleSort === 'card') ? 'opacity-100 text-blue-400' : 'group-hover:opacity-100' %>">
-                                            <i data-lucide="chevron-up" class="w-3 h-3 <%= (titleSort === 'card' && titleOrder === 'asc') ? 'opacity-100' : 'opacity-30' %>"></i>
-                                            <i data-lucide="chevron-down" class="w-3 h-3 <%= (titleSort === 'card' && titleOrder === 'desc') ? 'opacity-100' : 'opacity-30' %> -mt-1"></i>
-                                        </div>
-                                    </div>
+                                        <% if (typeof titleSort !== 'undefined' && titleSort === 'card') { %><i data-lucide="<%= titleOrder === 'desc' ? 'arrow-down' : 'arrow-up' %>" class="w-3 h-3 text-blue-400"></i><% } else { %><i data-lucide="arrow-up-down" class="w-3 h-3 opacity-30"></i><% } %>
+                                    </a>
                                 </th>
-                                <th class="px-2 py-2.5 font-medium group cursor-pointer hover:bg-slate-800 transition-colors select-none" onclick="window.location.href='<%= getTitleSortLink('title') %>'">
-                                    <div class="flex items-center gap-1">
+                                <th class="px-2 py-2.5 font-medium text-left">
+                                    <a href="<%= getTitleSortLink('title') %>" class="inline-flex items-center gap-1 hover:text-white transition-colors">
                                         Текущий заголовок (seoTitle)
-                                        <div class="flex flex-col text-[8px] leading-[4px] opacity-50 <%= (titleSort === 'title') ? 'opacity-100 text-blue-400' : 'group-hover:opacity-100' %>">
-                                            <i data-lucide="chevron-up" class="w-3 h-3 <%= (titleSort === 'title' && titleOrder === 'asc') ? 'opacity-100' : 'opacity-30' %>"></i>
-                                            <i data-lucide="chevron-down" class="w-3 h-3 <%= (titleSort === 'title' && titleOrder === 'desc') ? 'opacity-100' : 'opacity-30' %> -mt-1"></i>
-                                        </div>
-                                    </div>
+                                        <% if (typeof titleSort !== 'undefined' && titleSort === 'title') { %><i data-lucide="<%= titleOrder === 'desc' ? 'arrow-down' : 'arrow-up' %>" class="w-3 h-3 text-blue-400"></i><% } else { %><i data-lucide="arrow-up-down" class="w-3 h-3 opacity-30"></i><% } %>
+                                    </a>
                                 </th>
                                 <th class="px-2 py-2.5 font-medium text-right w-32">Действие</th>
                             </tr>
@@ -439,16 +484,16 @@
                         <tbody class="text-sm divide-y divide-slate-700/50">
                             <% problematicTitles.forEach((t, idx) => { %>
                                 <tr class="hover:bg-slate-700/30 transition-colors">
-                                    <td class="px-2 py-3 w-1/4">
-                                        <a href="/catalog/<%= t.brand.toLowerCase() %>/<%= t.model.toLowerCase() %>/<%= t.code.toLowerCase() %>?preview=admin" target="_blank" class="hover:underline flex flex-col gap-1 w-fit">
-                                            <span class="font-medium text-blue-400 text-sm"><%= t.brand %> <%= t.model %></span>
-                                            <span class="text-slate-300 font-mono font-bold bg-slate-700/50 border border-slate-600 px-1.5 py-0.5 rounded text-xs w-fit"><%= t.code %></span>
+                                    <td class="px-2 py-2">
+                                        <a href="/catalog/<%= t.brand.toLowerCase() %>/<%= t.model.toLowerCase() %>/<%= t.code.toLowerCase() %>?preview=admin" target="_blank" class="hover:underline flex items-center gap-1.5 w-fit">
+                                            <span class="font-medium text-blue-400 text-xs sm:text-sm whitespace-nowrap"><%= t.brand.charAt(0).toUpperCase() + t.brand.slice(1).toLowerCase() %> <%= t.model.charAt(0).toUpperCase() + t.model.slice(1).toLowerCase() %></span>
+                                            <span class="text-slate-300 font-mono font-bold bg-slate-700/50 border border-slate-600 px-1 rounded text-[10px] sm:text-xs"><%= t.code.toUpperCase() %></span>
                                         </a>
                                     </td>
-                                    <td class="px-2 py-3 text-slate-200 font-medium">
+                                    <td class="px-2 py-2 text-slate-200 font-medium">
                                         <span id="title-text-<%= t.id %>"><%= t.seoTitle %></span>
                                     </td>
-                                    <td class="px-2 py-3 text-right">
+                                    <td class="px-2 py-2 text-right">
                                         <button id="btn-rewrite-<%= t.id %>" onclick="rewriteSeoTitle('<%= t.id %>')" class="inline-flex items-center gap-1.5 bg-slate-700 hover:bg-slate-600 text-white px-3 py-1.5 rounded transition-colors text-xs font-medium">
                                             <i data-lucide="sparkles" class="w-3.5 h-3.5 text-blue-400"></i> Переделать
                                         </button>
@@ -457,57 +502,113 @@
                             <% }) %>
                         </tbody>
                     </table>
+                </div>
+
+                <!-- Пагинация -->
+                <div class="p-4 shrink-0 border-t border-slate-700 bg-slate-800">
+                    <div class="flex flex-col md:flex-row justify-between items-center gap-4">
+                        <div class="flex flex-col sm:flex-row items-center gap-4">
+                            <div class="text-sm text-slate-400">
+                                Всего заголовков: <span class="text-white font-medium"><%= totalTitles %></span>
+                            </div>
+                            
+                            <div class="flex items-center gap-2 text-sm text-slate-400 sm:border-l sm:border-slate-700 sm:pl-4">
+                                Показывать:
+                                <select onchange="changeLimit('tab-titles', 'title_limit', 'title_page', this.value)" class="bg-slate-900 border border-slate-700 rounded px-2 py-1 text-white text-xs outline-none cursor-pointer">
+                                    <option value="10" <%= titleLimit === 10 ? 'selected' : '' %>>10</option>
+                                    <option value="25" <%= titleLimit === 25 ? 'selected' : '' %>>25</option>
+                                    <option value="50" <%= titleLimit === 50 ? 'selected' : '' %>>50</option>
+                                    <option value="100" <%= titleLimit === 100 ? 'selected' : '' %>>100</option>
+                                </select>
+                            </div>
+                        </div>
+                        
+                        <div class="flex items-center gap-1">
+                            <% if (titlePage > 1) { %>
+                                <button onclick="changePage('tab-titles', 'title_page', 1)" class="w-8 h-8 flex items-center justify-center rounded bg-slate-700 text-slate-300 hover:text-white hover:bg-slate-600 transition-colors" title="Первая страница">
+                                    <i data-lucide="chevrons-left" class="w-4 h-4"></i>
+                                </button>
+                                <button onclick="changePage('tab-titles', 'title_page', <%= titlePage - 1 %>)" class="w-8 h-8 flex items-center justify-center rounded bg-slate-700 text-slate-300 hover:text-white hover:bg-slate-600 transition-colors" title="Предыдущая">
+                                    <i data-lucide="chevron-left" class="w-4 h-4"></i>
+                                </button>
+                            <% } else { %>
+                                <span class="w-8 h-8 flex items-center justify-center rounded bg-slate-800 text-slate-600 cursor-not-allowed">
+                                    <i data-lucide="chevrons-left" class="w-4 h-4"></i>
+                                </span>
+                                <span class="w-8 h-8 flex items-center justify-center rounded bg-slate-800 text-slate-600 cursor-not-allowed">
+                                    <i data-lucide="chevron-left" class="w-4 h-4"></i>
+                                </span>
+                            <% } %>
+
+                            <div class="flex items-center mx-2 bg-slate-900/50 rounded border border-slate-700">
+                                <input type="number" value="<%= titlePage %>" min="1" max="<%= titleTotalPages %>" onchange="changePage('tab-titles', 'title_page', this.value)" class="w-12 px-1 py-1 text-center bg-transparent text-white text-sm outline-none no-spinners">
+                                <span class="text-slate-500 text-sm px-2 border-l border-slate-700">из <%= titleTotalPages %></span>
+                            </div>
+
+                            <% if (titlePage < titleTotalPages) { %>
+                                <button onclick="changePage('tab-titles', 'title_page', <%= titlePage + 1 %>)" class="w-8 h-8 flex items-center justify-center rounded bg-slate-700 text-slate-300 hover:text-white hover:bg-slate-600 transition-colors" title="Следующая">
+                                    <i data-lucide="chevron-right" class="w-4 h-4"></i>
+                                </button>
+                                <button onclick="changePage('tab-titles', 'title_page', <%= titleTotalPages %>)" class="w-8 h-8 flex items-center justify-center rounded bg-slate-700 text-slate-300 hover:text-white hover:bg-slate-600 transition-colors" title="Последняя страница">
+                                    <i data-lucide="chevrons-right" class="w-4 h-4"></i>
+                                </button>
+                            <% } else { %>
+                                <span class="w-8 h-8 flex items-center justify-center rounded bg-slate-800 text-slate-600 cursor-not-allowed">
+                                    <i data-lucide="chevron-right" class="w-4 h-4"></i>
+                                </span>
+                                <span class="w-8 h-8 flex items-center justify-center rounded bg-slate-800 text-slate-600 cursor-not-allowed">
+                                    <i data-lucide="chevrons-right" class="w-4 h-4"></i>
+                                </span>
+                            <% } %>
+                        </div>
+                    </div>
+                </div>
             <% } %>
-        </div>
     </div>
 </div>
-<div id="tab-descriptions" class="tab-content hidden h-full">
-    <div class="flex flex-col h-full bg-slate-800 rounded-xl border border-slate-700 shadow-sm overflow-hidden">
+<div id="content-tab-descriptions" class="tab-content hidden">
+    <div class="flex flex-col bg-slate-800 rounded-xl border border-slate-700 shadow-sm overflow-hidden">
         <!-- Фильтры -->
         <div class="p-4 shrink-0 border-b border-slate-700/50">
             <div class="flex flex-col lg:flex-row justify-end gap-3 lg:items-center">
                 <div class="flex gap-1.5 flex-wrap w-full lg:w-auto">
-                    <a href="/admin/seo-detector?mode=seo<%= table4PublishParams %>#tab-descriptions" class="px-3 py-1.5 rounded-lg text-xs font-medium transition-colors flex items-center gap-2 flex-1 lg:flex-none justify-center <%= (!descPublishStatus) ? 'bg-slate-600 text-white shadow-inner' : 'bg-slate-800 text-slate-400 hover:bg-slate-700 hover:text-white' %>">
-                        Все статусы <span class="<%= (!descPublishStatus) ? 'bg-slate-700' : 'bg-slate-900' %> px-1.5 py-0.5 rounded text-[10px]"><%= descPublishStats.total %></span>
+                    <a href="/admin/seo-detector?mode=seo<%= table4PublishParams %>#tab-descriptions" class="px-3 py-1.5 rounded-lg text-xs font-medium transition-colors flex items-center gap-2 flex-1 lg:flex-none justify-center <%= (!descPublishStatus) ? 'bg-slate-600 text-white shadow-inner' : 'bg-slate-700 text-slate-300 hover:bg-slate-600 hover:text-white' %>">
+                        Все статусы <span class="<%= (!descPublishStatus) ? 'bg-slate-700' : 'bg-slate-800' %> px-1.5 py-0.5 rounded text-[10px]"><%= descPublishStats.total %></span>
                     </a>
-                    <a href="/admin/seo-detector?mode=seo&desc_publish_status=PUBLISHED<%= table4PublishParams %>#tab-descriptions" class="px-3 py-1.5 rounded-lg text-xs font-medium transition-colors flex items-center gap-2 flex-1 lg:flex-none justify-center <%= (descPublishStatus === 'PUBLISHED') ? 'bg-blue-600 text-white shadow-inner' : 'bg-slate-800 text-slate-400 hover:bg-slate-700 hover:text-white' %>">
-                        Опубликовано <span class="<%= (descPublishStatus === 'PUBLISHED') ? 'bg-blue-700' : 'bg-slate-900' %> px-1.5 py-0.5 rounded text-[10px]"><%= descPublishStats.published %></span>
+                    <a href="/admin/seo-detector?mode=seo&desc_publish_status=PUBLISHED<%= table4PublishParams %>#tab-descriptions" class="px-3 py-1.5 rounded-lg text-xs font-medium transition-colors flex items-center gap-2 flex-1 lg:flex-none justify-center <%= (descPublishStatus === 'PUBLISHED') ? 'bg-blue-600 text-white shadow-inner' : 'bg-slate-700 text-slate-300 hover:bg-slate-600 hover:text-white' %>">
+                        Опубликовано <span class="<%= (descPublishStatus === 'PUBLISHED') ? 'bg-blue-700' : 'bg-slate-800' %> px-1.5 py-0.5 rounded text-[10px]"><%= descPublishStats.published %></span>
                     </a>
-                    <a href="/admin/seo-detector?mode=seo&desc_publish_status=UNPUBLISHED<%= table4PublishParams %>#tab-descriptions" class="px-3 py-1.5 rounded-lg text-xs font-medium transition-colors flex items-center gap-2 flex-1 lg:flex-none justify-center <%= (descPublishStatus === 'UNPUBLISHED') ? 'bg-purple-600 text-white shadow-inner' : 'bg-slate-800 text-slate-400 hover:bg-slate-700 hover:text-white' %>">
-                        Отложено <span class="<%= (descPublishStatus === 'UNPUBLISHED') ? 'bg-purple-700' : 'bg-slate-900' %> px-1.5 py-0.5 rounded text-[10px]"><%= descPublishStats.unpublished %></span>
+                    <a href="/admin/seo-detector?mode=seo&desc_publish_status=UNPUBLISHED<%= table4PublishParams %>#tab-descriptions" class="px-3 py-1.5 rounded-lg text-xs font-medium transition-colors flex items-center gap-2 flex-1 lg:flex-none justify-center <%= (descPublishStatus === 'UNPUBLISHED') ? 'bg-purple-600 text-white shadow-inner' : 'bg-slate-700 text-slate-300 hover:bg-slate-600 hover:text-white' %>">
+                        Отложено <span class="<%= (descPublishStatus === 'UNPUBLISHED') ? 'bg-purple-700' : 'bg-slate-800' %> px-1.5 py-0.5 rounded text-[10px]"><%= descPublishStats.unpublished %></span>
                     </a>
                 </div>
             </div>
         </div>
 
         <!-- Table Container -->
-        <div class="flex-1 overflow-auto bg-[#0f172a]/50 p-0 min-h-0">
-            <% if (problematicDescriptions.length === 0) { %>
+        <% if (problematicDescriptions.length === 0) { %>
+            <div class="overflow-x-auto bg-[#0f172a]/50 p-0">
                 <div class="flex flex-col items-center justify-center h-64 text-slate-500 gap-3 mt-8">
                     <i data-lucide="check-circle" class="w-12 h-12 text-green-500/50"></i>
                     <p>Проблемных описаний не найдено. Все отлично!</p>
                 </div>
-            <% } else { %>
-                    <table class="w-full text-left border-collapse min-w-[900px]">
+            </div>
+        <% } else { %>
+            <div class="overflow-x-auto bg-[#0f172a]/50 p-0">
+                <table class="w-full text-left border-collapse min-w-[900px]">
                         <thead class="sticky top-0 bg-slate-900 border-b border-slate-700 z-10">
                             <tr class="text-slate-300 text-xs">
-                                <th class="px-2 py-2.5 font-medium group cursor-pointer hover:bg-slate-800 transition-colors select-none" onclick="window.location.href='<%= getDescSortLink('card') %>'">
-                                    <div class="flex items-center gap-1">
+                                <th class="px-2 py-2.5 font-medium text-left">
+                                    <a href="<%= getDescSortLink('card') %>" class="inline-flex items-center gap-1 hover:text-white transition-colors">
                                         Карточка
-                                        <div class="flex flex-col text-[8px] leading-[4px] opacity-50 <%= (descSort === 'card') ? 'opacity-100 text-blue-400' : 'group-hover:opacity-100' %>">
-                                            <i data-lucide="chevron-up" class="w-3 h-3 <%= (descSort === 'card' && descOrder === 'asc') ? 'opacity-100' : 'opacity-30' %>"></i>
-                                            <i data-lucide="chevron-down" class="w-3 h-3 <%= (descSort === 'card' && descOrder === 'desc') ? 'opacity-100' : 'opacity-30' %> -mt-1"></i>
-                                        </div>
-                                    </div>
+                                        <% if (typeof descSort !== 'undefined' && descSort === 'card') { %><i data-lucide="<%= descOrder === 'desc' ? 'arrow-down' : 'arrow-up' %>" class="w-3 h-3 text-blue-400"></i><% } else { %><i data-lucide="arrow-up-down" class="w-3 h-3 opacity-30"></i><% } %>
+                                    </a>
                                 </th>
-                                <th class="px-2 py-2.5 font-medium group cursor-pointer hover:bg-slate-800 transition-colors select-none" onclick="window.location.href='<%= getDescSortLink('title') %>'">
-                                    <div class="flex items-center gap-1">
+                                <th class="px-2 py-2.5 font-medium text-left">
+                                    <a href="<%= getDescSortLink('title') %>" class="inline-flex items-center gap-1 hover:text-white transition-colors">
                                         Текущее описание (seoDescription)
-                                        <div class="flex flex-col text-[8px] leading-[4px] opacity-50 <%= (descSort === 'title') ? 'opacity-100 text-blue-400' : 'group-hover:opacity-100' %>">
-                                            <i data-lucide="chevron-up" class="w-3 h-3 <%= (descSort === 'title' && descOrder === 'asc') ? 'opacity-100' : 'opacity-30' %>"></i>
-                                            <i data-lucide="chevron-down" class="w-3 h-3 <%= (descSort === 'title' && descOrder === 'desc') ? 'opacity-100' : 'opacity-30' %> -mt-1"></i>
-                                        </div>
-                                    </div>
+                                        <% if (typeof descSort !== 'undefined' && descSort === 'title') { %><i data-lucide="<%= descOrder === 'desc' ? 'arrow-down' : 'arrow-up' %>" class="w-3 h-3 text-blue-400"></i><% } else { %><i data-lucide="arrow-up-down" class="w-3 h-3 opacity-30"></i><% } %>
+                                    </a>
                                 </th>
                                 <th class="px-2 py-2.5 font-medium text-right w-32">Действие</th>
                             </tr>
@@ -515,16 +616,16 @@
                         <tbody class="text-sm divide-y divide-slate-700/50">
                             <% problematicDescriptions.forEach((t, idx) => { %>
                                 <tr class="hover:bg-slate-700/30 transition-colors">
-                                    <td class="px-2 py-3 w-1/4">
-                                        <a href="/catalog/<%= t.brand.toLowerCase() %>/<%= t.model.toLowerCase() %>/<%= t.code.toLowerCase() %>?preview=admin" target="_blank" class="hover:underline flex flex-col gap-1 w-fit">
-                                            <span class="font-medium text-blue-400 text-sm"><%= t.brand %> <%= t.model %></span>
-                                            <span class="text-slate-300 font-mono font-bold bg-slate-700/50 border border-slate-600 px-1.5 py-0.5 rounded text-xs w-fit"><%= t.code %></span>
+                                    <td class="px-2 py-2">
+                                        <a href="/catalog/<%= t.brand.toLowerCase() %>/<%= t.model.toLowerCase() %>/<%= t.code.toLowerCase() %>?preview=admin" target="_blank" class="hover:underline flex items-center gap-1.5 w-fit">
+                                            <span class="font-medium text-blue-400 text-xs sm:text-sm whitespace-nowrap"><%= t.brand.charAt(0).toUpperCase() + t.brand.slice(1).toLowerCase() %> <%= t.model.charAt(0).toUpperCase() + t.model.slice(1).toLowerCase() %></span>
+                                            <span class="text-slate-300 font-mono font-bold bg-slate-700/50 border border-slate-600 px-1 rounded text-[10px] sm:text-xs"><%= t.code.toUpperCase() %></span>
                                         </a>
                                     </td>
-                                    <td class="px-2 py-3 text-slate-200 font-medium">
+                                    <td class="px-2 py-2 text-slate-200 font-medium">
                                         <span id="desc-text-<%= t.id %>"><%= t.seoDescription %></span>
                                     </td>
-                                    <td class="px-2 py-3 text-right">
+                                    <td class="px-2 py-2 text-right">
                                         <button id="btn-rewrite-desc-<%= t.id %>" onclick="rewriteSeoDescription('<%= t.id %>')" class="inline-flex items-center gap-1.5 bg-slate-700 hover:bg-slate-600 text-white px-3 py-1.5 rounded transition-colors text-xs font-medium">
                                             <i data-lucide="sparkles" class="w-3.5 h-3.5 text-blue-400"></i> Переделать
                                         </button>
@@ -533,86 +634,159 @@
                             <% }) %>
                         </tbody>
                     </table>
+                </div>
+
+                <!-- Пагинация -->
+                <div class="p-4 shrink-0 border-t border-slate-700 bg-slate-800">
+                    <div class="flex flex-col md:flex-row justify-between items-center gap-4">
+                        <div class="flex flex-col sm:flex-row items-center gap-4">
+                            <div class="text-sm text-slate-400">
+                                Всего описаний: <span class="text-white font-medium"><%= totalDesc %></span>
+                            </div>
+                            
+                            <div class="flex items-center gap-2 text-sm text-slate-400 sm:border-l sm:border-slate-700 sm:pl-4">
+                                Показывать:
+                                <select onchange="changeLimit('tab-descriptions', 'desc_limit', 'desc_page', this.value)" class="bg-slate-900 border border-slate-700 rounded px-2 py-1 text-white text-xs outline-none cursor-pointer">
+                                    <option value="10" <%= descLimit === 10 ? 'selected' : '' %>>10</option>
+                                    <option value="25" <%= descLimit === 25 ? 'selected' : '' %>>25</option>
+                                    <option value="50" <%= descLimit === 50 ? 'selected' : '' %>>50</option>
+                                    <option value="100" <%= descLimit === 100 ? 'selected' : '' %>>100</option>
+                                </select>
+                            </div>
+                        </div>
+                        
+                        <div class="flex items-center gap-1">
+                            <% if (descPage > 1) { %>
+                                <button onclick="changePage('tab-descriptions', 'desc_page', 1)" class="w-8 h-8 flex items-center justify-center rounded bg-slate-700 text-slate-300 hover:text-white hover:bg-slate-600 transition-colors" title="Первая страница">
+                                    <i data-lucide="chevrons-left" class="w-4 h-4"></i>
+                                </button>
+                                <button onclick="changePage('tab-descriptions', 'desc_page', <%= descPage - 1 %>)" class="w-8 h-8 flex items-center justify-center rounded bg-slate-700 text-slate-300 hover:text-white hover:bg-slate-600 transition-colors" title="Предыдущая">
+                                    <i data-lucide="chevron-left" class="w-4 h-4"></i>
+                                </button>
+                            <% } else { %>
+                                <span class="w-8 h-8 flex items-center justify-center rounded bg-slate-800 text-slate-600 cursor-not-allowed">
+                                    <i data-lucide="chevrons-left" class="w-4 h-4"></i>
+                                </span>
+                                <span class="w-8 h-8 flex items-center justify-center rounded bg-slate-800 text-slate-600 cursor-not-allowed">
+                                    <i data-lucide="chevron-left" class="w-4 h-4"></i>
+                                </span>
+                            <% } %>
+
+                            <div class="flex items-center mx-2 bg-slate-900/50 rounded border border-slate-700">
+                                <input type="number" value="<%= descPage %>" min="1" max="<%= descTotalPages %>" onchange="changePage('tab-descriptions', 'desc_page', this.value)" class="w-12 px-1 py-1 text-center bg-transparent text-white text-sm outline-none no-spinners">
+                                <span class="text-slate-500 text-sm px-2 border-l border-slate-700">из <%= descTotalPages %></span>
+                            </div>
+
+                            <% if (descPage < descTotalPages) { %>
+                                <button onclick="changePage('tab-descriptions', 'desc_page', <%= descPage + 1 %>)" class="w-8 h-8 flex items-center justify-center rounded bg-slate-700 text-slate-300 hover:text-white hover:bg-slate-600 transition-colors" title="Следующая">
+                                    <i data-lucide="chevron-right" class="w-4 h-4"></i>
+                                </button>
+                                <button onclick="changePage('tab-descriptions', 'desc_page', <%= descTotalPages %>)" class="w-8 h-8 flex items-center justify-center rounded bg-slate-700 text-slate-300 hover:text-white hover:bg-slate-600 transition-colors" title="Последняя страница">
+                                    <i data-lucide="chevrons-right" class="w-4 h-4"></i>
+                                </button>
+                            <% } else { %>
+                                <span class="w-8 h-8 flex items-center justify-center rounded bg-slate-800 text-slate-600 cursor-not-allowed">
+                                    <i data-lucide="chevron-right" class="w-4 h-4"></i>
+                                </span>
+                                <span class="w-8 h-8 flex items-center justify-center rounded bg-slate-800 text-slate-600 cursor-not-allowed">
+                                    <i data-lucide="chevrons-right" class="w-4 h-4"></i>
+                                </span>
+                            <% } %>
+                        </div>
+                    </div>
+                </div>
             <% } %>
-        </div>
     </div>
 </div>
-</div>
-<div id="tab-links" class="tab-content hidden h-full">
-    <div class="flex flex-col h-full bg-slate-800 rounded-xl border border-slate-700 shadow-sm overflow-hidden">
+<div id="content-tab-links" class="tab-content hidden">
+    <div class="flex flex-col bg-slate-800 rounded-xl border border-slate-700 shadow-sm overflow-hidden">
         <!-- Фильтры -->
         <div class="p-4 shrink-0 border-b border-slate-700/50">
             <div class="flex flex-col lg:flex-row justify-between gap-3 lg:items-center">
                 <div class="flex flex-wrap items-center gap-2">
-                    <a href="/admin/seo-detector?mode=seo&link_filter=ALL&link_sort=<%= linkSort %>&link_order=<%= linkOrder %><%= table1Params %>#broken-links" class="px-3 py-1.5 rounded-lg text-xs font-medium transition-colors flex items-center gap-2 <%= linkFilter === 'ALL' ? 'bg-blue-600 text-white' : 'bg-slate-800 text-slate-400 hover:bg-slate-700 hover:text-white' %>">
-                        Все <span class="<%= linkFilter === 'ALL' ? 'bg-blue-700' : 'bg-slate-900' %> px-1.5 py-0.5 rounded text-[10px]"><%= brokenLinksStats.total %></span>
+                    <a href="/admin/seo-detector?mode=seo&link_filter=ALL&link_sort=<%= linkSort %>&link_order=<%= linkOrder %><%= table1Params %>#tab-links" class="px-3 py-1.5 rounded-lg text-xs font-medium transition-colors flex items-center gap-2 <%= linkFilter === 'ALL' ? 'bg-blue-600 text-white' : 'bg-slate-700 text-slate-300 hover:bg-slate-600 hover:text-white' %>">
+                        Все <span class="<%= linkFilter === 'ALL' ? 'bg-blue-700' : 'bg-slate-800' %> px-1.5 py-0.5 rounded text-[10px]"><%= brokenLinksStats.total %></span>
                     </a>
-                    <a href="/admin/seo-detector?mode=seo&link_filter=BROKEN&link_sort=<%= linkSort %>&link_order=<%= linkOrder %><%= table1Params %>#broken-links" class="px-3 py-1.5 rounded-lg text-xs font-medium transition-colors flex items-center gap-2 <%= linkFilter === 'BROKEN' ? 'bg-red-500/20 text-red-400 border border-red-500/30' : 'bg-slate-800 text-slate-400 hover:bg-slate-700 hover:text-white' %>">
-                        Битые ссылки <span class="<%= linkFilter === 'BROKEN' ? 'bg-red-500/20' : 'bg-slate-900' %> px-1.5 py-0.5 rounded text-[10px]"><%= brokenLinksStats.broken %></span>
+                    <a href="/admin/seo-detector?mode=seo&link_filter=BROKEN&link_sort=<%= linkSort %>&link_order=<%= linkOrder %><%= table1Params %>#tab-links" class="px-3 py-1.5 rounded-lg text-xs font-medium transition-colors flex items-center gap-2 <%= linkFilter === 'BROKEN' ? 'bg-red-500/20 text-red-400 border border-red-500/30' : 'bg-slate-700 text-slate-300 hover:bg-slate-600 hover:text-white' %>">
+                        Битые ссылки <span class="<%= linkFilter === 'BROKEN' ? 'bg-red-500/20' : 'bg-slate-800' %> px-1.5 py-0.5 rounded text-[10px]"><%= brokenLinksStats.broken %></span>
                     </a>
-                    <a href="/admin/seo-detector?mode=seo&link_filter=DRAFTS&link_sort=<%= linkSort %>&link_order=<%= linkOrder %><%= table1Params %>#broken-links" class="px-3 py-1.5 rounded-lg text-xs font-medium transition-colors flex items-center gap-2 <%= linkFilter === 'DRAFTS' ? 'bg-slate-600/30 text-slate-300 border border-slate-600' : 'bg-slate-800 text-slate-400 hover:bg-slate-700 hover:text-white' %>">
-                        Черновики <span class="<%= linkFilter === 'DRAFTS' ? 'bg-slate-700' : 'bg-slate-900' %> px-1.5 py-0.5 rounded text-[10px]"><%= brokenLinksStats.drafts %></span>
+                    <a href="/admin/seo-detector?mode=seo&link_filter=DRAFTS&link_sort=<%= linkSort %>&link_order=<%= linkOrder %><%= table1Params %>#tab-links" class="px-3 py-1.5 rounded-lg text-xs font-medium transition-colors flex items-center gap-2 <%= linkFilter === 'DRAFTS' ? 'bg-slate-600/30 text-slate-300 border border-slate-600' : 'bg-slate-700 text-slate-300 hover:bg-slate-600 hover:text-white' %>">
+                        Черновики <span class="<%= linkFilter === 'DRAFTS' ? 'bg-slate-700' : 'bg-slate-800' %> px-1.5 py-0.5 rounded text-[10px]"><%= brokenLinksStats.drafts %></span>
                     </a>
-                    <a href="/admin/seo-detector?mode=seo&link_filter=LAYOUT&link_sort=<%= linkSort %>&link_order=<%= linkOrder %><%= table1Params %>#broken-links" class="px-3 py-1.5 rounded-lg text-xs font-medium transition-colors flex items-center gap-2 <%= linkFilter === 'LAYOUT' ? 'bg-orange-500/20 text-orange-400 border border-orange-500/30' : 'bg-slate-800 text-slate-400 hover:bg-slate-700 hover:text-white' %>">
-                        Проблемы верстки <span class="<%= linkFilter === 'LAYOUT' ? 'bg-orange-500/20' : 'bg-slate-900' %> px-1.5 py-0.5 rounded text-[10px]"><%= brokenLinksStats.layout %></span>
+                    <a href="/admin/seo-detector?mode=seo&link_filter=LAYOUT&link_sort=<%= linkSort %>&link_order=<%= linkOrder %><%= table1Params %>#tab-links" class="px-3 py-1.5 rounded-lg text-xs font-medium transition-colors flex items-center gap-2 <%= linkFilter === 'LAYOUT' ? 'bg-orange-500/20 text-orange-400 border border-orange-500/30' : 'bg-slate-700 text-slate-300 hover:bg-slate-600 hover:text-white' %>">
+                        Проблемы верстки <span class="<%= linkFilter === 'LAYOUT' ? 'bg-orange-500/20' : 'bg-slate-800' %> px-1.5 py-0.5 rounded text-[10px]"><%= brokenLinksStats.layout %></span>
                     </a>
-                    <a href="/admin/seo-detector?mode=seo&link_filter=ORPHANS&link_sort=<%= linkSort %>&link_order=<%= linkOrder %><%= table1Params %>#broken-links" class="px-3 py-1.5 rounded-lg text-xs font-medium transition-colors flex items-center gap-2 <%= linkFilter === 'ORPHANS' ? 'bg-purple-500/20 text-purple-400 border border-purple-500/30' : 'bg-slate-800 text-slate-400 hover:bg-slate-700 hover:text-white' %>">
-                        Сироты <span class="<%= linkFilter === 'ORPHANS' ? 'bg-purple-500/20' : 'bg-slate-900' %> px-1.5 py-0.5 rounded text-[10px]"><%= brokenLinksStats.orphans %></span>
+                    <a href="/admin/seo-detector?mode=seo&link_filter=ORPHANS&link_sort=<%= linkSort %>&link_order=<%= linkOrder %><%= table1Params %>#tab-links" class="px-3 py-1.5 rounded-lg text-xs font-medium transition-colors flex items-center gap-2 <%= linkFilter === 'ORPHANS' ? 'bg-purple-500/20 text-purple-400 border border-purple-500/30' : 'bg-slate-700 text-slate-300 hover:bg-slate-600 hover:text-white' %>">
+                        Сироты <span class="<%= linkFilter === 'ORPHANS' ? 'bg-purple-500/20' : 'bg-slate-800' %> px-1.5 py-0.5 rounded text-[10px]"><%= brokenLinksStats.orphans %></span>
                     </a>
                 </div>
 
                 <div class="flex gap-1.5 flex-wrap w-full lg:w-auto mt-2 lg:mt-0">
                     <div class="hidden lg:block w-px h-7 bg-slate-700 mx-1"></div>
-                    <a href="/admin/seo-detector?mode=seo<%= table2PublishParams %>#broken-links" class="px-3 py-1.5 rounded-lg text-xs font-medium transition-colors flex items-center gap-2 flex-1 lg:flex-none justify-center <%= (!linkPublishStatus) ? 'bg-slate-600 text-white shadow-inner' : 'bg-slate-800 text-slate-400 hover:bg-slate-700 hover:text-white' %>">
-                        Все статусы <span class="<%= (!linkPublishStatus) ? 'bg-slate-700' : 'bg-slate-900' %> px-1.5 py-0.5 rounded text-[10px]"><%= linkPublishStats.total %></span>
+                    <a href="/admin/seo-detector?mode=seo<%= table2PublishParams %>#tab-links" class="px-3 py-1.5 rounded-lg text-xs font-medium transition-colors flex items-center gap-2 flex-1 lg:flex-none justify-center <%= (!linkPublishStatus) ? 'bg-slate-600 text-white shadow-inner' : 'bg-slate-700 text-slate-300 hover:bg-slate-600 hover:text-white' %>">
+                        Все статусы <span class="<%= (!linkPublishStatus) ? 'bg-slate-700' : 'bg-slate-800' %> px-1.5 py-0.5 rounded text-[10px]"><%= linkPublishStats.total %></span>
                     </a>
-                    <a href="/admin/seo-detector?mode=seo&link_publish_status=PUBLISHED<%= table2PublishParams %>#broken-links" class="px-3 py-1.5 rounded-lg text-xs font-medium transition-colors flex items-center gap-2 flex-1 lg:flex-none justify-center <%= (linkPublishStatus === 'PUBLISHED') ? 'bg-blue-600 text-white shadow-inner' : 'bg-slate-800 text-slate-400 hover:bg-slate-700 hover:text-white' %>">
-                        Опубликовано <span class="<%= (linkPublishStatus === 'PUBLISHED') ? 'bg-blue-700' : 'bg-slate-900' %> px-1.5 py-0.5 rounded text-[10px]"><%= linkPublishStats.published %></span>
+                    <a href="/admin/seo-detector?mode=seo&link_publish_status=PUBLISHED<%= table2PublishParams %>#tab-links" class="px-3 py-1.5 rounded-lg text-xs font-medium transition-colors flex items-center gap-2 flex-1 lg:flex-none justify-center <%= (linkPublishStatus === 'PUBLISHED') ? 'bg-blue-600 text-white shadow-inner' : 'bg-slate-700 text-slate-300 hover:bg-slate-600 hover:text-white' %>">
+                        Опубликовано <span class="<%= (linkPublishStatus === 'PUBLISHED') ? 'bg-blue-700' : 'bg-slate-800' %> px-1.5 py-0.5 rounded text-[10px]"><%= linkPublishStats.published %></span>
                     </a>
-                    <a href="/admin/seo-detector?mode=seo&link_publish_status=UNPUBLISHED<%= table2PublishParams %>#broken-links" class="px-3 py-1.5 rounded-lg text-xs font-medium transition-colors flex items-center gap-2 flex-1 lg:flex-none justify-center <%= (linkPublishStatus === 'UNPUBLISHED') ? 'bg-purple-600 text-white shadow-inner' : 'bg-slate-800 text-slate-400 hover:bg-slate-700 hover:text-white' %>">
-                        Отложено <span class="<%= (linkPublishStatus === 'UNPUBLISHED') ? 'bg-purple-700' : 'bg-slate-900' %> px-1.5 py-0.5 rounded text-[10px]"><%= linkPublishStats.unpublished %></span>
+                    <a href="/admin/seo-detector?mode=seo&link_publish_status=UNPUBLISHED<%= table2PublishParams %>#tab-links" class="px-3 py-1.5 rounded-lg text-xs font-medium transition-colors flex items-center gap-2 flex-1 lg:flex-none justify-center <%= (linkPublishStatus === 'UNPUBLISHED') ? 'bg-purple-600 text-white shadow-inner' : 'bg-slate-700 text-slate-300 hover:bg-slate-600 hover:text-white' %>">
+                        Отложено <span class="<%= (linkPublishStatus === 'UNPUBLISHED') ? 'bg-purple-700' : 'bg-slate-800' %> px-1.5 py-0.5 rounded text-[10px]"><%= linkPublishStats.unpublished %></span>
                     </a>
                 </div>
             </div>
         </div>
 
         <!-- Table Container -->
-        <div class="flex-1 overflow-auto bg-[#0f172a]/50 p-0 min-h-0">
-            <% if (brokenLinks.length === 0) { %>
+        <% if (brokenLinks.length === 0) { %>
+            <div class="overflow-x-auto bg-[#0f172a]/50 p-0">
                 <div class="flex flex-col items-center justify-center h-64 text-slate-500 gap-3 mt-8">
                     <i data-lucide="check-circle" class="w-12 h-12 text-green-500/50"></i>
                     <p>По выбранному фильтру ничего не найдено.</p>
                 </div>
-            <% } else { %>
-                    <table class="w-full text-left border-collapse min-w-[900px]">
+            </div>
+        <% } else { %>
+            <div class="overflow-x-auto bg-[#0f172a]/50 p-0">
+                <table class="w-full text-left border-collapse min-w-[900px]">
                         <thead class="sticky top-0 bg-slate-900 border-b border-slate-700 z-10">
                             <tr class="text-slate-300 text-xs">
-                                <th class="px-2 py-2.5 font-medium hover:text-white cursor-pointer select-none" onclick="window.location.href='/admin/seo-detector?mode=seo&link_filter=<%= linkFilter %>&link_sort=title&link_order=<%= linkSort === 'title' && linkOrder === 'asc' ? 'desc' : 'asc' %><%= table1Params %>#broken-links'">
-                                    <div class="flex items-center gap-1">Статья (Где найдено) <% if (linkSort === 'title') { %><i data-lucide="<%= linkOrder === 'asc' ? 'chevron-up' : 'chevron-down' %>" class="w-3 h-3 text-blue-400"></i><% } %></div>
+                                <th class="px-2 py-2.5 font-medium text-left w-1/4">
+                                    <a href="/admin/seo-detector?mode=seo&link_filter=<%= linkFilter %>&link_sort=title&link_order=<%= linkSort === 'title' && linkOrder === 'asc' ? 'desc' : 'asc' %><%= table1Params %>#tab-links" class="inline-flex items-center gap-1 hover:text-white transition-colors">
+                                        Статья (Где найдено)
+                                        <% if (typeof linkSort !== 'undefined' && linkSort === 'title') { %><i data-lucide="<%= linkOrder === 'desc' ? 'arrow-down' : 'arrow-up' %>" class="w-3 h-3 text-blue-400"></i><% } else { %><i data-lucide="arrow-up-down" class="w-3 h-3 opacity-30"></i><% } %>
+                                    </a>
                                 </th>
-                                <th class="px-2 py-2.5 font-medium">Анкор (Текст)</th>
-                                <th class="px-2 py-2.5 font-medium hover:text-white cursor-pointer select-none" onclick="window.location.href='/admin/seo-detector?mode=seo&link_filter=<%= linkFilter %>&link_sort=type&link_order=<%= linkSort === 'type' && linkOrder === 'asc' ? 'desc' : 'asc' %><%= table1Params %>#broken-links'">
-                                    <div class="flex items-center gap-1 justify-center">Тип проблемы <% if (linkSort === 'type') { %><i data-lucide="<%= linkOrder === 'asc' ? 'chevron-up' : 'chevron-down' %>" class="w-3 h-3 text-blue-400"></i><% } %></div>
+                                <th class="px-2 py-2.5 font-medium text-left">Анкор (Текст)</th>
+                                <th class="px-2 py-2.5 font-medium text-center">
+                                    <a href="/admin/seo-detector?mode=seo&link_filter=<%= linkFilter %>&link_sort=type&link_order=<%= linkSort === 'type' && linkOrder === 'asc' ? 'desc' : 'asc' %><%= table1Params %>#tab-links" class="inline-flex items-center gap-1 justify-center hover:text-white transition-colors">
+                                        Тип проблемы
+                                        <% if (typeof linkSort !== 'undefined' && linkSort === 'type') { %><i data-lucide="<%= linkOrder === 'desc' ? 'arrow-down' : 'arrow-up' %>" class="w-3 h-3 text-blue-400"></i><% } else { %><i data-lucide="arrow-up-down" class="w-3 h-3 opacity-30"></i><% } %>
+                                    </a>
                                 </th>
-                                <th class="px-2 py-2.5 font-medium hover:text-white cursor-pointer select-none" onclick="window.location.href='/admin/seo-detector?mode=seo&link_filter=<%= linkFilter %>&link_sort=date&link_order=<%= linkSort === 'date' && linkOrder === 'asc' ? 'desc' : 'asc' %><%= table1Params %>#broken-links'">
-                                    <div class="flex items-center gap-1 justify-center">Статус <% if (linkSort === 'date') { %><i data-lucide="<%= linkOrder === 'asc' ? 'chevron-up' : 'chevron-down' %>" class="w-3 h-3 text-blue-400"></i><% } %></div>
+                                <th class="px-2 py-2.5 font-medium text-center">
+                                    <a href="/admin/seo-detector?mode=seo&link_filter=<%= linkFilter %>&link_sort=date&link_order=<%= linkSort === 'date' && linkOrder === 'asc' ? 'desc' : 'asc' %><%= table1Params %>#tab-links" class="inline-flex items-center gap-1 justify-center hover:text-white transition-colors">
+                                        Статус
+                                        <% if (typeof linkSort !== 'undefined' && linkSort === 'date') { %><i data-lucide="<%= linkOrder === 'desc' ? 'arrow-down' : 'arrow-up' %>" class="w-3 h-3 text-blue-400"></i><% } else { %><i data-lucide="arrow-up-down" class="w-3 h-3 opacity-30"></i><% } %>
+                                    </a>
                                 </th>
-                                <th class="px-2 py-2.5 font-medium text-right">Действия</th>
+                                <th class="px-2 py-2.5 font-medium text-right w-40">Действия</th>
                             </tr>
                         </thead>
                         <tbody class="text-sm divide-y divide-slate-700/50">
                             <% brokenLinks.forEach((link, idx) => { %>
                                 <tr class="hover:bg-slate-700/30 transition-colors" id="row-<%= idx %>" data-report-id="<%= link.id %>">
                                     <td class="px-2 py-2">
-                                        <div class="text-white font-medium text-sm">
-                                            <% const urlParts = link.title.split(' '); %>
-                                            <% const viewUrl = urlParts.length >= 3 ? `/catalog/${urlParts[0].toLowerCase()}/${urlParts[1].toLowerCase()}/${urlParts[2].toLowerCase()}` : '#'; %>
-                                            <a href="<%= viewUrl %>" target="_blank" class="hover:text-blue-400 transition-colors flex items-center gap-1 group">
-                                                <%= link.title %>
-                                                <i data-lucide="external-link" class="w-3 h-3 text-slate-500 opacity-0 group-hover:opacity-100 transition-opacity"></i>
-                                            </a>
-                                        </div>
-                                        <div class="text-xs text-slate-500 mt-0.5">Поле: <%= link.field %></div>
+                                        <% 
+                                            const urlParts = link.title.split(' ');
+                                            const tCode = urlParts.length > 1 ? urlParts.pop() : '';
+                                            const tBrand = urlParts.length > 0 ? urlParts.shift() : '';
+                                            const tModel = urlParts.join(' ');
+                                            const viewUrl = (tBrand && tModel && tCode) ? `/catalog/${tBrand.toLowerCase()}/${tModel.replace(/ /g, '-').toLowerCase()}/${tCode.toLowerCase()}?preview=admin` : '#';
+                                        %>
+                                        <a href="<%= viewUrl %>" target="_blank" class="hover:underline flex items-center gap-1.5 w-fit">
+                                            <span class="font-medium text-blue-400 text-xs sm:text-sm whitespace-nowrap"><%= tBrand.charAt(0).toUpperCase() + tBrand.slice(1).toLowerCase() %> <%= tModel.charAt(0).toUpperCase() + tModel.slice(1).toLowerCase() %></span>
+                                            <span class="text-slate-300 font-mono font-bold bg-slate-700/50 border border-slate-600 px-1 rounded text-[10px] sm:text-xs"><%= tCode.toUpperCase() %></span>
+                                        </a>
+                                        <div class="text-xs text-slate-500 mt-1">Поле: <%= link.field %></div>
                                     </td>
                                     <td class="px-2 py-2 text-slate-300">
                                         <span class="bg-slate-800 border border-slate-700 px-1.5 py-0.5 rounded text-xs">"<%= link.text %>"</span>
@@ -664,8 +838,68 @@
                             <% }) %>
                         </tbody>
                     </table>
+                </div>
+
+                <!-- Пагинация -->
+                <div class="p-4 shrink-0 border-t border-slate-700 bg-slate-800">
+                    <div class="flex flex-col md:flex-row justify-between items-center gap-4">
+                        <div class="flex flex-col sm:flex-row items-center gap-4">
+                            <div class="text-sm text-slate-400">
+                                Всего ссылок: <span class="text-white font-medium"><%= totalLinks %></span>
+                            </div>
+                            
+                            <div class="flex items-center gap-2 text-sm text-slate-400 sm:border-l sm:border-slate-700 sm:pl-4">
+                                Показывать:
+                                <select onchange="changeLimit('tab-links', 'link_limit', 'link_page', this.value)" class="bg-slate-900 border border-slate-700 rounded px-2 py-1 text-white text-xs outline-none cursor-pointer">
+                                    <option value="10" <%= linkLimit === 10 ? 'selected' : '' %>>10</option>
+                                    <option value="25" <%= linkLimit === 25 ? 'selected' : '' %>>25</option>
+                                    <option value="50" <%= linkLimit === 50 ? 'selected' : '' %>>50</option>
+                                    <option value="100" <%= linkLimit === 100 ? 'selected' : '' %>>100</option>
+                                </select>
+                            </div>
+                        </div>
+                        
+                        <div class="flex items-center gap-1">
+                            <% if (linkPage > 1) { %>
+                                <button onclick="changePage('tab-links', 'link_page', 1)" class="w-8 h-8 flex items-center justify-center rounded bg-slate-700 text-slate-300 hover:text-white hover:bg-slate-600 transition-colors" title="Первая страница">
+                                    <i data-lucide="chevrons-left" class="w-4 h-4"></i>
+                                </button>
+                                <button onclick="changePage('tab-links', 'link_page', <%= linkPage - 1 %>)" class="w-8 h-8 flex items-center justify-center rounded bg-slate-700 text-slate-300 hover:text-white hover:bg-slate-600 transition-colors" title="Предыдущая">
+                                    <i data-lucide="chevron-left" class="w-4 h-4"></i>
+                                </button>
+                            <% } else { %>
+                                <span class="w-8 h-8 flex items-center justify-center rounded bg-slate-800 text-slate-600 cursor-not-allowed">
+                                    <i data-lucide="chevrons-left" class="w-4 h-4"></i>
+                                </span>
+                                <span class="w-8 h-8 flex items-center justify-center rounded bg-slate-800 text-slate-600 cursor-not-allowed">
+                                    <i data-lucide="chevron-left" class="w-4 h-4"></i>
+                                </span>
+                            <% } %>
+
+                            <div class="flex items-center mx-2 bg-slate-900/50 rounded border border-slate-700">
+                                <input type="number" value="<%= linkPage %>" min="1" max="<%= linkTotalPages %>" onchange="changePage('tab-links', 'link_page', this.value)" class="w-12 px-1 py-1 text-center bg-transparent text-white text-sm outline-none no-spinners">
+                                <span class="text-slate-500 text-sm px-2 border-l border-slate-700">из <%= linkTotalPages %></span>
+                            </div>
+
+                            <% if (linkPage < linkTotalPages) { %>
+                                <button onclick="changePage('tab-links', 'link_page', <%= linkPage + 1 %>)" class="w-8 h-8 flex items-center justify-center rounded bg-slate-700 text-slate-300 hover:text-white hover:bg-slate-600 transition-colors" title="Следующая">
+                                    <i data-lucide="chevron-right" class="w-4 h-4"></i>
+                                </button>
+                                <button onclick="changePage('tab-links', 'link_page', <%= linkTotalPages %>)" class="w-8 h-8 flex items-center justify-center rounded bg-slate-700 text-slate-300 hover:text-white hover:bg-slate-600 transition-colors" title="Последняя страница">
+                                    <i data-lucide="chevrons-right" class="w-4 h-4"></i>
+                                </button>
+                            <% } else { %>
+                                <span class="w-8 h-8 flex items-center justify-center rounded bg-slate-800 text-slate-600 cursor-not-allowed">
+                                    <i data-lucide="chevron-right" class="w-4 h-4"></i>
+                                </span>
+                                <span class="w-8 h-8 flex items-center justify-center rounded bg-slate-800 text-slate-600 cursor-not-allowed">
+                                    <i data-lucide="chevrons-right" class="w-4 h-4"></i>
+                                </span>
+                            <% } %>
+                        </div>
+                    </div>
+                </div>
             <% } %>
-        </div>
     </div>
 </div>
 

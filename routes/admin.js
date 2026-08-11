@@ -74,6 +74,7 @@ router.get('/', async (req, res) => {
             'deduplicate.js': 'Удаление дублей',
             'delete_bad_seo.js': 'Удаление мусорных карточек',
             'scan_links.js': 'Радар ссылок (Orphans/404)',
+            'sync_links.js': 'Синхронизация ссылок (чистка 404)',
             'update_site.js': 'Обновление сайта (Git Pull)'
         };
 
@@ -84,7 +85,8 @@ router.get('/', async (req, res) => {
             'reset_seo.js',
             'scan_seo.js',
             'deduplicate.js',
-            'delete_bad_seo.js'
+            'delete_bad_seo.js',
+            'sync_links.js'
         ];
 
         scriptFiles.sort((a, b) => {
@@ -307,7 +309,7 @@ router.get('/users', (req, res) => {
 router.get('/seo-detector', async (req, res) => {
     try {
         const page = parseInt(req.query.page) || 1;
-        const take = 50;
+        const take = parseInt(req.query.limit) || (req.cookies && parseInt(req.cookies.seo_table_limit)) || 25;
         const skip = (page - 1) * take;
         const riskFilter = req.query.risk;
         const showDuplicates = req.query.duplicates === 'true';
@@ -545,6 +547,12 @@ router.get('/seo-detector', async (req, res) => {
             console.error('Ошибка чтения links_report.json', e);
         }
 
+        const linkPage = parseInt(req.query.link_page) || 1;
+        const linkLimit = take;
+        const totalLinks = brokenLinks.length;
+        const linkTotalPages = Math.ceil(totalLinks / linkLimit) || 1;
+        brokenLinks = brokenLinks.slice((linkPage - 1) * linkLimit, linkPage * linkLimit);
+
         // Обогащаем brokenLinks флагом hasRetroLinks из базы
         if (brokenLinks.length > 0) {
             const brokenLinkIds = brokenLinks.map(link => link.id).filter(id => id);
@@ -612,6 +620,12 @@ router.get('/seo-detector', async (req, res) => {
             return 0;
         });
 
+        const titlePage = parseInt(req.query.title_page) || 1;
+        const titleLimit = take;
+        const totalTitles = problematicTitles.length;
+        const titleTotalPages = Math.ceil(totalTitles / titleLimit) || 1;
+        problematicTitles = problematicTitles.slice((titlePage - 1) * titleLimit, titlePage * titleLimit);
+
         const descPublishStatus = req.query.desc_publish_status || '';
 
         const descPublishStats = { total: 0, published: 0, unpublished: 0 };
@@ -648,6 +662,12 @@ router.get('/seo-detector', async (req, res) => {
             return 0;
         });
 
+        const descPage = parseInt(req.query.desc_page) || 1;
+        const descLimit = take;
+        const totalDesc = problematicDescriptions.length;
+        const descTotalPages = Math.ceil(totalDesc / descLimit) || 1;
+        problematicDescriptions = problematicDescriptions.slice((descPage - 1) * descLimit, descPage * descLimit);
+
         const mode = req.query.mode || 'seo';
 
         res.render('admin_seo_detector', {
@@ -656,13 +676,22 @@ router.get('/seo-detector', async (req, res) => {
             titlePublishStats,
             titleSort,
             titleOrder,
+            titlePage,
+            titleLimit,
+            titleTotalPages,
+            totalTitles,
             problematicDescriptions,
             descPublishStatus,
             descPublishStats,
             descSort,
             descOrder,
+            descPage,
+            descLimit,
+            descTotalPages,
+            totalDesc,
             reports: reports,
             page,
+            limit: take,
             totalPages: Math.ceil(total / take) || 1,
             currentRisk: riskFilter || 'ALL',
             currentPublishStatus: publishStatus || '',
@@ -674,6 +703,10 @@ router.get('/seo-detector', async (req, res) => {
             linksStats: linksStats,
             orphans: orphans,
             brokenLinks: brokenLinks,
+            linkPage,
+            linkLimit,
+            linkTotalPages,
+            totalLinks,
             stats: {
                 safe: safeCount,
                 warning: warningCount,
