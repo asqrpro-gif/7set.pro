@@ -870,6 +870,26 @@ router.post('/api/seo-detector/delete', async (req, res) => {
         await prisma.diagnosticReport.delete({
             where: { id }
         });
+
+        // Очищаем из локальных отчетов, чтобы не висели "призраки" после перезагрузки
+        const fs = require('fs');
+        const path = require('path');
+        
+        const LINKS_REPORT_FILE = path.join(__dirname, '../scripts/links_report.json');
+        if (fs.existsSync(LINKS_REPORT_FILE)) {
+            const data = JSON.parse(fs.readFileSync(LINKS_REPORT_FILE, 'utf-8'));
+            if (data.brokenLinks) data.brokenLinks = data.brokenLinks.filter(l => l.id !== id);
+            if (data.orphans) data.orphans = data.orphans.filter(o => o.id !== id);
+            fs.writeFileSync(LINKS_REPORT_FILE, JSON.stringify(data, null, 2), 'utf-8');
+        }
+
+        const SEO_REPORT_FILE = path.join(__dirname, '../scripts/bad_seo_meta.json');
+        if (fs.existsSync(SEO_REPORT_FILE)) {
+            const data = JSON.parse(fs.readFileSync(SEO_REPORT_FILE, 'utf-8'));
+            if (data.badMeta) data.badMeta = data.badMeta.filter(l => l.id !== id);
+            fs.writeFileSync(SEO_REPORT_FILE, JSON.stringify(data, null, 2), 'utf-8');
+        }
+
         res.json({ success: true });
     } catch (err) {
         res.status(500).json({ error: 'Ошибка удаления' });
@@ -906,6 +926,22 @@ router.post('/api/links/remove-404', async (req, res) => {
         const { id, url } = req.body;
         const report = await prisma.diagnosticReport.findUnique({ where: { id } });
         if (!report) return res.status(404).json({ error: 'Карточка не найдена' });
+
+        const fs = require('fs');
+        const path = require('path');
+        const LINKS_REPORT_FILE = path.join(__dirname, '../scripts/links_report.json');
+
+        // Если это особый статус (например, ошибка верстки), просто скрываем уведомление
+        const specialStatuses = ['ОШИБКА ВЕРСТКИ', 'СТРАНИЦА-СИРОТА', 'ССЫЛКА НА ЧЕРНОВИК', 'АРТЕФАКТ', 'ОБОРВАННЫЙ ТЕКСТ'];
+        if (specialStatuses.includes(url)) {
+            if (fs.existsSync(LINKS_REPORT_FILE)) {
+                const data = JSON.parse(fs.readFileSync(LINKS_REPORT_FILE, 'utf-8'));
+                if (data.brokenLinks) data.brokenLinks = data.brokenLinks.filter(l => !(l.id === id && l.url === url));
+                if (data.orphans) data.orphans = data.orphans.filter(l => !(l.id === id && l.url === url));
+                fs.writeFileSync(LINKS_REPORT_FILE, JSON.stringify(data, null, 2), 'utf-8');
+            }
+            return res.json({ success: true });
+        }
 
         // Экранируем URL для Regex
         const escapeRegExp = (string) => string.replace(/[.*+?^${}()|[\]\\]/g, '\\$&');
