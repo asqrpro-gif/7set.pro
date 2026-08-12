@@ -872,9 +872,6 @@ router.post('/api/seo-detector/delete', async (req, res) => {
         });
 
         // Очищаем из локальных отчетов, чтобы не висели "призраки" после перезагрузки
-        const fs = require('fs');
-        const path = require('path');
-        
         const LINKS_REPORT_FILE = path.join(__dirname, '../scripts/links_report.json');
         if (fs.existsSync(LINKS_REPORT_FILE)) {
             const data = JSON.parse(fs.readFileSync(LINKS_REPORT_FILE, 'utf-8'));
@@ -927,8 +924,6 @@ router.post('/api/links/remove-404', async (req, res) => {
         const report = await prisma.diagnosticReport.findUnique({ where: { id } });
         if (!report) return res.status(404).json({ error: 'Карточка не найдена' });
 
-        const fs = require('fs');
-        const path = require('path');
         const LINKS_REPORT_FILE = path.join(__dirname, '../scripts/links_report.json');
 
         // Если это особый статус (например, ошибка верстки), просто скрываем уведомление
