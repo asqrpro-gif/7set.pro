@@ -867,9 +867,17 @@ router.post('/api/seo-detector/unpublish', async (req, res) => {
 router.post('/api/seo-detector/delete', async (req, res) => {
     try {
         const { id } = req.body;
-        await prisma.diagnosticReport.delete({
-            where: { id }
-        });
+        try {
+            await prisma.diagnosticReport.delete({
+                where: { id }
+            });
+        } catch (dbError) {
+            // Если запись уже удалена в БД (P2025), игнорируем ошибку и просто чистим JSON
+            if (dbError.code !== 'P2025') {
+                throw dbError;
+            }
+            console.log(`[SEO Detector] Карточка ${id} уже удалена из БД, чистим только кэш.`);
+        }
 
         // Очищаем из локальных отчетов, чтобы не висели "призраки" после перезагрузки
         const LINKS_REPORT_FILE = path.join(__dirname, '../scripts/links_report.json');
