@@ -138,9 +138,9 @@ async function main() {
         console.log(`\n🌅 Наступили новые сутки в процессе работы! Сброс счетчика.`);
       }
 
-      // Лимит генерации: не более 60 успешных карточек в сутки
-      if (dailyGeneratedCount >= 60) {
-        console.log(`\n🛑 Достигнут суточный лимит (60 карточек). Засыпаем до наступления новых суток...`);
+      // Лимит генерации: не более 24 успешных карточек в сутки
+      if (dailyGeneratedCount >= 24) {
+        console.log(`\n🛑 Достигнут суточный лимит (24 карточки). Засыпаем до наступления новых суток...`);
         while (new Date().toDateString() === currentDayStr) {
           await sleep(10 * 60 * 1000); // проверяем каждые 10 минут
         }
@@ -254,18 +254,22 @@ async function main() {
 
         console.log(`✅ Сохранено и отсканировано: ${car.brand} ${car.model} ${code} (SEO Score: ${score}, Уникальность: ${uniquenessScore}%)`);
         console.log(`📅 В очереди на: ${publishDate.toLocaleString()}`);
-        console.log(`💤 Остываем 4 минуты...`);
 
         dailyGeneratedCount++; // Увеличиваем счетчик успешных генераций
         await saveDailyState(currentDayStr, dailyGeneratedCount);
 
-        // Интервал генерации — ровно 4 минуты (240 000 мс)
-        await sleep(240000);
+        if (dailyGeneratedCount % 6 === 0 && dailyGeneratedCount < 24) {
+          console.log(`💤 Сгенерировано 6 карточек. Уходим на длинную паузу 30 минут...`);
+          await sleep(30 * 60 * 1000); // 30 минут
+        } else {
+          console.log(`💤 Остываем 5 минут...`);
+          await sleep(5 * 60 * 1000); // 5 минут
+        }
 
       } catch (error) {
         console.error(`❌ Сбой API для ${car.brand} ${car.model} ${code}:`, error.message);
-        console.log('💤 Штрафная пауза 4 минуты перед новой попыткой...');
-        await sleep(240000);
+        console.log('💤 Штрафная пауза 5 минут перед новой попыткой...');
+        await sleep(300000);
       }
     }
   }
