@@ -399,12 +399,14 @@ app.get('/catalog/:brand/:model/:code', async (req, res) => {
       // Защита от бесконечного цикла (лимиты Gemini): не удаляем свежие заглушки (созданные менее 1 часа назад)
       const oneHourAgo = new Date(Date.now() - 60 * 60 * 1000);
       const isRecentStub = existingReport.created_at && new Date(existingReport.created_at) > oneHourAgo;
+      
+      const isAiFailed = existingReport.seoScore === -1;
 
-      if (isCachedStub && !isUnsupported) {
-        if (isRecentStub) {
+      if ((isCachedStub && !isUnsupported) || isAiFailed) {
+        if (isRecentStub && !isAiFailed) {
           console.log('⏳ [АВТО-БЛОКИРОВКА] Обнаружена свежая заглушка (менее 1 часа). Оставляем кэш, чтобы не спамить ИИ при исчерпанных лимитах.');
         } else {
-          console.log('🔄 [ОЧИСТКА КЭША] В БД обнаружен старый ошибочный кэш заглушки для реального кода! Удаляем и запрашиваем свежий ИИ-отчет...');
+          console.log('🔄 [ОЧИСТКА КЭША] Обнаружен ошибочный кэш или неудачная генерация ИИ! Удаляем и запрашиваем свежий ИИ-отчет...');
           await prisma.diagnosticReport.delete({ where: { id: existingReport.id } }).catch(() => { });
           existingReport = null;
         }
@@ -493,6 +495,7 @@ app.get('/catalog/:brand/:model/:code', async (req, res) => {
                 pro_tips_md: deepData.pro_tips_md,
                 seoTitle: deepData.seo_title || fastData.seoTitle,
                 seoDescription: deepData.seo_description || fastData.seoDescription,
+                seoScore: deepData.is_fallback ? -1 : 0, // Помечаем, если ИИ упал в фоллбэк
                 is_complete: true // Отчет готов!
               }
             });

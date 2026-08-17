@@ -384,79 +384,100 @@
 
             <!-- Сама карточка пейволла в нормальном потоке, прижатая к низу -->
             <div id="paywall-overlay"
-              class="relative z-20 w-full flex flex-col items-center pb-8 pe-none">
+              class="relative z-20 w-full flex flex-col items-center p-4 md:p-6 pe-none mt-4">
 
               <div
-                class="bg-slate-900 bg-gradient-to-br from-slate-900 via-blue-950 to-slate-900 animate-gradient-xy border border-white/10 shadow-[0_20px_60px_-10px_rgba(0,119,255,0.5)] animate-pulse-glow rounded-2xl p-6 md:p-8 w-full transform transition-all relative overflow-hidden pe-auto">
+                class="bg-gradient-to-b from-slate-800 to-slate-950 border-2 border-brand/80 shadow-[0_0_40px_-10px_rgba(0,119,255,0.7)] rounded-2xl p-5 md:p-6 w-full transform transition-all relative overflow-hidden pe-auto">
 
                 <!-- Декоративные партиклы/сетка на фоне карточки -->
-                <div class="absolute inset-0 opacity-20 bg-dots-pattern">
+                <div class="absolute inset-0 opacity-30 bg-dots-pattern">
                 </div>
+                <!-- Дополнительный световой блик сверху -->
+                <div class="absolute top-0 left-1/2 -translate-x-1/2 w-3/4 h-24 bg-brand/20 blur-[50px] rounded-full pointer-events-none"></div>
 
                 <div class="relative z-10">
-                  <div class="flex flex-col items-center text-center mb-5">
+                  <div class="flex flex-col items-center text-center mb-4">
 
                     <!-- Индикатор "ИИ-анализ завершен" -->
                     <div
-                      class="flex items-center justify-center gap-2 mb-5 px-3.5 py-1.5 bg-blue-900/40 border border-blue-400/30 rounded-full shadow-inner backdrop-blur-sm">
+                      class="flex items-center justify-center gap-2 mb-3 px-3 py-1.5 bg-blue-900/60 border border-brand/50 rounded-full shadow-[0_0_15px_rgba(0,119,255,0.3)] backdrop-blur-md">
                       <span class="relative flex h-2 w-2">
-                        <span
-                          class="animate-ping absolute inline-flex h-full w-full rounded-full bg-blue-400 opacity-75"></span>
+                        <span class="animate-ping absolute inline-flex h-full w-full rounded-full bg-blue-400 opacity-75"></span>
                         <span class="relative inline-flex rounded-full h-2 w-2 bg-blue-400"></span>
                       </span>
-                      <span class="text-[10px] font-bold text-blue-300 tracking-widest uppercase">Детальный ответ
-                        готов</span>
+                      <span class="text-[10px] font-bold text-blue-200 tracking-widest uppercase">Детальный ответ готов</span>
                     </div>
 
-                    <div
-                      class="bg-blue-500/10 border border-blue-500/20 p-3.5 rounded-full mb-4 shadow-[0_0_15px_rgba(0,119,255,0.4)] text-blue-400">
+                    <div class="bg-gradient-to-br from-brand to-blue-400 p-2.5 rounded-xl mb-3 shadow-[0_5px_15px_rgba(0,119,255,0.5)] text-white transform -rotate-3 hover:rotate-0 transition-transform">
                       <i data-lucide="lock" class="w-6 h-6"></i>
                     </div>
-                    <h3 class="text-2xl font-extrabold text-white tracking-tight drop-shadow-md">Разблокируйте полный
-                      отчет</h3>
-                    <p class="text-sm text-gray-300 mt-2 font-medium">Узнайте всё о поломке и сэкономьте на ремонте.</p>
+                    
+                    <h3 class="text-2xl md:text-3xl font-bold text-white tracking-tight drop-shadow-md mb-1">Разблокируйте полный отчет</h3>
+                    <p class="text-sm md:text-base text-blue-200 font-medium leading-tight">Узнайте всё о поломке и сэкономьте на ремонте.</p>
                   </div>
 
-                  <ul
-                    class="space-y-3.5 mb-7 text-sm text-gray-200 bg-white/5 backdrop-blur-md p-4 rounded-2xl border border-white/10">
-                    <li class="flex items-start gap-3">
-                      <i data-lucide="search-check" class="w-5 h-5 text-green-400 shrink-0 drop-shadow-sm"></i>
-                      <span><strong class="text-white">Причины и симптомы:</strong> точный диагноз проблемы.</span>
+                  <ul class="space-y-2.5 mb-5 text-sm text-gray-100 bg-slate-900/80 backdrop-blur-xl p-4 rounded-xl border border-brand/30 shadow-inner w-full relative">
+                    <!-- Блик внутри списка -->
+                    <div class="absolute -left-10 top-1/2 -translate-y-1/2 w-20 h-full bg-brand/10 blur-[30px]"></div>
+                    
+                    <li class="flex items-center gap-3 relative z-10">
+                      <div class="bg-green-500/20 p-1.5 rounded border border-green-500/30">
+                        <i data-lucide="search-check" class="w-4 h-4 text-green-400 drop-shadow-sm"></i>
+                      </div>
+                      <span class="leading-tight"><strong class="text-white block text-base">Причины и симптомы</strong> <span class="text-xs text-gray-300">Точный диагноз проблемы</span></span>
                     </li>
-                    <li class="flex items-start gap-3">
-                      <i data-lucide="shield-alert" class="w-5 h-5 text-red-400 shrink-0 drop-shadow-sm"></i>
-                      <span><strong class="text-white">Защита от обмана:</strong> как не лохануться на СТО.</span>
+                    <li class="flex items-center gap-3 relative z-10">
+                      <div class="bg-red-500/20 p-1.5 rounded border border-red-500/30">
+                        <i data-lucide="shield-alert" class="w-4 h-4 text-red-400 drop-shadow-sm"></i>
+                      </div>
+                      <span class="leading-tight"><strong class="text-white block text-base">Защита от обмана</strong> <span class="text-xs text-gray-300">Как не переплатить на СТО</span></span>
                     </li>
-                    <li class="flex items-start gap-3">
-                      <i data-lucide="wrench" class="w-5 h-5 text-orange-400 shrink-0 drop-shadow-sm"></i>
-                      <span><strong class="text-white">Сделай сам:</strong> пошаговая инструкция по ремонту.</span>
+                    <li class="flex items-center gap-3 relative z-10">
+                      <div class="bg-orange-500/20 p-1.5 rounded border border-orange-500/30">
+                        <i data-lucide="wrench" class="w-4 h-4 text-orange-400 drop-shadow-sm"></i>
+                      </div>
+                      <span class="leading-tight"><strong class="text-white block text-base">Сделай сам</strong> <span class="text-xs text-gray-300">Пошаговая инструкция</span></span>
                     </li>
-                    <li class="flex items-start gap-3">
-                      <i data-lucide="calculator" class="w-5 h-5 text-blue-400 shrink-0 drop-shadow-sm"></i>
-                      <span><strong class="text-white">Фин. прогноз:</strong> реальная стоимость запчастей и
-                        работы.</span>
+                    <li class="flex items-center gap-3 relative z-10">
+                      <div class="bg-blue-500/20 p-1.5 rounded border border-blue-500/30">
+                        <i data-lucide="calculator" class="w-4 h-4 text-blue-400 drop-shadow-sm"></i>
+                      </div>
+                      <span class="leading-tight"><strong class="text-white block text-base">Фин. прогноз</strong> <span class="text-xs text-gray-300">Стоимость запчастей и работ</span></span>
                     </li>
                   </ul>
 
                   <button id="unlock-btn" onclick="ym(111154643, 'reachGoal', 'paywall_click'); return true;"
-                    class="relative overflow-hidden w-full bg-brand text-white font-bold rounded-xl py-3 text-lg hover:bg-blue-500 transition-all shadow-[0_0_20px_rgba(0,119,255,0.5)] hover:shadow-[0_0_30px_rgba(0,119,255,0.7)] hover:-translate-y-0.5 active:scale-[0.98] flex flex-col justify-center items-center gap-1 group border border-blue-400/50">
-                    <div
-                      class="absolute inset-0 -translate-x-full bg-gradient-to-r from-transparent via-white/40 to-transparent group-hover:animate-shimmer">
-                    </div>
+                    class="relative overflow-hidden w-full bg-gradient-to-r from-brand to-blue-500 text-white font-bold rounded-xl py-3 text-lg hover:from-blue-500 hover:to-blue-400 transition-all shadow-[0_8px_20px_rgba(0,119,255,0.6)] hover:shadow-[0_12px_25px_rgba(0,119,255,0.8)] hover:-translate-y-0.5 active:scale-[0.98] flex flex-col justify-center items-center gap-1 group border border-blue-300/50">
+                    <div class="absolute inset-0 -translate-x-full bg-gradient-to-r from-transparent via-white/40 to-transparent group-hover:animate-shimmer"></div>
                     <div class="flex items-center gap-2 relative z-10 drop-shadow-md">
                       <i data-lucide="unlock" class="w-5 h-5"></i>
-                      <span>Разблокировать за <del class="opacity-70 text-sm">$1.99</del> <span class="text-green-300">0$</span></span>
+                      <span>Разблокировать за <del class="opacity-70 text-sm">$1.99</del> <span class="text-green-300 font-bold text-xl ml-1">0$</span></span>
                     </div>
-                    <span class="relative z-10 text-[11px] font-medium opacity-90 uppercase tracking-wider text-blue-100">В рамках открытого бета-теста</span>
+                    <span class="relative z-10 text-[10px] font-semibold opacity-90 uppercase tracking-widest text-blue-100 bg-black/20 px-2.5 py-0.5 rounded-full mt-0.5">В рамках открытого бета-теста</span>
                   </button>
-                  <p
-                    class="text-xs text-center text-gray-400 mt-4 flex items-center justify-center gap-1.5 font-medium">
+                  <p class="text-xs text-center text-gray-400 mt-3 flex items-center justify-center gap-1.5 font-medium">
                     <i data-lucide="shield-check" class="w-3.5 h-3.5 text-green-400"></i> Безопасная оплата 256-bit
                   </p>
                 </div>
               </div>
             </div>
             <% } %>
+
+            <!-- Экран загрузки ИИ (скрыт по умолчанию) -->
+            <div id="ai-loading-screen" class="hidden absolute inset-0 z-50 flex-col items-center justify-center p-6 bg-white/90 dark:bg-slate-900/90 backdrop-blur-xl border border-brand/20 shadow-[0_0_30px_rgba(0,119,255,0.15)]">
+              <div class="relative flex items-center justify-center w-24 h-24 mb-6">
+                <!-- Пульсирующие круги -->
+                <div class="absolute inset-0 bg-brand/20 rounded-full animate-ping shadow-[0_0_20px_rgba(0,119,255,0.4)]"></div>
+                <div class="absolute inset-2 bg-brand/40 rounded-full animate-pulse"></div>
+                <div class="absolute inset-4 bg-gradient-to-br from-brand to-blue-500 rounded-full flex items-center justify-center shadow-inner z-10">
+                  <i data-lucide="cpu" class="w-8 h-8 text-white drop-shadow-md"></i>
+                </div>
+                <!-- Вращающийся сканер -->
+                <div class="absolute -inset-2 rounded-full border-2 border-transparent border-t-brand border-r-blue-400 opacity-80 animate-spin shadow-[0_0_10px_rgba(0,119,255,0.5)]"></div>
+              </div>
+              <h3 class="text-xl md:text-2xl font-bold text-gray-900 dark:text-white mb-2 text-center animate-pulse">ИИ синтезирует ответ...</h3>
+              <p class="text-gray-500 dark:text-gray-400 text-center font-medium max-w-sm">Мы анализируем технические бюллетени и базы данных СТО. Примерное время ожидания: <span class="text-brand font-bold">10-20 секунд</span></p>
+            </div>
         </div>
       </div>
     </div>

@@ -83,15 +83,38 @@ document.addEventListener('DOMContentLoaded', () => {
           document.cookie = `unlocked_reports=${encodeURIComponent(JSON.stringify(localList))}; max-age=${3 * 24 * 60 * 60}; path=/`;
         } catch (e) { }
 
-        // Плавное скрытие оверлея
+        // Плавное скрытие старого оверлея
         if (paywallOverlay) {
-          paywallOverlay.style.opacity = '0';
+          paywallOverlay.style.display = 'none';
         }
 
-        setTimeout(() => {
-          // Перезагрузка для отрисовки серверного контента с аккордеонами
-          window.location.reload();
-        }, 300);
+        const aiLoadingScreen = document.getElementById('ai-loading-screen');
+        if (aiLoadingScreen) {
+          // Показываем экран загрузки ИИ
+          aiLoadingScreen.classList.remove('hidden');
+          aiLoadingScreen.classList.add('flex');
+          
+          // Запускаем пуллинг статуса отчета
+          let pollInterval = setInterval(async () => {
+            try {
+              const statusRes = await fetch(`/api/report-status/${reportId}`);
+              if (statusRes.ok) {
+                const statusData = await statusRes.json();
+                if (statusData.is_complete) {
+                  clearInterval(pollInterval);
+                  window.location.reload();
+                }
+              }
+            } catch (e) {
+              console.error('Polling error:', e);
+            }
+          }, 3000); // Опрашиваем каждые 3 секунды
+        } else {
+          // Фолбэк, если элемента загрузки нет
+          setTimeout(() => {
+            window.location.reload();
+          }, 300);
+        }
 
       } catch (error) {
         console.error('Ошибка:', error);

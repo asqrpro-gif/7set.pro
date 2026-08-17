@@ -15,14 +15,15 @@ const prisma = new PrismaClient();
 async function getDailyState() {
   try {
     const data = await fs.readFile(STATE_FILE, 'utf-8');
-    return JSON.parse(data);
+    const parsed = JSON.parse(data);
+    return { date: parsed.date, count: parsed.count || 0, regeneratedCount: parsed.regeneratedCount || 0 };
   } catch {
-    return { date: new Date().toDateString(), count: 0 };
+    return { date: new Date().toDateString(), count: 0, regeneratedCount: 0 };
   }
 }
 
-async function saveDailyState(dateString, count) {
-  await fs.writeFile(STATE_FILE, JSON.stringify({ date: dateString, count }), 'utf-8');
+async function saveDailyState(dateString, count, regeneratedCount = 0) {
+  await fs.writeFile(STATE_FILE, JSON.stringify({ date: dateString, count, regeneratedCount }), 'utf-8');
 }
 
 // ==========================================
@@ -109,168 +110,194 @@ async function main() {
   let currentDayStr = new Date().toDateString();
   
   if (state.date !== currentDayStr) {
-    state = { date: currentDayStr, count: 0 };
-    await saveDailyState(currentDayStr, 0);
+    state = { date: currentDayStr, count: 0, regeneratedCount: 0 };
+    await saveDailyState(currentDayStr, 0, 0);
   }
-  let dailyGeneratedCount = state.count;
+  let dailyGeneratedCount = state.count || 0;
+  let dailyRegeneratedCount = state.regeneratedCount || 0;
 
-  for (const car of TARGET_CARS) {
-    for (const code of POPULAR_ERRORS) {
+  let carIndex = 0;
+  let codeIndex = 0;
 
-      // Ограничение по времени генерации (от 00:00 до 05:00)
-      let loggedWait = false;
-      while (new Date().getHours() >= 5) {
-        if (!loggedWait) {
-          console.log(`\n⏳ Время генерации вышло (сейчас ${new Date().getHours()} ч.). Работаем только с 00:00 до 05:00. Ждем...`);
-          loggedWait = true;
-        }
-        await sleep(10 * 60 * 1000); // Спим 10 минут и проверяем снова
+  while (carIndex < TARGET_CARS.length) {
+    // Ограничение по времени генерации (от 00:00 до 05:00)
+    let loggedWait = false;
+    while (new Date().getHours() >= 5) {
+      if (!loggedWait) {
+        console.log(`\n⏳ Время генерации вышло (сейчас ${new Date().getHours()} ч.). Работаем только с 00:00 до 05:00. Ждем...`);
+        loggedWait = true;
       }
-      if (loggedWait) {
-        console.log(`\n🌌 Наступило разрешенное время (00:00 - 05:00)! Возобновляем работу...`);
-      }
+      await sleep(10 * 60 * 1000); // Спим 10 минут и проверяем снова
+    }
+    if (loggedWait) {
+      console.log(`\n🌌 Наступило разрешенное время (00:00 - 05:00)! Возобновляем работу...`);
+    }
 
-      const todayStr = new Date().toDateString();
-      if (todayStr !== currentDayStr) {
-        currentDayStr = todayStr;
-        dailyGeneratedCount = 0;
-        await saveDailyState(currentDayStr, dailyGeneratedCount);
-        console.log(`\n🌅 Наступили новые сутки в процессе работы! Сброс счетчика.`);
-      }
+    const todayStr = new Date().toDateString();
+    if (todayStr !== currentDayStr) {
+      currentDayStr = todayStr;
+      dailyGeneratedCount = 0;
+      dailyRegeneratedCount = 0;
+      await saveDailyState(currentDayStr, dailyGeneratedCount, dailyRegeneratedCount);
+      console.log(`\n🌅 Наступили новые сутки в процессе работы! Сброс счетчика.`);
+    }
 
-      // Лимит генерации: не более 24 успешных карточек в сутки
+    // ЛИМИТ ГЕНЕРАЦИИ: 26 (24 новых + 2 на ремонт)
+    if (dailyGeneratedCount + dailyRegeneratedCount >= 26) {
+      console.log(`\n🛑 Достигнут суточный лимит (26 карточек суммарно). Засыпаем до наступления новых суток...`);
+      while (new Date().toDateString() === currentDayStr) {
+        await sleep(10 * 60 * 1000); // проверяем каждые 10 минут
+      }
+      currentDayStr = new Date().toDateString();
+      dailyGeneratedCount = 0;
+      dailyRegeneratedCount = 0;
+      await saveDailyState(currentDayStr, dailyGeneratedCount, dailyRegeneratedCount);
+      console.log(`\n🌅 Наступили новые сутки! Продолжаем работу...`);
+    }
+
+    // 1. ПРИОРИТЕТ: ПОИСК БРАКА (-1)
+    const failedReport = await prisma.diagnosticReport.findFirst({
+      where: { seoScore: -1 }
+    });
+
+    let brand, model, code, isRegenerating, idToRepair;
+
+    if (failedReport) {
+      brand = failedReport.brand;
+      model = failedReport.model;
+      code = failedReport.code;
+      isRegenerating = true;
+      idToRepair = failedReport.id;
+      console.log(`🔄 [АВТО-ВОССТАНОВЛЕНИЕ] Приоритетный ремонт брака: ${brand} ${model} ${code} (seoScore = -1)`);
+    } else {
+      // 2. ИНАЧЕ БЕРЕМ СТАНДАРТНУЮ КОМБИНАЦИЮ ИЗ СПИСКА
       if (dailyGeneratedCount >= 24) {
-        console.log(`\n🛑 Достигнут суточный лимит (24 карточки). Засыпаем до наступления новых суток...`);
-        while (new Date().toDateString() === currentDayStr) {
-          await sleep(10 * 60 * 1000); // проверяем каждые 10 минут
-        }
-        currentDayStr = new Date().toDateString();
-        dailyGeneratedCount = 0;
-        await saveDailyState(currentDayStr, dailyGeneratedCount);
-        console.log(`\n🌅 Наступили новые сутки! Продолжаем генерацию...`);
+         console.log(`\n🛑 Лимит новых карточек (24) исчерпан, а брака для ремонта нет. Спим 10 минут...`);
+         await sleep(10 * 60 * 1000);
+         continue; // начнем цикл сначала, вдруг появится брак или сменятся сутки
       }
 
-      // ФИЛЬТР 1: Предварительная проверка кода на подлинность OBD-II
-      const obdRegex = /^[PBUC][0-9A-F]{4}$/i;
-      const baseDescription = getFactFromDB(code);
+      const car = TARGET_CARS[carIndex];
+      brand = car.brand;
+      model = car.model;
+      code = POPULAR_ERRORS[codeIndex];
+      isRegenerating = false;
 
-      if (!obdRegex.test(code) || !baseDescription) {
-        console.log(`[ПРОПУСК] Код ${code} не прошел первичную валидацию.`);
+      // Сдвигаем индексы для следующего раза
+      codeIndex++;
+      if (codeIndex >= POPULAR_ERRORS.length) {
+        codeIndex = 0;
+        carIndex++;
+      }
+    }
+
+    // ФИЛЬТР 1: Предварительная проверка кода
+    const obdRegex = /^[PBUC][0-9A-F]{4}$/i;
+    const baseDescription = getFactFromDB(code);
+
+    if (!obdRegex.test(code) || !baseDescription) {
+      console.log(`[ПРОПУСК] Код ${code} не прошел первичную валидацию.`);
+      continue;
+    }
+
+    if (isRegenerating) {
+      await prisma.diagnosticReport.delete({ where: { id: idToRepair } }).catch(()=>{});
+    } else {
+      // ПРОВЕРКА НА ДУБЛИКАТ В БД ДЛЯ НОВЫХ КАРТОЧЕК
+      const existingReport = await prisma.diagnosticReport.findFirst({
+        where: { brand, model, code }
+      });
+      if (existingReport) {
+        console.log(`⏩ Пропуск: ${brand} ${model} ${code} уже в базе.`);
+        continue;
+      }
+    }
+
+    console.log(`\n⏳ Генерация карточки: ${brand} ${model} ошибка ${code}...`);
+
+    try {
+      // Шаг 1: Быстрая генерация
+      const fastData = await analyzeCarErrorFast(brand, model, code, '');
+
+      const summaryText = fastData.summary || '';
+      const isUnsupportedByAI =
+        summaryText.includes('не зарегистрирован') ||
+        summaryText.includes('Сбой по коду') ||
+        summaryText.toLowerCase().includes('не существует') ||
+        (fastData.seoTitle || '').includes('Неизвестный') ||
+        fastData.severity === 'universal';
+
+      if (isUnsupportedByAI) {
+        console.log(`⛔ [ОТКАЗ ИИ] Ошибка ${code} не встречается на ${brand} ${model}. Брак отсеян.`);
         continue;
       }
 
-      // ПРОВЕРКА НА ДУБЛИКАТ В БД
-      const existingReport = await prisma.diagnosticReport.findFirst({
-        where: { brand: car.brand, model: car.model, code: code }
+      // Шаг 2: Глубокая генерация
+      const deepData = await analyzeCarErrorDeep(brand, model, code, '');
+      const publishDate = await getNextPublishDate();
+
+      let safeDrivability = fastData.drivability;
+      if (!['safe', 'caution', 'tow'].includes(safeDrivability)) {
+        if (fastData.severity === 'low') safeDrivability = 'safe';
+        else if (fastData.severity === 'critical') safeDrivability = 'tow';
+        else safeDrivability = 'caution';
+      }
+
+      const doubleCheck = await prisma.diagnosticReport.findFirst({
+        where: { brand, model, code }
+      });
+      if (doubleCheck) {
+        console.log(`⚠️ Внимание! Пока ИИ думал, карточка ${brand} ${model} ${code} уже была создана. Отменяем дубликат.`);
+        continue;
+      }
+
+      const newReport = await prisma.diagnosticReport.create({
+        data: {
+          brand, model, code,
+          severity: fastData.severity, summary: fastData.summary, teaser_text: fastData.teaser_text,
+          drivability: safeDrivability, seoTitle: deepData.seo_title || fastData.seoTitle,
+          seoDescription: deepData.seo_description || fastData.seoDescription,
+          is_paid: false, is_complete: true,
+          full_analysis_markdown: deepData.full_analysis_markdown, sto_protection_tips: deepData.sto_protection_tips,
+          diy_instructions: deepData.diy_instructions, price_parts: deepData.price_parts,
+          price_labor: deepData.price_labor, diy_difficulty_text: deepData.diy_difficulty_text,
+          diy_difficulty_score: deepData.diy_difficulty_score, diy_time: deepData.diy_time,
+          diy_tools: deepData.diy_tools, tools_table_md: deepData.tools_table_md,
+          oem_parts_table_md: deepData.oem_parts_table_md, pro_tips_md: deepData.pro_tips_md,
+          popular_engine_codes: deepData.popular_engine_codes || [],
+          related_obd_codes: deepData.related_obd_codes || [],
+          created_at: publishDate
+        }
       });
 
-      if (existingReport) {
-        console.log(`⏩ Пропуск: ${car.brand} ${car.model} ${code} уже в базе.`);
-        continue;
+      const { score, risk, uniquenessScore } = await calculateSeoScore(newReport, prisma);
+      await prisma.diagnosticReport.update({
+        where: { id: newReport.id },
+        data: { seoScore: score, seoRisk: risk, uniquenessScore }
+      });
+
+      console.log(`✅ Сохранено и отсканировано: ${brand} ${model} ${code} (SEO Score: ${score}, Уникальность: ${uniquenessScore}%)`);
+      console.log(`📅 В очереди на: ${publishDate.toLocaleString()}`);
+
+      if (isRegenerating) {
+        dailyRegeneratedCount++;
+      } else {
+        dailyGeneratedCount++;
+      }
+      await saveDailyState(currentDayStr, dailyGeneratedCount, dailyRegeneratedCount);
+
+      if ((dailyGeneratedCount + dailyRegeneratedCount) % 6 === 0) {
+        console.log(`💤 Сгенерировано 6 карточек. Уходим на длинную паузу 30 минут...`);
+        await sleep(30 * 60 * 1000);
+      } else {
+        console.log(`💤 Остываем 5 минут...`);
+        await sleep(5 * 60 * 1000);
       }
 
-      console.log(`\n⏳ Генерация карточки: ${car.brand} ${car.model} ошибка ${code}...`);
-
-      try {
-        // Шаг 1: Быстрая генерация
-        const fastData = await analyzeCarErrorFast(car.brand, car.model, code, '');
-
-        // ФИЛЬТР 2: Детектор мусора от ИИ (проверка, применим ли код к этой машине)
-        const summaryText = fastData.summary || '';
-        const isUnsupportedByAI =
-          summaryText.includes('не зарегистрирован') ||
-          summaryText.includes('Сбой по коду') ||
-          summaryText.toLowerCase().includes('не существует') ||
-          (fastData.seoTitle || '').includes('Неизвестный') ||
-          fastData.severity === 'universal';
-
-        if (isUnsupportedByAI) {
-          console.log(`⛔ [ОТКАЗ ИИ] Ошибка ${code} не встречается на ${car.brand} ${car.model}. Брак отсеян.`);
-          continue;
-        }
-
-        // Шаг 2: Глубокая генерация (если фильтры пройдены)
-        const deepData = await analyzeCarErrorDeep(car.brand, car.model, code, '');
-        const publishDate = await getNextPublishDate();
-
-        // Защита поля drivability
-        let safeDrivability = fastData.drivability;
-        if (!['safe', 'caution', 'tow'].includes(safeDrivability)) {
-          if (fastData.severity === 'low') safeDrivability = 'safe';
-          else if (fastData.severity === 'critical') safeDrivability = 'tow';
-          else safeDrivability = 'caution';
-        }
-
-        // ПОВТОРНАЯ ПРОВЕРКА НА ДУБЛИКАТ (Защита от Race Condition при параллельном запуске)
-        const doubleCheck = await prisma.diagnosticReport.findFirst({
-          where: { brand: car.brand, model: car.model, code: code }
-        });
-        
-        if (doubleCheck) {
-          console.log(`⚠️ Внимание! Пока ИИ думал, карточка ${car.brand} ${car.model} ${code} уже была создана. Отменяем дубликат.`);
-          continue;
-        }
-
-        // Шаг 3: Сохранение чистового варианта в базу
-        const newReport = await prisma.diagnosticReport.create({
-          data: {
-            brand: car.brand,
-            model: car.model,
-            code: code,
-            severity: fastData.severity,
-            summary: fastData.summary,
-            teaser_text: fastData.teaser_text,
-            drivability: safeDrivability,
-            seoTitle: deepData.seo_title || fastData.seoTitle,
-            seoDescription: deepData.seo_description || fastData.seoDescription,
-            is_paid: false,
-            is_complete: true,
-
-            full_analysis_markdown: deepData.full_analysis_markdown,
-            sto_protection_tips: deepData.sto_protection_tips,
-            diy_instructions: deepData.diy_instructions,
-            price_parts: deepData.price_parts,
-            price_labor: deepData.price_labor,
-            diy_difficulty_text: deepData.diy_difficulty_text,
-            diy_difficulty_score: deepData.diy_difficulty_score,
-            diy_time: deepData.diy_time,
-            diy_tools: deepData.diy_tools,
-            tools_table_md: deepData.tools_table_md,
-            oem_parts_table_md: deepData.oem_parts_table_md,
-            pro_tips_md: deepData.pro_tips_md,
-            popular_engine_codes: deepData.popular_engine_codes || [],
-            related_obd_codes: deepData.related_obd_codes || [],
-
-            created_at: publishDate
-          }
-        });
-
-        // Сразу запускаем тихий SEO-сканер для новой карточки
-        const { score, risk, uniquenessScore } = await calculateSeoScore(newReport, prisma);
-        await prisma.diagnosticReport.update({
-          where: { id: newReport.id },
-          data: { seoScore: score, seoRisk: risk, uniquenessScore }
-        });
-
-        console.log(`✅ Сохранено и отсканировано: ${car.brand} ${car.model} ${code} (SEO Score: ${score}, Уникальность: ${uniquenessScore}%)`);
-        console.log(`📅 В очереди на: ${publishDate.toLocaleString()}`);
-
-        dailyGeneratedCount++; // Увеличиваем счетчик успешных генераций
-        await saveDailyState(currentDayStr, dailyGeneratedCount);
-
-        if (dailyGeneratedCount % 6 === 0 && dailyGeneratedCount < 24) {
-          console.log(`💤 Сгенерировано 6 карточек. Уходим на длинную паузу 30 минут...`);
-          await sleep(30 * 60 * 1000); // 30 минут
-        } else {
-          console.log(`💤 Остываем 5 минут...`);
-          await sleep(5 * 60 * 1000); // 5 минут
-        }
-
-      } catch (error) {
-        console.error(`❌ Сбой API для ${car.brand} ${car.model} ${code}:`, error.message);
-        console.log('💤 Штрафная пауза 5 минут перед новой попыткой...');
-        await sleep(300000);
-      }
+    } catch (error) {
+      console.error(`❌ Сбой API для ${brand} ${model} ${code}:`, error.message);
+      console.log('💤 Штрафная пауза 5 минут перед новой попыткой...');
+      await sleep(300000);
     }
   }
 

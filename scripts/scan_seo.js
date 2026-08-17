@@ -119,8 +119,18 @@ async function main() {
         reason = 'Отсутствует или сломан бесплатный контент (summary/teaser слишком короткие)';
       }
 
-      // 4. Обрыв на полуслове или отсутствие завершающего знака препинания в конце длинного текста
-      // (Опционально, можно добавить, если нужно)
+      // 4. Проверка длины основной статьи (слишком короткие генерации)
+      const articleLen = card.full_analysis_markdown ? card.full_analysis_markdown.length : 0;
+      if (articleLen > 0 && articleLen < 1500) {
+        isBroken = true;
+        reason = `Короткая статья (всего ${articleLen} символов)`;
+      }
+
+      // 5. Проверка на плагиат / низкую уникальность (менее 15%)
+      if (card.uniquenessScore !== null && card.uniquenessScore < 15) {
+        isBroken = true;
+        reason = `Низкая уникальность (${card.uniquenessScore}%) - возможно дубликат шаблона`;
+      }
 
       if (isBroken) {
         badCards.push({
