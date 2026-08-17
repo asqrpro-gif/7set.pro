@@ -142,9 +142,9 @@ async function main() {
       console.log(`\n🌅 Наступили новые сутки в процессе работы! Сброс счетчика.`);
     }
 
-    // ЛИМИТ ГЕНЕРАЦИИ: 26 (24 новых + 2 на ремонт)
-    if (dailyGeneratedCount + dailyRegeneratedCount >= 26) {
-      console.log(`\n🛑 Достигнут суточный лимит (26 карточек суммарно). Засыпаем до наступления новых суток...`);
+    // ЛИМИТ ГЕНЕРАЦИИ: 30 (24 новых + 6 на ремонт)
+    if (dailyGeneratedCount + dailyRegeneratedCount >= 30) {
+      console.log(`\n🛑 Достигнут суточный лимит (30 карточек суммарно). Засыпаем до наступления новых суток...`);
       while (new Date().toDateString() === currentDayStr) {
         await sleep(10 * 60 * 1000); // проверяем каждые 10 минут
       }
@@ -156,9 +156,12 @@ async function main() {
     }
 
     // 1. ПРИОРИТЕТ: ПОИСК БРАКА (-1)
-    const failedReport = await prisma.diagnosticReport.findFirst({
-      where: { seoScore: -1 }
-    });
+    let failedReport = null;
+    if (dailyRegeneratedCount < 6) {
+      failedReport = await prisma.diagnosticReport.findFirst({
+        where: { seoScore: -1 }
+      });
+    }
 
     let brand, model, code, isRegenerating, idToRepair;
 
