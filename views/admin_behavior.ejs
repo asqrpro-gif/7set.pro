@@ -1,0 +1,159 @@
+<%- include('admin_layout_header', { title: 'Аналитика поведения пользователей (RLHF)', page: 'behavior' }) %>
+
+<div class="flex-1 w-full bg-slate-900 overflow-x-hidden flex flex-col">
+    <div class="p-4 md:p-6 pb-24 md:pb-6">
+        <!-- Header Section -->
+        <div class="flex flex-wrap justify-end gap-3 mb-4">
+            <div class="bg-slate-800 border border-slate-700 px-4 py-2 rounded-xl flex items-center gap-3 w-full sm:w-auto justify-between sm:justify-start shadow-sm">
+                <span class="text-sm text-slate-400">Всего отчетов:</span>
+                <span class="text-lg font-bold text-white"><%= reports.length %></span>
+            </div>
+            <div class="bg-slate-800 border border-slate-700 px-4 py-2 rounded-xl flex items-center gap-3 w-full sm:w-auto justify-between sm:justify-start shadow-sm">
+                <span class="text-sm text-slate-400">Всего лайков:</span>
+                <span class="text-lg font-bold text-green-400"><%= totalLikes %></span>
+            </div>
+            <div class="bg-slate-800 border border-slate-700 px-4 py-2 rounded-xl flex items-center gap-3 w-full sm:w-auto justify-between sm:justify-start shadow-sm">
+                <span class="text-sm text-slate-400">Всего дизлайков:</span>
+                <span class="text-lg font-bold text-red-400"><%= totalDislikes %></span>
+            </div>
+            <div class="bg-slate-800 border border-slate-700 px-4 py-2 rounded-xl flex items-center gap-3 w-full sm:w-auto justify-between sm:justify-start shadow-sm">
+                <span class="text-sm text-slate-400">Всего взаимодействий:</span>
+                <span class="text-lg font-bold text-blue-400"><%= totalShares %></span>
+            </div>
+        </div>
+
+        <!-- Table View -->
+        <div class="bg-slate-800 border border-slate-700 rounded-xl shadow-lg overflow-hidden flex flex-col mt-4">
+            <div class="overflow-x-auto bg-[#0f172a]/50 w-full">
+                <table class="w-full text-left border-collapse min-w-[900px]">
+                    <thead class="sticky top-0 bg-slate-900 border-b border-slate-700 z-10">
+                        <tr class="text-slate-300 text-xs">
+                            <th class="px-2 py-2.5 font-medium text-left">Карточка</th>
+                            <th class="px-2 py-2.5 font-medium text-center w-24">Лайки</th>
+                            <th class="px-2 py-2.5 font-medium text-center w-24">Дизлайки</th>
+                            <th class="px-2 py-2.5 font-medium text-left">Комментарии</th>
+                            <th class="px-2 py-2.5 font-medium text-center w-20">Telegram</th>
+                            <th class="px-2 py-2.5 font-medium text-center w-20">WhatsApp</th>
+                            <th class="px-2 py-2.5 font-medium text-center w-20">Copy</th>
+                        </tr>
+                    </thead>
+                    <tbody class="text-sm divide-y divide-slate-700/50">
+                        <% if (reports.length === 0) { %>
+                            <tr>
+                                <td colspan="5" class="px-2 py-8 text-center text-slate-500">
+                                    <div class="flex flex-col items-center justify-center">
+                                        <i data-lucide="inbox" class="w-12 h-12 text-slate-600 mb-3"></i>
+                                        <p>Пока нет оценок или отзывов.</p>
+                                    </div>
+                                </td>
+                            </tr>
+                        <% } else { %>
+                            <% reports.forEach(report => { %>
+                                <tr class="hover:bg-slate-700/30 transition-colors group">
+                                    <!-- Auto & Code -->
+                                    <td class="px-2 py-2">
+                                        <a href="/catalog/<%= report.brand.toLowerCase() %>/<%= report.model.toLowerCase() %>/<%= report.code.toLowerCase() %>?preview=admin" target="_blank" class="hover:underline flex flex-wrap items-center gap-1.5 w-fit">
+                                            <span class="font-medium text-blue-400 text-xs sm:text-sm whitespace-nowrap"><%= report.brand.charAt(0).toUpperCase() + report.brand.slice(1).toLowerCase() %> <%= report.model.charAt(0).toUpperCase() + report.model.slice(1).toLowerCase() %></span>
+                                            <span class="text-slate-300 font-mono font-bold bg-slate-700/50 border border-slate-600 px-1 rounded text-[10px] sm:text-xs"><%= report.code.toUpperCase() %></span>
+                                        </a>
+                                        <div class="text-xs text-slate-500 mt-0.5 truncate max-w-[200px] sm:max-w-[300px]" title="<%= report.summary %>">
+                                            <%= report.summary %>
+                                        </div>
+                                    </td>
+                                    
+                                    <!-- Likes -->
+                                    <td class="px-2 py-2 text-center">
+                                        <% if (report.likes > 0) { %>
+                                            <span class="inline-flex items-center justify-center bg-green-500/10 text-green-400 font-bold px-2 py-0.5 rounded border border-green-500/30 text-xs sm:text-sm min-w-[30px]">
+                                                <%= report.likes %>
+                                            </span>
+                                        <% } else { %>
+                                            <span class="text-slate-600 font-medium text-xs sm:text-sm"><%= report.likes %></span>
+                                        <% } %>
+                                    </td>
+
+                                    <!-- Dislikes -->
+                                    <td class="px-2 py-2 text-center">
+                                        <% if (report.dislikes > 0) { %>
+                                            <span class="inline-flex items-center justify-center bg-red-500/10 text-red-400 font-bold px-2 py-0.5 rounded border border-red-500/30 text-xs sm:text-sm min-w-[30px]">
+                                                <%= report.dislikes %>
+                                            </span>
+                                        <% } else { %>
+                                            <span class="text-slate-600 font-medium text-xs sm:text-sm"><%= report.dislikes %></span>
+                                        <% } %>
+                                    </td>
+
+                                    <!-- Feedbacks -->
+                                    <td class="px-2 py-2">
+                                        <% if (report.feedbacks && report.feedbacks.length > 0) { %>
+                                            <div class="flex flex-col gap-1.5 max-h-32 overflow-y-auto pr-2 custom-scrollbar">
+                                                <% report.feedbacks.forEach(fb => { %>
+                                                    <div class="bg-slate-900/40 p-2 rounded border border-slate-700 text-xs sm:text-sm text-slate-300">
+                                                        <span class="text-slate-500 text-[10px] block mb-0.5">
+                                                            <%= new Date(fb.createdAt).toLocaleString('ru-RU', { day: '2-digit', month: '2-digit', year: '2-digit', hour: '2-digit', minute: '2-digit' }) %>
+                                                        </span>
+                                                        <%= fb.message %>
+                                                    </div>
+                                                <% }) %>
+                                            </div>
+                                        <% } else { %>
+                                            <span class="text-slate-500 text-xs italic">Нет комментариев</span>
+                                        <% } %>
+                                    </td>
+
+                                    <!-- Shares -->
+                                    <td class="px-2 py-2 text-center">
+                                        <% if (report.shareTg > 0) { %>
+                                            <span class="inline-flex items-center justify-center bg-blue-500/10 text-blue-400 font-bold px-2 py-0.5 rounded border border-blue-500/30 text-xs sm:text-sm min-w-[30px]" title="Поделились в Telegram">
+                                                <%= report.shareTg %>
+                                            </span>
+                                        <% } else { %>
+                                            <span class="text-slate-600 font-medium text-xs sm:text-sm">0</span>
+                                        <% } %>
+                                    </td>
+                                    <td class="px-2 py-2 text-center">
+                                        <% if (report.shareWa > 0) { %>
+                                            <span class="inline-flex items-center justify-center bg-[#25D366]/10 text-[#25D366] font-bold px-2 py-0.5 rounded border border-[#25D366]/30 text-xs sm:text-sm min-w-[30px]" title="Поделились в WhatsApp">
+                                                <%= report.shareWa %>
+                                            </span>
+                                        <% } else { %>
+                                            <span class="text-slate-600 font-medium text-xs sm:text-sm">0</span>
+                                        <% } %>
+                                    </td>
+                                    <td class="px-2 py-2 text-center">
+                                        <% if (report.shareLink > 0) { %>
+                                            <span class="inline-flex items-center justify-center bg-slate-500/10 text-slate-400 font-bold px-2 py-0.5 rounded border border-slate-500/30 text-xs sm:text-sm min-w-[30px]" title="Скопировали ссылку">
+                                                <%= report.shareLink %>
+                                            </span>
+                                        <% } else { %>
+                                            <span class="text-slate-600 font-medium text-xs sm:text-sm">0</span>
+                                        <% } %>
+                                    </td>
+                                </tr>
+                            <% }) %>
+                        <% } %>
+                    </tbody>
+                </table>
+            </div>
+        </div>
+    </div>
+</div>
+
+<style>
+/* Custom scrollbar for feedbacks list */
+.custom-scrollbar::-webkit-scrollbar {
+    width: 4px;
+}
+.custom-scrollbar::-webkit-scrollbar-track {
+    background: transparent; 
+}
+.custom-scrollbar::-webkit-scrollbar-thumb {
+    background: rgba(71, 85, 105, 0.5); 
+    border-radius: 4px;
+}
+.custom-scrollbar::-webkit-scrollbar-thumb:hover {
+    background: rgba(100, 116, 139, 0.8); 
+}
+</style>
+
+<%- include('admin_layout_footer') %>

@@ -68,6 +68,10 @@
                 <i data-lucide="users-round" class="w-5 h-5 md:w-4 md:h-4 shrink-0 transition-transform group-hover:scale-110 <%= typeof page !== 'undefined' && page === 'users' ? getIconClass(true) : getIconClass(false) %>"></i> 
                 <span class="nav-text md:inline">Юзеры</span>
             </a>
+            <a href="/admin/behavior" class="<%= baseClass %> <%= typeof page !== 'undefined' && page === 'behavior' ? getNavClass(true) : getNavClass(false) %>" title="Поведение">
+                <i data-lucide="bar-chart-2" class="w-5 h-5 md:w-4 md:h-4 shrink-0 transition-transform group-hover:scale-110 <%= typeof page !== 'undefined' && page === 'behavior' ? getIconClass(true) : getIconClass(false) %>"></i> 
+                <span class="nav-text md:inline">Поведение</span>
+            </a>
         </nav>
         
         <!-- Toggle button -->

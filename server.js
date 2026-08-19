@@ -22,6 +22,7 @@ marked.setOptions({ renderer });
 import fs from 'fs';
 import garageRouter from './routes/garage.js';
 import adminRouter from './routes/admin.js';
+import feedbackRouter from './routes/feedback.js';
 import generateSitemap from './controllers/sitemap.js';
 import { seoConfig, getBrandSeo, getModelSeo, formatTitleCase } from './lib/seo_config.js';
 
@@ -196,6 +197,9 @@ setTimeout(backgroundSeoScan, 5000);
 
 // Подключение модуля Гаража
 app.use('/garage', garageRouter);
+
+// Подключение API обратной связи
+app.use('/api/feedback', feedbackRouter);
 
 // Подключение Супер-Админки
 app.use('/admin', adminRouter);

@@ -47,6 +47,13 @@ model DiagnosticReport {
   seoRisk                String   @default("DANGER")
   uniquenessScore        Int      @default(100)
 
+  likes                  Int      @default(0)
+  dislikes               Int      @default(0)
+  shareTg                Int      @default(0)
+  shareWa                Int      @default(0)
+  shareLink              Int      @default(0)
+  feedbacks              ReportFeedback[]
+
   // Поля pSEO обогащения
   tools_table_md         String?  @db.LongText
   oem_parts_table_md     String?  @db.LongText
@@ -84,4 +91,14 @@ model CarGarage {
 
   @@unique([userId, brand, model, engine, year])
   @@index([userId])
+}
+
+model ReportFeedback {
+  id        String           @id @default(cuid())
+  reportId  String
+  report    DiagnosticReport @relation(fields: [reportId], references: [id], onDelete: Cascade)
+  message   String           @db.Text
+  createdAt DateTime         @default(now())
+
+  @@index([reportId])
 }

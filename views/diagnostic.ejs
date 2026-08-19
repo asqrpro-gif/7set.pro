@@ -372,6 +372,57 @@
             </details>
             <% } %>
             
+            <!-- Блок вовлечения (RLHF и Шаринг) -->
+            <% if (report && report.is_complete !== false) { %>
+            <div class="engagement-block mt-8 mb-4 bg-white dark:bg-slate-800 rounded-2xl shadow-sm border border-gray-100 dark:border-slate-700 p-5 md:p-6 transition-all duration-300">
+              <div class="flex flex-col md:flex-row items-center justify-between gap-4">
+                <div class="flex-1 w-full">
+                  <h3 class="text-lg font-bold text-gray-900 dark:text-white mb-3" id="feedback-title">Помог ли вам этот разбор ошибки?</h3>
+                  <div id="feedback-buttons" class="flex gap-3">
+                    <button class="feedback-btn flex items-center justify-center gap-2 bg-gray-50 hover:bg-green-50 dark:bg-slate-700/50 dark:hover:bg-green-900/20 text-gray-700 dark:text-gray-300 hover:text-green-600 dark:hover:text-green-400 border border-gray-200 dark:border-slate-600 rounded-xl px-4 py-2 font-medium transition-colors flex-1 md:flex-none" data-type="like" data-id="<%= report.id %>">
+                      <i data-lucide="thumbs-up" class="w-5 h-5"></i> Да
+                    </button>
+                    <button class="feedback-btn flex items-center justify-center gap-2 bg-gray-50 hover:bg-red-50 dark:bg-slate-700/50 dark:hover:bg-red-900/20 text-gray-700 dark:text-gray-300 hover:text-red-600 dark:hover:text-red-400 border border-gray-200 dark:border-slate-600 rounded-xl px-4 py-2 font-medium transition-colors flex-1 md:flex-none" data-type="dislike" data-id="<%= report.id %>">
+                      <i data-lucide="thumbs-down" class="w-5 h-5"></i> Нет
+                    </button>
+                  </div>
+                  <div id="feedback-form" class="hidden mt-3 w-full">
+                    <textarea id="feedback-comment" class="w-full bg-gray-50 dark:bg-slate-900 border border-gray-200 dark:border-slate-600 rounded-xl p-3 text-sm text-gray-800 dark:text-gray-200 focus:ring-2 focus:ring-brand focus:border-transparent outline-none resize-none transition-all" rows="2" placeholder="Чего не хватило в отчете?"></textarea>
+                    <div class="flex justify-end mt-2">
+                      <button id="feedback-submit" class="bg-brand hover:bg-blue-600 text-white font-medium rounded-lg px-4 py-1.5 text-sm transition-colors shadow-sm" data-id="<%= report.id %>">Отправить</button>
+                    </div>
+                  </div>
+                  <div id="feedback-success" class="hidden mt-2 text-green-600 dark:text-green-400 font-medium flex items-center gap-2">
+                    <i data-lucide="check-circle-2" class="w-5 h-5"></i> Спасибо за оценку!
+                  </div>
+                </div>
+                
+                <div class="hidden md:block w-px h-24 bg-gray-200 dark:bg-slate-700"></div>
+                <hr class="md:hidden w-full border-gray-200 dark:border-slate-700 my-2">
+
+                <div class="flex-1 w-full">
+                  <p class="text-sm text-gray-500 dark:text-gray-400 mb-3 font-medium">Сохраните инструкцию, чтобы не потерять, или отправьте вашему механику:</p>
+                  <div class="flex flex-wrap gap-2">
+                    <% const shareUrl = `https://7set.pro/catalog/${encodeURIComponent(displayBrand.toLowerCase())}/${encodeURIComponent(displayModel.toLowerCase())}/${encodeURIComponent(report.code.toLowerCase())}`; %>
+                    <% const shareTitle = `Ошибка ${report.code.toUpperCase()} на ${displayBrand} ${displayModel} - Причины и ремонт`; %>
+                    
+                    <a href="https://t.me/share/url?url=<%= encodeURIComponent(shareUrl) %>&text=<%= encodeURIComponent(shareTitle) %>" target="_blank" rel="noopener noreferrer" class="share-action-btn flex items-center justify-center bg-[#0088cc] hover:bg-[#0077b3] text-white rounded-xl p-2.5 transition-colors shadow-sm flex-1 md:flex-none" title="Telegram" data-type="share_tg" data-id="<%= report.id %>">
+                      <i data-lucide="send" class="w-5 h-5"></i>
+                    </a>
+                    
+                    <a href="https://api.whatsapp.com/send?text=<%= encodeURIComponent(shareTitle + ' ' + shareUrl) %>" target="_blank" rel="noopener noreferrer" class="share-action-btn flex items-center justify-center bg-[#25D366] hover:bg-[#128C7E] text-white rounded-xl p-2.5 transition-colors shadow-sm flex-1 md:flex-none" title="WhatsApp" data-type="share_wa" data-id="<%= report.id %>">
+                      <i data-lucide="message-circle" class="w-5 h-5"></i>
+                    </a>
+                    
+                    <button class="share-copy-btn share-action-btn flex items-center justify-center gap-2 bg-gray-100 hover:bg-gray-200 dark:bg-slate-700 dark:hover:bg-slate-600 text-gray-700 dark:text-gray-200 border border-transparent dark:border-slate-600 rounded-xl px-4 py-2.5 font-medium transition-colors shadow-sm flex-auto md:flex-1" data-url="<%= shareUrl %>" data-type="share_link" data-id="<%= report.id %>">
+                      <i data-lucide="link" class="w-5 h-5"></i> <span class="share-copy-text">Скопировать</span>
+                    </button>
+                  </div>
+                </div>
+              </div>
+            </div>
+            <% } %>
+
           </div>
           <% if (!isUnlockedForUser) { %>
             <!-- Градиентное перекрытие и сканер над размытым текстом -->
@@ -506,6 +557,103 @@
 
 
   <script>
+    document.addEventListener('DOMContentLoaded', () => {
+      // Feedback logic
+      const feedbackButtons = document.querySelectorAll('.feedback-btn');
+      const feedbackForm = document.getElementById('feedback-form');
+      const feedbackSubmit = document.getElementById('feedback-submit');
+      const feedbackSuccess = document.getElementById('feedback-success');
+      const feedbackButtonsContainer = document.getElementById('feedback-buttons');
+      const feedbackComment = document.getElementById('feedback-comment');
+      const feedbackTitle = document.getElementById('feedback-title');
+      let currentFeedbackType = null;
+      let currentReportId = null;
+
+      feedbackButtons.forEach(btn => {
+        btn.addEventListener('click', () => {
+          currentFeedbackType = btn.dataset.type;
+          currentReportId = btn.dataset.id;
+          
+          if (currentFeedbackType === 'like') {
+            sendFeedback(currentReportId, 'like', null);
+            showSuccess();
+          } else {
+            // dislike - show comment form
+            if(feedbackButtonsContainer) feedbackButtonsContainer.classList.add('hidden');
+            if(feedbackForm) feedbackForm.classList.remove('hidden');
+            if(feedbackTitle) feedbackTitle.innerText = "Нам жаль. Что пошло не так?";
+            if(feedbackComment) feedbackComment.focus();
+          }
+        });
+      });
+
+      if (feedbackSubmit) {
+        feedbackSubmit.addEventListener('click', () => {
+          const comment = feedbackComment ? feedbackComment.value : '';
+          sendFeedback(currentReportId, 'dislike', comment);
+          if(feedbackForm) feedbackForm.classList.add('hidden');
+          showSuccess();
+        });
+      }
+
+      function sendFeedback(id, type, comment) {
+        if (!id) return;
+        fetch(`/api/feedback/${id}`, {
+          method: 'POST',
+          headers: {
+            'Content-Type': 'application/json'
+          },
+          body: JSON.stringify({ type, comment })
+        }).catch(err => console.error('Feedback error:', err));
+      }
+
+      function showSuccess() {
+        if(feedbackButtonsContainer) feedbackButtonsContainer.classList.add('hidden');
+        if (feedbackForm) feedbackForm.classList.add('hidden');
+        if (feedbackTitle) feedbackTitle.classList.add('hidden');
+        if (feedbackSuccess) {
+          feedbackSuccess.classList.remove('hidden');
+          feedbackSuccess.classList.add('animate-fade-in-up');
+        }
+      }
+
+      // Share tracking logic
+      const shareActionBtns = document.querySelectorAll('.share-action-btn');
+      shareActionBtns.forEach(btn => {
+        btn.addEventListener('click', () => {
+          const type = btn.dataset.type;
+          const id = btn.dataset.id;
+          if (id && type) {
+            sendFeedback(id, type, null);
+          }
+        });
+      });
+
+      // Copy link logic
+      const copyBtns = document.querySelectorAll('.share-copy-btn');
+      copyBtns.forEach(btn => {
+        btn.addEventListener('click', () => {
+          const url = btn.dataset.url;
+          navigator.clipboard.writeText(url).then(() => {
+            const textSpan = btn.querySelector('.share-copy-text');
+            const originalText = textSpan.innerText;
+            const icon = btn.querySelector('i');
+            const originalIcon = icon.getAttribute('data-lucide');
+            
+            textSpan.innerText = 'Скопировано!';
+            icon.setAttribute('data-lucide', 'check');
+            lucide.createIcons();
+            
+            setTimeout(() => {
+              textSpan.innerText = originalText;
+              icon.setAttribute('data-lucide', originalIcon);
+              lucide.createIcons();
+            }, 2000);
+          });
+        });
+      });
+    });
+
     lucide.createIcons();
     <% if (!isUnsupportedReport && report && report.is_complete === false) { %>
       (function () {

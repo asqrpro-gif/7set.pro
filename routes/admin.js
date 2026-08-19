@@ -1135,4 +1135,51 @@ ${text.substring(0, 1000)}`;
     }
 });
 
+// --- РОУТ ДЛЯ АНАЛИТИКИ "ПОВЕДЕНИЕ" (RLHF) ---
+router.get('/behavior', async (req, res) => {
+    try {
+        const reports = await prisma.diagnosticReport.findMany({
+            where: {
+                OR: [
+                    { likes: { gt: 0 } },
+                    { dislikes: { gt: 0 } },
+                    { shareTg: { gt: 0 } },
+                    { shareWa: { gt: 0 } },
+                    { shareLink: { gt: 0 } }
+                ]
+            },
+            include: {
+                feedbacks: {
+                    orderBy: { createdAt: 'desc' }
+                }
+            },
+            orderBy: {
+                dislikes: 'desc'
+            }
+        });
+
+        let totalLikes = 0;
+        let totalDislikes = 0;
+        let totalShares = 0;
+
+        reports.forEach(r => {
+            totalLikes += (r.likes || 0);
+            totalDislikes += (r.dislikes || 0);
+            totalShares += (r.shareTg || 0) + (r.shareWa || 0) + (r.shareLink || 0);
+        });
+
+        res.render('admin_behavior', {
+            title: 'Аналитика поведения пользователей (RLHF)',
+            page: 'behavior',
+            reports,
+            totalLikes,
+            totalDislikes,
+            totalShares
+        });
+    } catch (err) {
+        console.error('Ошибка загрузки дашборда поведения:', err);
+        res.status(500).send(`<h1>Ошибка сервера</h1><pre>${err.stack || err.message}</pre>`);
+    }
+});
+
 export default router;
