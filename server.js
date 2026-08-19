@@ -93,7 +93,7 @@ app.get('/ping', async (req, res) => {
 });
 
 // Статика и парсеры (ОБЯЗАТЕЛЬНО ПОСЛЕ РАДАРА)
-app.use(express.static('public'));
+app.use(express.static('public', { maxAge: '1d' }));
 app.use(express.urlencoded({ extended: true }));
 app.use(express.json());
 app.use(cookieParser());

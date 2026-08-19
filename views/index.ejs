@@ -47,10 +47,11 @@
   </script>
   
   
-  <!-- Preload LCP Hero Image -->
-  <link rel="preload" as="image" href="/img/auto-7set-pro-480x380-px.webp" fetchpriority="high">
   <link rel="preload" href="/tailwind.css" as="style">
   <link rel="stylesheet" href="/tailwind.css">
+  
+  <!-- Preload LCP Hero Image (After CSS so FCP isn't blocked) -->
+  <link rel="preload" as="image" href="/img/auto-7set-pro-480x380-px.webp" fetchpriority="high">
 
   <script src="/main.js?v=2" defer></script>
   <script src="https://unpkg.com/lucide@1.32.0/dist/umd/lucide.min.js" defer></script>
@@ -168,7 +169,7 @@
           %>
             <a href="/catalog/<%= encodeURIComponent(brandLower) %>" class="bg-white dark:bg-slate-800 p-2 sm:p-3 rounded-2xl border-[1.5px] border-[#0077FF] dark:border-[#0077FF] shadow-none hover:shadow-[0_0_25px_rgba(0,119,255,0.5)] transition-all group flex flex-col items-center justify-center text-center duration-300 hover:-translate-y-1">
               <% if(logoSlug) { %>
-                <img src="/img/logos/<%= logoSlug %>-logo-60x60-px.webp" alt="Коды ошибок <%= item.brand %>" width="40" height="40" class="object-contain mb-2 drop-shadow-sm group-hover:scale-110 transition-transform duration-300 order-1 shrink-0">
+                <img src="/img/logos/<%= logoSlug %>-logo-60x60-px.webp" alt="Коды ошибок <%= item.brand %>" width="40" height="40" loading="lazy" class="object-contain mb-2 drop-shadow-sm group-hover:scale-110 transition-transform duration-300 order-1 shrink-0">
               <% } else { %>
                 <div class="w-10 h-10 mb-2 bg-blue-500/10 text-brand dark:text-blue-400 rounded-full flex items-center justify-center group-hover:bg-brand group-hover:text-white transition-colors duration-300 shadow-sm order-1 shrink-0">
                   <i data-lucide="car-front" class="w-5 h-5"></i>
