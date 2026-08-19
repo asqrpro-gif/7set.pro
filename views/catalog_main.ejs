@@ -17,20 +17,13 @@
   <link rel="canonical" href="https://7set.pro/catalog" />
   <link rel="icon" type="image/svg+xml" href="/favicon.svg">
   
-  <script src="https://cdn.tailwindcss.com?plugins=typography"></script>
-  <script>
-    tailwind.config = { 
-      darkMode: 'class', 
-      theme: { 
-        extend: { 
-          colors: { brand: '#0077FF', surface: '#F5F5F7' }
-        } 
-      } 
-    }
-  </script>
-  <link rel="stylesheet" href="/style.css?v=2">
+  
+  
+  <link rel="preload" href="/tailwind.css" as="style">
+  <link rel="stylesheet" href="/tailwind.css">
+
   <script src="/main.js?v=2" defer></script>
-  <script src="https://unpkg.com/lucide@latest"></script>
+  <script src="https://unpkg.com/lucide@1.32.0/dist/umd/lucide.min.js" defer></script>
     <!-- Google tag (gtag.js) -->
     <script async src="https://www.googletagmanager.com/gtag/js?id=G-YYG95EJDXR"></script>
     <script>
@@ -109,6 +102,6 @@
   <div class="max-w-5xl mx-auto px-4 md:px-6 w-full">
     <%- include('partials/footer') %>
   </div>
-  <script>lucide.createIcons();</script>
+  <script>document.addEventListener('DOMContentLoaded', () => { if(typeof lucide !== 'undefined') lucide.createIcons(); });</script>
 </body>
 </html>

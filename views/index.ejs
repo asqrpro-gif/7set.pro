@@ -45,22 +45,13 @@
     }
   }
   </script>
-  <script src="https://cdn.tailwindcss.com?plugins=typography"></script>
-  <script>
-    tailwind.config = { 
-      darkMode: 'class', 
-      theme: { 
-        extend: { 
-          colors: { brand: '#0077FF', surface: '#F5F5F7' },
-          animation: { 'shimmer': 'shimmer 2.5s infinite' },
-          keyframes: { shimmer: { '0%': { transform: 'translateX(-100%)' }, '100%': { transform: 'translateX(100%)' } } }
-        } 
-      } 
-    }
-  </script>
-  <link rel="stylesheet" href="/style.css?v=2">
+  
+  
+  <link rel="preload" href="/tailwind.css" as="style">
+  <link rel="stylesheet" href="/tailwind.css">
+
   <script src="/main.js?v=2" defer></script>
-  <script src="https://unpkg.com/lucide@latest"></script>
+  <script src="https://unpkg.com/lucide@1.32.0/dist/umd/lucide.min.js" defer></script>
     <!-- Yandex.Metrika counter -->
     <script type="text/javascript">
         (function(m,e,t,r,i,k,a){
@@ -99,7 +90,7 @@
           <div class="flex flex-col md:flex-row items-center gap-6 md:gap-10 mb-10 w-full">
             <!-- Картинка -->
             <div class="shrink-0 flex justify-center w-full md:w-auto">
-              <img src="/img/auto-7set-pro-480x380-px.webp" fetchpriority="high" alt="Auto 7Set Pro" width="260" class="object-contain drop-shadow-md hover:scale-105 transition-transform duration-500">
+              <img src="/img/auto-7set-pro-480x380-px.webp" fetchpriority="high" alt="Auto 7Set Pro" width="480" height="380" class="w-[260px] h-auto object-contain drop-shadow-md hover:scale-105 transition-transform duration-500">
             </div>
             
             <!-- Текст -->
@@ -151,7 +142,7 @@
               <span class="animate-ping absolute inline-flex h-full w-full rounded-full bg-brand opacity-75"></span>
               <span class="relative inline-flex rounded-full h-3 w-3 bg-brand"></span>
             </span>
-            <span class="text-sm md:text-base font-bold text-gray-700 dark:text-gray-300">Расшифровано: <span class="text-brand font-black group-hover:text-blue-600 transition-colors"><%= typeof totalDeciphered !== 'undefined' ? totalDeciphered.toLocaleString('ru-RU') : 0 %></span></span>
+            <span class="text-sm md:text-base font-bold text-gray-700 dark:text-gray-300">Расшифровано: <span class="text-blue-700 dark:text-blue-400 font-black group-hover:text-blue-800 dark:group-hover:text-blue-300 transition-colors"><%= typeof totalDeciphered !== 'undefined' ? totalDeciphered.toLocaleString('ru-RU') : 0 %></span></span>
           </div>
         </div>
         
@@ -337,6 +328,6 @@
   <div class="max-w-5xl mx-auto px-4 md:px-6 w-full">
     <%- include('partials/footer') %>
   </div>
-  <script>lucide.createIcons();</script>
+  <script>document.addEventListener('DOMContentLoaded', () => { if(typeof lucide !== 'undefined') lucide.createIcons(); });</script>
 </body>
 </html>

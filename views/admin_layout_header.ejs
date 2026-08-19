@@ -14,8 +14,10 @@
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
     <title>Super-Admin | 7Set.Pro</title>
     <!-- Подключаем Tailwind (через CDN для админки) -->
-    <script src="https://cdn.tailwindcss.com"></script>
-    <script src="https://unpkg.com/lucide@latest"></script>
+    
+    <link rel="preload" href="/tailwind.css" as="style">
+  <link rel="stylesheet" href="/tailwind.css">
+  <script src="https://unpkg.com/lucide@1.32.0/dist/umd/lucide.min.js" defer></script>
     <script>
         if(localStorage.getItem('admin_sidebar_collapsed') === 'true') {
             document.documentElement.classList.add('sidebar-collapsed');
@@ -47,7 +49,7 @@
     <aside id="sidebar" class="fixed md:static bottom-3 left-3 right-3 z-50 h-16 md:h-auto md:w-40 bg-slate-800/80 md:bg-[#1e293b] backdrop-blur-xl md:backdrop-blur-none border border-slate-700/50 md:border-t-0 md:border-l-0 md:border-b-0 md:border-r md:border-slate-700 flex flex-row md:flex-col shrink-0 rounded-2xl md:rounded-none shadow-[0_8px_30px_rgb(0,0,0,0.4)] md:shadow-none overflow-visible md:overflow-hidden">
         <div class="logo-wrapper hidden md:flex justify-center p-4 border-b border-slate-700/50 mb-2 h-14 items-center shrink-0">
             <a href="/" target="_blank" title="Перейти на сайт" class="block hover:opacity-80 transition-opacity">
-                <img src="/img/logo_7set_pro_152x22_px.webp" alt="7Set.Pro" class="h-4">
+                <img src="/img/logo_7set_pro_152x22_px.webp" alt="7Set.Pro" width="152" height="22" class="h-4 w-auto">
             </a>
         </div>
         <nav class="flex-1 flex flex-row md:flex-col items-center md:items-stretch justify-around md:justify-start h-full md:overflow-y-auto px-2 md:px-2 py-0 md:py-2 gap-1 md:gap-2">

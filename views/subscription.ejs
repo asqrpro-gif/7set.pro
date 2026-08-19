@@ -13,16 +13,13 @@
   <meta charset="UTF-8">
   <meta name="viewport" content="width=device-width, initial-scale=1.0">
   <title>Условия подписки — 7Set.pro</title>
-  <script src="https://cdn.tailwindcss.com?plugins=typography"></script>
-  <script>
-    tailwind.config = { 
-      darkMode: 'class', 
-      theme: { extend: { colors: { brand: '#0077FF', surface: '#F5F5F7' } } } 
-    }
-  </script>
-  <link rel="stylesheet" href="/style.css?v=2">
+  
+  
+  <link rel="preload" href="/tailwind.css" as="style">
+  <link rel="stylesheet" href="/tailwind.css">
+
   <script src="/main.js?v=2" defer></script>
-  <script src="https://unpkg.com/lucide@latest"></script>
+  <script src="https://unpkg.com/lucide@1.32.0/dist/umd/lucide.min.js" defer></script>
     <!-- Yandex.Metrika counter -->
     <script type="text/javascript">
         (function(m,e,t,r,i,k,a){
@@ -95,7 +92,7 @@
           <li>Оплата была списана, но доступ к Премиум-отчету не был предоставлен в течение 24 часов;</li>
           <li>Произошло ошибочное двойное списание средств за один и тот же запрос.</li>
         </ul>
-        <p>5.3. Для оформления возврата Пользователь должен обратиться в службу поддержки по адресу <a href="mailto:support@7set.pro" class="text-brand hover:underline">support@7set.pro</a> в течение 3 (трех) календарных дней с момента списания средств, приложив квитанцию об оплате и описание технической ошибки. Срок рассмотрения заявки — до 5 рабочих дней.</p>
+        <p>5.3. Для оформления возврата Пользователь должен обратиться в службу поддержки по адресу <a href="mailto:support@7set.pro" class="text-blue-700 dark:text-blue-400 hover:underline">support@7set.pro</a> в течение 3 (трех) календарных дней с момента списания средств, приложив квитанцию об оплате и описание технической ошибки. Срок рассмотрения заявки — до 5 рабочих дней.</p>
         <p>5.4. В случае одобрения возврата, средства возвращаются на ту же банковскую карту, с которой была произведена оплата.</p>
         
         <h2 class="text-xl font-bold mt-8 mb-4 flex items-center gap-2"><i data-lucide="x-circle" class="w-5 h-5 text-brand"></i> 6. Отмена регулярной подписки</h2>
@@ -105,7 +102,7 @@
         <h2 class="text-xl font-bold mt-8 mb-4 flex items-center gap-2"><i data-lucide="building" class="w-5 h-5 text-brand"></i> 7. Контактные данные</h2>
         <div class="bg-gray-50 dark:bg-slate-700/50 p-6 rounded-2xl not-prose text-sm text-gray-700 dark:text-gray-300">
           <p class="font-bold mb-2">ИП «Штамп Сервис»</p>
-          <p><span class="text-gray-500 dark:text-gray-400">Эл. почта:</span> <a href="mailto:support@7set.pro" class="text-brand hover:underline">support@7set.pro</a></p>
+          <p><span class="text-gray-500 dark:text-gray-400">Эл. почта:</span> <a href="mailto:support@7set.pro" class="text-blue-700 dark:text-blue-400 hover:underline">support@7set.pro</a></p>
           <p><span class="text-gray-500 dark:text-gray-400">Фактический адрес:</span> РК, г. Алматы, ул. Муратбаева, 136, 3 этаж, 318 офис</p>
         </div>
       </article>
@@ -117,6 +114,6 @@
   <div class="max-w-5xl mx-auto px-4 md:px-6 w-full">
     <%- include('partials/footer') %>
   </div>
-  <script>lucide.createIcons();</script>
+  <script>document.addEventListener('DOMContentLoaded', () => { if(typeof lucide !== 'undefined') lucide.createIcons(); });</script>
 </body>
 </html>

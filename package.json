@@ -9,7 +9,8 @@
   },
   "scripts": {
     "test": "echo \"Error: no test specified\" && exit 1",
-    "scan:seo": "node scripts/scan_seo.js"
+    "scan:seo": "node scripts/scan_seo.js",
+    "build:css": "tailwindcss -i ./public/input.css -o ./public/tailwind.css --minify"
   },
   "keywords": [],
   "author": "",
@@ -26,6 +27,8 @@
     "marked": "^18.0.7"
   },
   "devDependencies": {
-    "prisma": "^5.22.0"
+    "@tailwindcss/typography": "^0.5.20",
+    "prisma": "^5.22.0",
+    "tailwindcss": "^3.4.19"
   }
 }

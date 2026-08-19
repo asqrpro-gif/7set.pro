@@ -18,18 +18,11 @@
   <link rel="canonical" href="<%= pageUrl %>">
   <meta name="robots" content="noindex, follow">
   
-  <script src="https://cdn.tailwindcss.com"></script>
-  <script>
-    tailwind.config = {
-      darkMode: 'class',
-      theme: {
-        extend: {
-          colors: { brand: '#0077FF', surface: '#F5F5F7' }
-        }
-      }
-    }
-  </script>
-  <script src="https://unpkg.com/lucide@latest"></script>
+  
+  
+  <link rel="preload" href="/tailwind.css" as="style">
+  <link rel="stylesheet" href="/tailwind.css">
+  <script src="https://unpkg.com/lucide@1.32.0/dist/umd/lucide.min.js" defer></script>
     <!-- Google tag (gtag.js) -->
     <script async src="https://www.googletagmanager.com/gtag/js?id=G-YYG95EJDXR"></script>
     <script>
