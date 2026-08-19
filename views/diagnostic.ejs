@@ -178,8 +178,8 @@
         <p class="text-gray-800 dark:text-gray-200 leading-relaxed"><%- teaserText %></p>
       </article>
 
-      <div id="paywall-container" data-report-id="<%= reportId %>" class="<%= !isUnlockedForUser ? 'h-[550px]' : '' %>">
-        <div class="report-content relative <%= !isUnlockedForUser ? 'h-full flex flex-col justify-end bg-white dark:bg-slate-800 rounded-2xl shadow-sm border border-transparent dark:border-slate-700 overflow-hidden' : '' %>">
+      <div id="paywall-container" data-report-id="<%= reportId %>" class="<%= !isUnlockedForUser ? 'h-full' : '' %>">
+        <div class="report-content relative <%= !isUnlockedForUser ? 'h-full flex flex-col justify-center items-center bg-white dark:bg-slate-800 rounded-2xl shadow-sm border border-transparent dark:border-slate-700 overflow-hidden' : '' %>">
           <div class="<%= !isUnlockedForUser ? 'paywall-blur-container !absolute inset-0 overflow-hidden opacity-90 p-4 md:p-6' : '' %>">
 
             <details class="bg-white dark:bg-slate-800 rounded-2xl shadow-sm mb-4 overflow-hidden border border-gray-50 dark:border-slate-700" open>
@@ -394,15 +394,15 @@
           <% if (!isUnlockedForUser) { %>
             <!-- Градиентное перекрытие и сканер над размытым текстом -->
             <div class="absolute z-10 inset-0 pointer-events-none overflow-hidden rounded-2xl">
-              <div class="absolute inset-0 bg-gradient-to-t from-white via-white/95 to-white/10 dark:from-slate-800 dark:via-slate-800/95 dark:to-transparent"></div>
+              <div class="absolute inset-0 bg-gradient-to-t from-white via-white/60 to-transparent dark:from-slate-800 dark:via-slate-800/60 dark:to-transparent"></div>
               <div
                 class="absolute top-0 left-0 w-full h-[2px] bg-brand shadow-[0_0_15px_3px_rgba(0,119,255,0.8)] animate-scan">
               </div>
             </div>
 
-            <!-- Сама карточка пейволла в нормальном потоке, прижатая к низу -->
+            <!-- Сама карточка пейволла в нормальном потоке, отцентрованная -->
             <div id="paywall-overlay"
-              class="relative z-20 w-full flex flex-col items-center p-4 md:p-6 pe-none mt-4">
+              class="relative z-20 w-full flex flex-col items-center p-4 md:p-6 pe-none">
 
               <div
                 class="bg-gradient-to-b from-slate-800 to-slate-950 border-2 border-brand/80 shadow-[0_0_40px_-10px_rgba(0,119,255,0.7)] rounded-2xl p-5 md:p-6 w-full transform transition-all relative overflow-hidden pe-auto">
