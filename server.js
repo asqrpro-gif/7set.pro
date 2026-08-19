@@ -1,5 +1,6 @@
 import 'dotenv/config';
 import express from 'express';
+import compression from 'compression';
 import cookieParser from 'cookie-parser';
 import { PrismaClient } from '@prisma/client';
 import { analyzeCarErrorFast, analyzeCarErrorDeep, getFactFromDB } from './lib/gemini_clean.js';
@@ -34,6 +35,7 @@ const __filename = fileURLToPath(import.meta.url);
 const __dirname = path.dirname(__filename);
 
 const app = express();
+app.use(compression());
 const PORT = process.env.PORT || 3005;
 
 app.set('view engine', 'ejs');

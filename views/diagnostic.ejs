@@ -178,9 +178,9 @@
         <p class="text-gray-800 dark:text-gray-200 leading-relaxed"><%- teaserText %></p>
       </article>
 
-      <div id="paywall-container" data-report-id="<%= reportId %>" class="<%= !isUnlockedForUser ? 'h-full' : '' %>">
+      <div id="paywall-container" data-report-id="<%= reportId %>" class="<%= !isUnlockedForUser ? 'h-[550px]' : '' %>">
         <div class="report-content relative <%= !isUnlockedForUser ? 'h-full flex flex-col justify-end bg-white dark:bg-slate-800 rounded-2xl shadow-sm border border-transparent dark:border-slate-700 overflow-hidden' : '' %>">
-          <div class="<%= !isUnlockedForUser ? 'paywall-blur-container absolute inset-0 overflow-hidden opacity-90 p-4 md:p-6' : '' %>">
+          <div class="<%= !isUnlockedForUser ? 'paywall-blur-container !absolute inset-0 overflow-hidden opacity-90 p-4 md:p-6' : '' %>">
 
             <details class="bg-white dark:bg-slate-800 rounded-2xl shadow-sm mb-4 overflow-hidden border border-gray-50 dark:border-slate-700" open>
               <summary class="flex items-center gap-3 font-semibold p-5 cursor-pointer hover:bg-gray-50 dark:hover:bg-slate-700/50 transition-colors list-none outline-none">
