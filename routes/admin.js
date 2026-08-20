@@ -389,9 +389,11 @@ router.get('/seo-detector', async (req, res) => {
             orderBy.push({ code: sortOrder });
         } else if (sortField === 'created_at') {
             orderBy.push({ created_at: sortOrder });
+        } else if (sortField === 'generated_at') {
+            orderBy.push({ generated_at: sortOrder });
         }
         
-        if (sortField !== 'created_at') {
+        if (sortField !== 'created_at' && sortField !== 'generated_at') {
             orderBy.push({ created_at: 'desc' });
         }
 

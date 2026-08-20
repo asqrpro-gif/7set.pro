@@ -42,6 +42,7 @@ model DiagnosticReport {
   user                   User?    @relation(fields: [userId], references: [id])
 
   created_at             DateTime @default(now())
+  generated_at           DateTime @default(now())
 
   seoScore               Int      @default(0)
   seoRisk                String   @default("DANGER")
