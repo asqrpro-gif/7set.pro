@@ -315,6 +315,8 @@ router.get('/seo-detector', async (req, res) => {
         const showDuplicates = req.query.duplicates === 'true';
         const publishStatus = req.query.publish_status;
         const searchQuery = req.query.q || '';
+        const searchBrand = req.query.brand || '';
+        const searchModel = req.query.model || '';
         const sortField = req.query.sort || 'seoScore';
         const sortOrder = req.query.order === 'desc' ? 'desc' : 'asc';
 
@@ -326,6 +328,13 @@ router.get('/seo-detector', async (req, res) => {
         }
 
         const whereClause = { ...baseWhere };
+        
+        if (searchBrand) {
+            whereClause.brand = searchBrand;
+        }
+        if (searchModel) {
+            whereClause.model = searchModel;
+        }
         
         if (searchQuery.trim()) {
             const terms = searchQuery.trim().split(/\s+/);
@@ -685,6 +694,25 @@ router.get('/seo-detector', async (req, res) => {
 
         const mode = req.query.mode || 'seo';
 
+        // Получаем списки марок и моделей
+        const uniqueBrandsData = await prisma.diagnosticReport.findMany({
+            select: { brand: true },
+            distinct: ['brand'],
+            orderBy: { brand: 'asc' }
+        });
+        const brandsList = uniqueBrandsData.map(b => b.brand).filter(b => b);
+
+        let modelsList = [];
+        if (searchBrand) {
+            const uniqueModelsData = await prisma.diagnosticReport.findMany({
+                where: { brand: searchBrand },
+                select: { model: true },
+                distinct: ['model'],
+                orderBy: { model: 'asc' }
+            });
+            modelsList = uniqueModelsData.map(m => m.model).filter(m => m);
+        }
+
         res.render('admin_seo_detector', {
             problematicTitles,
             titlePublishStatus,
@@ -711,6 +739,10 @@ router.get('/seo-detector', async (req, res) => {
             currentRisk: riskFilter || 'ALL',
             currentPublishStatus: publishStatus || '',
             searchQuery,
+            searchBrand,
+            searchModel,
+            brandsList,
+            modelsList,
             showDuplicates: showDuplicates,
             duplicatesCount: duplicatesCount,
             currentSort: sortField,

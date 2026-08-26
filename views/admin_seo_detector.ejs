@@ -6,6 +6,8 @@
     if (typeof currentPublishStatus !== 'undefined' && currentPublishStatus) baseQueryParams += '&publish_status=' + currentPublishStatus;
     if (typeof limit !== 'undefined' && limit) baseQueryParams += '&limit=' + limit;
     if (typeof searchQuery !== 'undefined' && searchQuery) baseQueryParams += '&q=' + encodeURIComponent(searchQuery);
+    if (typeof searchBrand !== 'undefined' && searchBrand) baseQueryParams += '&brand=' + encodeURIComponent(searchBrand);
+    if (typeof searchModel !== 'undefined' && searchModel) baseQueryParams += '&model=' + encodeURIComponent(searchModel);
     
     // Для ссылок во вкладках (сохраняют publish_status, но меняют risk/duplicates)
     let tabsQueryParams = '';
@@ -13,6 +15,9 @@
     if (typeof currentSort !== 'undefined' && currentSort) tabsQueryParams += '&sort=' + currentSort;
     if (typeof currentOrder !== 'undefined' && currentOrder) tabsQueryParams += '&order=' + currentOrder;
     if (typeof searchQuery !== 'undefined' && searchQuery) tabsQueryParams += '&q=' + encodeURIComponent(searchQuery);
+    if (typeof searchBrand !== 'undefined' && searchBrand) tabsQueryParams += '&brand=' + encodeURIComponent(searchBrand);
+    if (typeof searchModel !== 'undefined' && searchModel) tabsQueryParams += '&model=' + encodeURIComponent(searchModel);
+
 
     // Для ссылок во вкладках Publish (сохраняют risk/duplicates, меняют publish_status)
     let publishTabsQueryParams = '';
@@ -21,6 +26,9 @@
     if (typeof currentSort !== 'undefined' && currentSort) publishTabsQueryParams += '&sort=' + currentSort;
     if (typeof currentOrder !== 'undefined' && currentOrder) publishTabsQueryParams += '&order=' + currentOrder;
     if (typeof searchQuery !== 'undefined' && searchQuery) publishTabsQueryParams += '&q=' + encodeURIComponent(searchQuery);
+    if (typeof searchBrand !== 'undefined' && searchBrand) publishTabsQueryParams += '&brand=' + encodeURIComponent(searchBrand);
+    if (typeof searchModel !== 'undefined' && searchModel) publishTabsQueryParams += '&model=' + encodeURIComponent(searchModel);
+
 
     // Параметры второй таблицы (чтобы не сбрасывались при кликах в первой таблице)
     let table2Params = '';
@@ -41,6 +49,8 @@
     if (typeof currentSort !== 'undefined' && currentSort) table1Params += '&sort=' + currentSort;
     if (typeof currentOrder !== 'undefined' && currentOrder) table1Params += '&order=' + currentOrder;
     if (typeof searchQuery !== 'undefined' && searchQuery) table1Params += '&q=' + encodeURIComponent(searchQuery);
+    if (typeof searchBrand !== 'undefined' && searchBrand) table1Params += '&brand=' + encodeURIComponent(searchBrand);
+    if (typeof searchModel !== 'undefined' && searchModel) table1Params += '&model=' + encodeURIComponent(searchModel);
 
     // Ссылки для вкладок Publish во второй таблице
     let table2PublishParams = table1Params;
@@ -195,23 +205,45 @@
         
         <!-- Блок поиска (отдельная строка) -->
         <div class="p-4 border-b border-slate-700/50 bg-slate-800/80">
-            <form action="/admin/seo-detector" method="GET" class="flex gap-2">
+            <form action="/admin/seo-detector" method="GET" class="flex flex-row flex-nowrap gap-2 w-full overflow-x-auto overflow-y-hidden pb-1 items-center" style="scrollbar-width: none;">
                 <% if (typeof currentRisk !== 'undefined' && currentRisk !== 'ALL') { %><input type="hidden" name="risk" value="<%= currentRisk %>"><% } %>
                 <% if (typeof showDuplicates !== 'undefined' && showDuplicates) { %><input type="hidden" name="duplicates" value="true"><% } %>
                 <% if (typeof currentPublishStatus !== 'undefined' && currentPublishStatus) { %><input type="hidden" name="publish_status" value="<%= currentPublishStatus %>"><% } %>
                 <% if (typeof limit !== 'undefined') { %><input type="hidden" name="limit" value="<%= limit %>"><% } %>
                 
-                <div class="relative w-full">
-                    <input type="text" name="q" value="<%= typeof searchQuery !== 'undefined' ? searchQuery : '' %>" placeholder="Найти карточку (Например: Toyota P0171)" class="w-full bg-slate-900 border border-slate-600 rounded-lg py-2 pl-4 pr-10 text-sm text-white placeholder-slate-400 focus:outline-none focus:border-blue-500 focus:ring-1 focus:ring-blue-500 transition-all shadow-inner">
-                    <% if (typeof searchQuery !== 'undefined' && searchQuery) { %>
-                        <button type="button" onclick="window.location.href='/admin/seo-detector?risk=<%= typeof currentRisk !== 'undefined' && currentRisk !== 'ALL' ? currentRisk : '' %>&publish_status=<%= typeof currentPublishStatus !== 'undefined' ? currentPublishStatus : '' %>&limit=<%= typeof limit !== 'undefined' ? limit : 25 %>'" class="absolute right-2 top-1/2 -translate-y-1/2 text-slate-400 hover:text-white p-1" title="Сбросить поиск">
-                            <i data-lucide="x" class="w-5 h-5"></i>
-                        </button>
-                    <% } %>
+                <div class="flex gap-2 shrink-0">
+                    <select name="brand" onchange="this.form.submit()" class="bg-slate-900 border border-slate-600 text-slate-300 text-sm rounded-lg focus:ring-blue-500 focus:border-blue-500 block w-32 md:w-40 px-2" style="height: 48px;">
+                        <option value="">Все марки</option>
+                        <% if (typeof brandsList !== 'undefined') { %>
+                            <% brandsList.forEach(b => { %>
+                                <option value="<%= b %>" <%= (typeof searchBrand !== 'undefined' && searchBrand === b) ? 'selected' : '' %>><%= b %></option>
+                            <% }) %>
+                        <% } %>
+                    </select>
+
+                    <select name="model" onchange="this.form.submit()" class="bg-slate-900 border border-slate-600 text-slate-300 text-sm rounded-lg focus:ring-blue-500 focus:border-blue-500 block w-32 md:w-40 px-2" style="height: 48px;" <%= (!searchBrand) ? 'disabled' : '' %>>
+                        <option value="">Все модели</option>
+                        <% if (typeof modelsList !== 'undefined') { %>
+                            <% modelsList.forEach(m => { %>
+                                <option value="<%= m %>" <%= (typeof searchModel !== 'undefined' && searchModel === m) ? 'selected' : '' %>><%= m %></option>
+                            <% }) %>
+                        <% } %>
+                    </select>
                 </div>
-                <button type="submit" class="px-4 py-2 bg-blue-600 hover:bg-blue-700 text-white font-medium rounded-lg transition-colors shadow-sm shrink-0 flex items-center justify-center" title="Найти">
-                    <i data-lucide="search" class="w-5 h-5"></i>
-                </button>
+
+                <div class="flex gap-2 flex-1 shrink-0" style="min-width: 200px;">
+                    <div class="relative flex-1">
+                        <input type="text" name="q" value="<%= typeof searchQuery !== 'undefined' ? searchQuery : '' %>" placeholder="Поиск (Например: P0171)" class="w-full bg-slate-900 border border-slate-600 rounded-lg pl-4 pr-10 text-sm text-white placeholder-slate-400 focus:outline-none focus:border-blue-500 focus:ring-1 focus:ring-blue-500 transition-all shadow-inner" style="height: 48px;">
+                        <% if (typeof searchQuery !== 'undefined' && searchQuery) { %>
+                            <button type="button" onclick="window.location.href='/admin/seo-detector?risk=<%= typeof currentRisk !== 'undefined' && currentRisk !== 'ALL' ? currentRisk : '' %>&publish_status=<%= typeof currentPublishStatus !== 'undefined' ? currentPublishStatus : '' %>&limit=<%= typeof limit !== 'undefined' ? limit : 25 %>&brand=<%= typeof searchBrand !== 'undefined' ? encodeURIComponent(searchBrand) : '' %>&model=<%= typeof searchModel !== 'undefined' ? encodeURIComponent(searchModel) : '' %>'" class="absolute right-2 top-1/2 -translate-y-1/2 text-slate-400 hover:text-white p-1" title="Сбросить текстовый поиск">
+                                <i data-lucide="x" class="w-5 h-5"></i>
+                            </button>
+                        <% } %>
+                    </div>
+                    <button type="submit" class="bg-blue-600 hover:bg-blue-700 text-white rounded-lg transition-colors shadow-sm flex items-center justify-center p-0 m-0 shrink-0" style="width: 48px; height: 48px; flex: 0 0 48px;" title="Найти">
+                        <i data-lucide="search" class="w-6 h-6"></i>
+                    </button>
+                </div>
             </form>
         </div>
 
