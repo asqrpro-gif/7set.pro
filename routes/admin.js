@@ -1066,15 +1066,10 @@ router.post('/api/seo-enrich/single/:id', async (req, res) => {
     try {
         const report = await prisma.diagnosticReport.findUnique({ where: { id: req.params.id } });
         if (!report) return res.status(404).json({ error: 'Отчет не найден' });
+        const result = await enrichSeoCard(report, prisma);
         
-        const rawText = report.full_analysis_markdown || report.summary || '';
-        const newText = enrichReportText(rawText, report.brand, report.model, report.code, report.drivability);
-        
-        if (newText !== rawText) {
-            await prisma.diagnosticReport.update({
-                where: { id: report.id },
-                data: { full_analysis_markdown: newText }
-            });
+        if (!result.success) {
+            return res.status(500).json({ error: result.error });
         }
         
         // Всегда возвращаем recreated: true для одиночного запроса, чтобы интерфейс обновился

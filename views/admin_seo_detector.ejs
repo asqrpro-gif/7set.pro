@@ -400,15 +400,9 @@
                         <td class="px-2 py-2 text-right">
                             <div class="flex items-center justify-end gap-1">
                                 <% const isEnriched = !!report.tools_table_md || (report.seoScore === 95 && report.uniquenessScore === 100); %>
-                                <% if (isEnriched) { %>
-                                    <button disabled title="Уже обогащено" class="w-10 h-10 md:w-8 md:h-8 flex items-center justify-center text-emerald-400 cursor-default rounded">
-                                        <i data-lucide="check-circle" class="w-4 h-4"></i>
-                                    </button>
-                                <% } else { %>
-                                    <button id="enrich-btn-<%= report.id %>" onclick="enrichCard('<%= report.id %>')" title="СЕО Обогащение (ИИ)" class="w-10 h-10 md:w-8 md:h-8 flex items-center justify-center text-slate-400 hover:text-emerald-400 hover:bg-slate-700 rounded transition-colors">
-                                        <i data-lucide="sparkles" id="enrich-icon-<%= report.id %>" class="w-4 h-4"></i>
-                                    </button>
-                                <% } %>
+                                <button id="enrich-btn-<%= report.id %>" onclick="enrichCard('<%= report.id %>')" title="<%= isEnriched ? 'Переобогатить' : 'СЕО Обогащение (ИИ)' %>" class="w-10 h-10 md:w-8 md:h-8 flex items-center justify-center <%= isEnriched ? 'text-emerald-400 hover:text-emerald-300' : 'text-slate-400 hover:text-emerald-400' %> hover:bg-slate-700 rounded transition-colors">
+                                    <i data-lucide="<%= isEnriched ? 'check-circle' : 'sparkles' %>" id="enrich-icon-<%= report.id %>" class="w-4 h-4"></i>
+                                </button>
                                 <% const hasRetroLinks = (report.full_analysis_markdown || report.summary || '').includes('ПДД и эксплуатация') || (report.full_analysis_markdown || report.summary || '').includes('ПДД и полезные ресурсы'); %>
                                 <button class="btn-enrich-single w-10 h-10 md:w-8 md:h-8 flex items-center justify-center rounded transition-colors <%= hasRetroLinks ? 'text-emerald-400 hover:text-emerald-300' : 'text-rose-400 hover:text-rose-300 hover:bg-slate-700' %>" data-id="<%= report.id %>" title="SEO Обогащение (Словари)">
                                     <i data-lucide="link" class="w-4 h-4"></i>

@@ -666,7 +666,7 @@ app.get('/catalog/:brand/:model/:code', async (req, res) => {
 
     // Извлекаем SEO футер из scamProtection (или из fullAnalysis, если ScamProtection пуст)
     let rawSeoFooter = '';
-    const footerRegex = /###\s*(Полезные и правовые ресурсы|ПДД и полезные ресурсы)/i;
+    const footerRegex = /###\s*(Полезные и правовые ресурсы|ПДД и полезные ресурсы|Полезные ссылки)/i;
     let footerMatch = rawScamProtection.match(footerRegex);
     if (footerMatch) {
       rawSeoFooter = rawScamProtection.substring(footerMatch.index).trim();
