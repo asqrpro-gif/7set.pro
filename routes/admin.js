@@ -314,6 +314,7 @@ router.get('/seo-detector', async (req, res) => {
         const riskFilter = req.query.risk;
         const showDuplicates = req.query.duplicates === 'true';
         const publishStatus = req.query.publish_status;
+        const searchQuery = req.query.q || '';
         const sortField = req.query.sort || 'seoScore';
         const sortOrder = req.query.order === 'desc' ? 'desc' : 'asc';
 
@@ -325,6 +326,18 @@ router.get('/seo-detector', async (req, res) => {
         }
 
         const whereClause = { ...baseWhere };
+        
+        if (searchQuery.trim()) {
+            const terms = searchQuery.trim().split(/\s+/);
+            whereClause.AND = terms.map(term => ({
+                OR: [
+                    { brand: { contains: term } },
+                    { model: { contains: term } },
+                    { code: { contains: term } }
+                ]
+            }));
+        }
+
         if (riskFilter && riskFilter !== 'ALL') {
             if (riskFilter === 'WARNING') {
                 whereClause.seoRisk = { in: ['WARNING', 'DANGER'] };
@@ -697,6 +710,7 @@ router.get('/seo-detector', async (req, res) => {
             totalPages: Math.ceil(total / take) || 1,
             currentRisk: riskFilter || 'ALL',
             currentPublishStatus: publishStatus || '',
+            searchQuery,
             showDuplicates: showDuplicates,
             duplicatesCount: duplicatesCount,
             currentSort: sortField,
