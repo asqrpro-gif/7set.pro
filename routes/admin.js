@@ -488,15 +488,6 @@ router.get('/seo-detector', async (req, res) => {
                     console.error('Ошибка чтения bad_cards_report.json', e);
                 }
                 
-                // Фильтрация сквозным поиском
-                if (searchQuery.trim()) {
-                    const terms = searchQuery.trim().split(/\s+/).map(t => t.toLowerCase());
-                    brokenLinks = brokenLinks.filter(link => {
-                        const combined = (link.title || '').toLowerCase();
-                        return terms.every(term => combined.includes(term));
-                    });
-                }
-                
                 // Подсчет статистики для фильтров (Тип)
                 linkStatsObj.total = brokenLinks.length;
                 brokenLinks.forEach(link => {
@@ -607,17 +598,6 @@ router.get('/seo-detector', async (req, res) => {
             }
         } catch (e) {
             console.error('Ошибка чтения bad_seo_meta.json', e);
-        }
-
-        // Фильтрация сквозным поиском
-        if (searchQuery.trim()) {
-            const terms = searchQuery.trim().split(/\s+/).map(t => t.toLowerCase());
-            const filterByTerms = (item) => {
-                const combined = `${item.brand || ''} ${item.model || ''} ${item.code || ''}`.toLowerCase();
-                return terms.every(term => combined.includes(term));
-            };
-            problematicTitles = problematicTitles.filter(filterByTerms);
-            problematicDescriptions = problematicDescriptions.filter(filterByTerms);
         }
 
         const nowForTitles = new Date();
