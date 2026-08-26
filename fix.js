@@ -9,6 +9,7 @@ let i = 0;
 while(i < lines.length) {
     if (lines[i].includes('Полный разбор причины')) {
         newLines.push(lines[i]);
+        // Stop skipping when we hit Финансовый прогноз
         let j = i + 1;
         while(j < lines.length && !lines[j].includes('Финансовый прогноз')) {
             j++;

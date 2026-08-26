@@ -8,18 +8,32 @@ export async function enrichSeoCard(report, prisma) {
     const API_URL = `https://aged-tree-edb7carcode-proxy.asqr-pro.workers.dev/v1beta/models/gemini-flash-lite-latest:generateContent?key=${process.env.GEMINI_API_KEY}`;
 
     const prompt = `
-Ты — эксперт-автомеханик диагност с 20-летним стажем. Твоя задача — глубоко переписать и обогатить техническую статью по коду ошибки ${report.code} для ${report.brand} ${report.model}.
-Ниже приведен текущий текст статьи. В нем может быть много "воды" и общих фраз. 
+Ты — автоэксперт и опытный шеф-механик. Твоя задача — переписать техническую статью по коду ошибки ${report.code} для ${report.brand} ${report.model} так, чтобы она была полезна и обычным водителям, и крутым диагностам.
 
 Текущий текст:
 ${report.full_analysis_markdown || report.summary}
 
-Требования к контенту:
-1. new_full_analysis_markdown: Полностью перепиши основной текст. Удали все общие фразы (например "обратитесь на СТО"). Добавь конкретику: точные значения сопротивления, вольтажа, распиновку разъемов, конкретные точки проверки мультиметром. Текст должен быть в формате Markdown.
-2. tools_table_md: Markdown-таблица (столбцы "Инструмент" и "Назначение") с необходимыми инструментами.
-3. oem_parts_table_md: Markdown-таблица (столбцы "Деталь", "Тип/Артикул (или аналог)") с запчастями.
-4. pro_tips_md: Специфика ремонта ИМЕННО ЭТОЙ марки (2-3 абзаца, глубокие нюансы, болячки ${report.brand}).
-5. new_seo_description: SEO-описание (до 155 символов). Пиши плотно и технически грамотно.
+ЖЕСТКАЯ СТРУКТУРА И РОЛИ (каждый пункт — это отдельное поле в JSON, пиши в формате Markdown, без воды):
+
+1. new_full_analysis_markdown (РОЛЬ: Опытный, дружелюбный механик):
+Объясни суть поломки "на пальцах", через метафоры, для водителя-новичка. Почему это произошло? 
+ЗАПРЕЩЕНО писать сюда технические данные (пины, вольты, сопротивления). Только суть и механика процесса.
+
+2. driving_risks_md (РОЛЬ: Строгий мастер-приемщик):
+Ответь на 3 вопроса без воды:
+- Технический риск: Что сломается следующим, если продолжить ездить?
+- Безопасность и ПДД: Чем опасна езда в аварийном режиме (например, при обгоне) и возможные проблемы со страховкой.
+- Финансовый прогноз: Во сколько обойдется ремонт сейчас, и во сколько — если игнорировать проблему месяц.
+
+3. diagnostic_data_md (РОЛЬ: Суровый диагност):
+Только сухая выжимка: эталонные значения вольтажа (например 4.5В-5.0В на конкретных пинах), сопротивление обмотки, PID-параметры для сканера, осциллограммы.
+
+4. pro_tips_md (РОЛЬ: Узкий специалист по ${report.brand}):
+Специфика ремонта ИМЕННО ЭТОЙ марки (болячки кузова и мотора).
+
+5. tools_table_md: Markdown-таблица (Инструмент | Назначение).
+6. oem_parts_table_md: Markdown-таблица (Деталь | Тип/Артикул).
+7. new_seo_description: SEO-описание (до 155 символов, плотно).
     `.trim();
 
     const requestBody = {
@@ -29,13 +43,15 @@ ${report.full_analysis_markdown || report.summary}
         responseSchema: {
           type: "OBJECT",
           properties: {
-            new_full_analysis_markdown: { type: "STRING", description: "Полностью переписанный технический текст без воды (Markdown)" },
-            tools_table_md: { type: "STRING", description: "Markdown-таблица Инструмент | Назначение" },
-            oem_parts_table_md: { type: "STRING", description: "Markdown-таблица Деталь | Тип/Артикул" },
-            pro_tips_md: { type: "STRING", description: "Специфика ремонта этой марки в Markdown (2-3 абзаца)" },
-            new_seo_description: { type: "STRING", description: "SEO Description до 155 символов" }
+            new_full_analysis_markdown: { type: "STRING" },
+            driving_risks_md: { type: "STRING" },
+            diagnostic_data_md: { type: "STRING" },
+            pro_tips_md: { type: "STRING" },
+            tools_table_md: { type: "STRING" },
+            oem_parts_table_md: { type: "STRING" },
+            new_seo_description: { type: "STRING" }
           },
-          required: ["new_full_analysis_markdown", "tools_table_md", "oem_parts_table_md", "pro_tips_md", "new_seo_description"]
+          required: ["new_full_analysis_markdown", "driving_risks_md", "diagnostic_data_md", "pro_tips_md", "tools_table_md", "oem_parts_table_md", "new_seo_description"]
         }
       }
     };
@@ -72,6 +88,8 @@ ${report.full_analysis_markdown || report.summary}
         tools_table_md: enrichedData.tools_table_md,
         oem_parts_table_md: enrichedData.oem_parts_table_md,
         pro_tips_md: enrichedData.pro_tips_md,
+        driving_risks_md: enrichedData.driving_risks_md,
+        diagnostic_data_md: enrichedData.diagnostic_data_md,
         full_analysis_markdown: newMarkdown, // Сохраняем ретроактивное обогащение
         seoScore: 95,
         seoRisk: 'SAFE',

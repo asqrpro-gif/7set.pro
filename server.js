@@ -691,6 +691,8 @@ app.get('/catalog/:brand/:model/:code', async (req, res) => {
     let toolsTableHtml = report.tools_table_md ? cleanReportHtml(marked.parse(formatReportMarkdown(report.tools_table_md))) : '';
     let oemPartsTableHtml = report.oem_parts_table_md ? cleanReportHtml(marked.parse(formatReportMarkdown(report.oem_parts_table_md))) : '';
     let proTipsHtml = report.pro_tips_md ? cleanReportHtml(marked.parse(formatReportMarkdown(report.pro_tips_md))) : '';
+    let drivingRisksHtml = report.driving_risks_md ? cleanReportHtml(marked.parse(formatReportMarkdown(report.driving_risks_md))) : '';
+    let diagnosticDataHtml = report.diagnostic_data_md ? cleanReportHtml(marked.parse(formatReportMarkdown(report.diagnostic_data_md))) : '';
 
     const schemaHtml = `<script type="application/ld+json">${JSON.stringify(techArticleSchema)}</script>\n        <script type="application/ld+json">${JSON.stringify(breadcrumbSchema)}</script>`;
 
@@ -725,6 +727,8 @@ app.get('/catalog/:brand/:model/:code', async (req, res) => {
       toolsTableHtml,
       oemPartsTableHtml,
       proTipsHtml,
+      drivingRisksHtml,
+      diagnosticDataHtml,
       relatedReports,
       isFallbackRelated
     });
