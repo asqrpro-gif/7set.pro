@@ -8,17 +8,18 @@ export async function enrichSeoCard(report, prisma) {
     const API_URL = `https://aged-tree-edb7carcode-proxy.asqr-pro.workers.dev/v1beta/models/gemini-flash-lite-latest:generateContent?key=${process.env.GEMINI_API_KEY}`;
 
     const prompt = `
-Ты — эксперт-автомеханик с 20-летним стажем. Твоя задача — обогатить техническую статью по коду ошибки ${report.code} для ${report.brand} ${report.model}.
-Ниже приведен текущий текст статьи. Проанализируй его и выдай дополнительную экспертную информацию строго в формате JSON по указанной схеме.
+Ты — эксперт-автомеханик диагност с 20-летним стажем. Твоя задача — глубоко переписать и обогатить техническую статью по коду ошибки ${report.code} для ${report.brand} ${report.model}.
+Ниже приведен текущий текст статьи. В нем может быть много "воды" и общих фраз. 
 
 Текущий текст:
 ${report.full_analysis_markdown || report.summary}
 
 Требования к контенту:
-1. tools_table_md: Markdown-таблица (столбцы "Инструмент" и "Назначение") с необходимыми для диагностики и ремонта инструментами.
-2. oem_parts_table_md: Markdown-таблица (столбцы "Деталь", "Тип/Артикул (или аналог)") с запчастями, которые могут понадобиться.
-3. pro_tips_md: Специфика ремонта ИМЕННО ЭТОЙ марки (2-3 абзаца, глубокие нюансы, болячки ${report.brand}, на что обратить внимание). Не используй общие фразы.
-4. new_seo_description: SEO-описание (до 155 символов). Начни сразу с главного: в чем суть ошибки (какой узел вышел из строя на ${report.brand} ${report.model}), какие главные симптомы и чем это грозит. Запрещено использовать клише ("В этой статье...", "Узнайте..."). Пиши плотно и технически грамотно.
+1. new_full_analysis_markdown: Полностью перепиши основной текст. Удали все общие фразы (например "обратитесь на СТО"). Добавь конкретику: точные значения сопротивления, вольтажа, распиновку разъемов, конкретные точки проверки мультиметром. Текст должен быть в формате Markdown.
+2. tools_table_md: Markdown-таблица (столбцы "Инструмент" и "Назначение") с необходимыми инструментами.
+3. oem_parts_table_md: Markdown-таблица (столбцы "Деталь", "Тип/Артикул (или аналог)") с запчастями.
+4. pro_tips_md: Специфика ремонта ИМЕННО ЭТОЙ марки (2-3 абзаца, глубокие нюансы, болячки ${report.brand}).
+5. new_seo_description: SEO-описание (до 155 символов). Пиши плотно и технически грамотно.
     `.trim();
 
     const requestBody = {
@@ -28,12 +29,13 @@ ${report.full_analysis_markdown || report.summary}
         responseSchema: {
           type: "OBJECT",
           properties: {
+            new_full_analysis_markdown: { type: "STRING", description: "Полностью переписанный технический текст без воды (Markdown)" },
             tools_table_md: { type: "STRING", description: "Markdown-таблица Инструмент | Назначение" },
             oem_parts_table_md: { type: "STRING", description: "Markdown-таблица Деталь | Тип/Артикул" },
             pro_tips_md: { type: "STRING", description: "Специфика ремонта этой марки в Markdown (2-3 абзаца)" },
             new_seo_description: { type: "STRING", description: "SEO Description до 155 символов" }
           },
-          required: ["tools_table_md", "oem_parts_table_md", "pro_tips_md", "new_seo_description"]
+          required: ["new_full_analysis_markdown", "tools_table_md", "oem_parts_table_md", "pro_tips_md", "new_seo_description"]
         }
       }
     };
@@ -59,9 +61,8 @@ ${report.full_analysis_markdown || report.summary}
     const enrichedData = JSON.parse(resultText);
 
     // Применяем ретроактивное обогащение (глоссарий, ПДД, вики-ссылки) 
-    // строго к "сырому" тексту, только что дополненному ИИ.
-    const oldMarkdown = report.full_analysis_markdown || report.summary || '';
-    const newMarkdown = enrichReportText(oldMarkdown, report.brand, report.model, report.code, report.drivability);
+    // к новому переписанному тексту от ИИ.
+    const newMarkdown = enrichReportText(enrichedData.new_full_analysis_markdown, report.brand, report.model, report.code, report.drivability);
 
     // Обновляем БД с новыми полями (без матрешек)
     const updatedReport = await prisma.diagnosticReport.update({
