@@ -108,24 +108,43 @@
     if (typeof currentOrder !== 'undefined' && currentOrder) paginationParams += '&order=' + currentOrder;
 %>
 
-<!-- Tab Navigation -->
-<div class="flex flex-wrap gap-2 mb-4 border-b border-slate-700 pb-2">
-    <button onclick="switchTab('tab-quality')" id="btn-tab-quality" class="tab-btn shrink-0 px-4 py-2 rounded-t-lg font-medium text-sm transition-colors text-slate-400 hover:text-white hover:bg-slate-700/50 flex items-center gap-2 whitespace-nowrap">
-        <i data-lucide="list-checks" class="w-4 h-4"></i>
-        Качество карточек
-    </button>
-    <button onclick="switchTab('tab-titles')" id="btn-tab-titles" class="tab-btn shrink-0 px-4 py-2 rounded-t-lg font-medium text-sm transition-colors text-slate-400 hover:text-white hover:bg-slate-700/50 flex items-center gap-2 whitespace-nowrap">
-        <i data-lucide="text-cursor-input" class="w-4 h-4"></i>
-        SEO-заголовки
-    </button>
-    <button onclick="switchTab('tab-descriptions')" id="btn-tab-descriptions" class="tab-btn shrink-0 px-4 py-2 rounded-t-lg font-medium text-sm transition-colors text-slate-400 hover:text-white hover:bg-slate-700/50 flex items-center gap-2 whitespace-nowrap">
-        <i data-lucide="file-text" class="w-4 h-4"></i>
-        SEO-описания
-    </button>
-    <button onclick="switchTab('tab-links')" id="btn-tab-links" class="tab-btn shrink-0 px-4 py-2 rounded-t-lg font-medium text-sm transition-colors text-slate-400 hover:text-white hover:bg-slate-700/50 flex items-center gap-2 whitespace-nowrap">
-        <i data-lucide="link-2-off" class="w-4 h-4"></i>
-        Проблемные ссылки
-    </button>
+<!-- Header with Tabs and Global Search -->
+<div class="flex flex-col md:flex-row justify-between items-start md:items-end gap-4 mb-4 border-b border-slate-700 pb-2">
+    <!-- Tab Navigation -->
+    <div class="flex flex-wrap gap-2">
+        <button onclick="switchTab('tab-quality')" id="btn-tab-quality" class="tab-btn shrink-0 px-4 py-2 rounded-t-lg font-medium text-sm transition-colors text-slate-400 hover:text-white hover:bg-slate-700/50 flex items-center gap-2 whitespace-nowrap">
+            <i data-lucide="list-checks" class="w-4 h-4"></i>
+            Качество карточек
+        </button>
+        <button onclick="switchTab('tab-titles')" id="btn-tab-titles" class="tab-btn shrink-0 px-4 py-2 rounded-t-lg font-medium text-sm transition-colors text-slate-400 hover:text-white hover:bg-slate-700/50 flex items-center gap-2 whitespace-nowrap">
+            <i data-lucide="text-cursor-input" class="w-4 h-4"></i>
+            SEO-заголовки
+        </button>
+        <button onclick="switchTab('tab-descriptions')" id="btn-tab-descriptions" class="tab-btn shrink-0 px-4 py-2 rounded-t-lg font-medium text-sm transition-colors text-slate-400 hover:text-white hover:bg-slate-700/50 flex items-center gap-2 whitespace-nowrap">
+            <i data-lucide="file-text" class="w-4 h-4"></i>
+            SEO-описания
+        </button>
+        <button onclick="switchTab('tab-links')" id="btn-tab-links" class="tab-btn shrink-0 px-4 py-2 rounded-t-lg font-medium text-sm transition-colors text-slate-400 hover:text-white hover:bg-slate-700/50 flex items-center gap-2 whitespace-nowrap">
+            <i data-lucide="link-2-off" class="w-4 h-4"></i>
+            Проблемные ссылки
+        </button>
+    </div>
+
+    <!-- Сквозной Поиск -->
+    <form id="globalSearchForm" action="/admin/seo-detector" method="GET" class="w-full md:w-80 flex items-center relative">
+        <% if (typeof currentRisk !== 'undefined' && currentRisk !== 'ALL') { %><input type="hidden" name="risk" value="<%= currentRisk %>"><% } %>
+        <% if (typeof showDuplicates !== 'undefined' && showDuplicates) { %><input type="hidden" name="duplicates" value="true"><% } %>
+        <% if (typeof currentPublishStatus !== 'undefined' && currentPublishStatus) { %><input type="hidden" name="publish_status" value="<%= currentPublishStatus %>"><% } %>
+        <% if (typeof limit !== 'undefined') { %><input type="hidden" name="limit" value="<%= limit %>"><% } %>
+        
+        <i data-lucide="search" class="w-4 h-4 text-slate-400 absolute left-3"></i>
+        <input type="text" name="q" id="globalSearchInput" value="<%= typeof searchQuery !== 'undefined' ? searchQuery : '' %>" placeholder="Сквозной поиск..." class="w-full bg-slate-900/80 border border-slate-600 rounded-lg py-1.5 pl-9 pr-8 text-sm text-white placeholder-slate-400 focus:outline-none focus:border-blue-500 focus:ring-1 focus:ring-blue-500 transition-all shadow-inner">
+        <% if (typeof searchQuery !== 'undefined' && searchQuery) { %>
+            <button type="button" onclick="clearSearch()" class="absolute right-2 flex items-center justify-center text-slate-400 hover:text-red-400 transition-colors" title="Очистить поиск">
+                <i data-lucide="x" class="w-4 h-4"></i>
+            </button>
+        <% } %>
+    </form>
 </div>
 
 <script>
@@ -187,7 +206,25 @@
     document.addEventListener('DOMContentLoaded', () => {
         const hash = window.location.hash.substring(1) || 'tab-quality';
         switchTab(hash);
+
+        const form = document.getElementById('globalSearchForm');
+        if (form) {
+            form.addEventListener('submit', function(e) {
+                if (window.location.hash) {
+                    this.action = '/admin/seo-detector' + window.location.hash;
+                }
+            });
+        }
     });
+
+    function clearSearch() {
+        document.getElementById('globalSearchInput').value = '';
+        const form = document.getElementById('globalSearchForm');
+        if (window.location.hash) {
+            form.action = '/admin/seo-detector' + window.location.hash;
+        }
+        form.submit();
+    }
 </script>
 
 <div id="content-tab-quality" class="tab-content hidden">
@@ -209,21 +246,6 @@
                     Дубликаты <span class="<%= showDuplicates ? 'bg-purple-700' : 'bg-slate-800' %> px-1.5 py-0.5 rounded text-[10px]"><%= duplicatesCount %></span>
                 </a>
             </div>
-            
-            <!-- Поиск -->
-            <form action="/admin/seo-detector" method="GET" class="w-full lg:w-64 xl:w-80 flex items-center relative">
-                <% if (typeof currentRisk !== 'undefined' && currentRisk !== 'ALL') { %><input type="hidden" name="risk" value="<%= currentRisk %>"><% } %>
-                <% if (typeof showDuplicates !== 'undefined' && showDuplicates) { %><input type="hidden" name="duplicates" value="true"><% } %>
-                <% if (typeof currentPublishStatus !== 'undefined' && currentPublishStatus) { %><input type="hidden" name="publish_status" value="<%= currentPublishStatus %>"><% } %>
-                <% if (typeof limit !== 'undefined') { %><input type="hidden" name="limit" value="<%= limit %>"><% } %>
-                <i data-lucide="search" class="w-4 h-4 text-slate-400 absolute left-3"></i>
-                <input type="text" name="q" value="<%= typeof searchQuery !== 'undefined' ? searchQuery : '' %>" placeholder="Поиск (Toyota, P0171...)" class="w-full bg-slate-900/50 border border-slate-600 rounded-lg py-1.5 pl-9 pr-8 text-sm text-white placeholder-slate-400 focus:outline-none focus:border-blue-500 focus:ring-1 focus:ring-blue-500 transition-all">
-                <% if (typeof searchQuery !== 'undefined' && searchQuery) { %>
-                    <button type="button" onclick="window.location.href='/admin/seo-detector?risk=<%= currentRisk || '' %>&publish_status=<%= currentPublishStatus || '' %>&limit=<%= limit || 25 %>'" class="absolute right-2 text-slate-400 hover:text-white" title="Очистить поиск">
-                        <i data-lucide="x" class="w-4 h-4"></i>
-                    </button>
-                <% } %>
-            </form>
 
             <!-- Вкладки Publish Status -->
             <div class="flex gap-1.5 flex-wrap w-full lg:w-auto">
