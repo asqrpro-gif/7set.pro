@@ -44,7 +44,7 @@ ${report.full_analysis_markdown || report.summary}
       method: 'POST',
       headers: { 'Content-Type': 'application/json' },
       body: JSON.stringify(requestBody),
-      signal: AbortSignal.timeout(30000)
+      signal: AbortSignal.timeout(120000) // Увеличен таймаут до 120 секунд для полной перегенерации
     });
 
     const responseText = await response.text();
