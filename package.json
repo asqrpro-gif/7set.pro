@@ -10,6 +10,7 @@
   "scripts": {
     "test": "echo \"Error: no test specified\" && exit 1",
     "scan:seo": "node scripts/scan_seo.js",
+    "generate:mass": "node scripts/mass_generate.js",
     "build:css": "tailwindcss -i ./public/input.css -o ./public/tailwind.css --minify"
   },
   "keywords": [],

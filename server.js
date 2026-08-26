@@ -51,6 +51,15 @@ app.use((req, res, next) => {
   next();
 });
 
+// SEO-мидлвар: приводим все URL к нижнему регистру (301 редирект)
+app.use((req, res, next) => {
+  // Исключаем статику (наличие точки) и проверяем, есть ли заглавные буквы
+  if (req.method === 'GET' && !req.path.includes('.') && /[A-Z]/.test(req.path)) {
+    return res.redirect(301, req.path.toLowerCase() + (req.url.slice(req.path.length) || ''));
+  }
+  next();
+});
+
 // Инициализация Prisma Client
 const prisma = new PrismaClient();
 
@@ -335,7 +344,7 @@ app.get('/diagnostic/:make/:model/:code', (req, res) => {
 app.get('/search', (req, res) => {
   const { brand, model, code } = req.query;
   if (!brand || !model || !code) return res.redirect('/');
-  res.redirect(`/catalog/${brand.toLowerCase().trim()}/${model.toLowerCase().trim()}/${code.toUpperCase().trim()}?source=search`);
+  res.redirect(`/catalog/${brand.toLowerCase().trim()}/${model.toLowerCase().trim()}/${code.toLowerCase().trim()}?source=search`);
 });
 
 // 5. Публичная SEO-страница диагностики
@@ -588,7 +597,7 @@ app.get('/catalog/:brand/:model/:code', async (req, res) => {
         { "@type": "ListItem", "position": 4, "name": isUnsupportedReport ? 'Неизвестный' : displayCode }
       ]
     };
-    const pageUrl = isUnsupportedReport ? `${baseUrl}/catalog/unknown-code` : `${baseUrl}/catalog/${brand.toLowerCase()}/${model.toLowerCase()}/${code.toUpperCase()}`;
+    const pageUrl = isUnsupportedReport ? `${baseUrl}/catalog/unknown-code` : `${baseUrl}/catalog/${brand.toLowerCase()}/${model.toLowerCase()}/${code.toLowerCase()}`;
     const ogImage = isUnsupportedReport ? `${baseUrl}/og-default.png` : `${baseUrl}/og-images/${brand.toLowerCase()}-${model.toLowerCase()}-${code.toLowerCase()}.png`;
     let seoTitle = report.seoTitle || (isUnsupportedReport ? "Неизвестный код ошибки автомобиля: причины и проверка" : `Ошибка ${displayCode} ${displayBrand} ${displayModel}: расшифровка, причины и ремонт`);
     if (!isUnsupportedReport && seoTitle && !seoTitle.toLowerCase().includes(displayModel.toLowerCase())) {

@@ -74,7 +74,7 @@ export default async function generateSitemap(req, res) {
       
       const b = encodeURIComponent(report.brand.toLowerCase());
       const m = encodeURIComponent(report.model.toLowerCase());
-      const c = encodeURIComponent(report.code.toUpperCase());
+      const c = encodeURIComponent(report.code.toLowerCase());
       
       xml += `\n  <url>\n    <loc>https://7set.pro/catalog/${b}/${m}/${c}</loc>\n    <priority>0.8</priority>\n    <changefreq>weekly</changefreq>\n  </url>`;
     }
