@@ -42,6 +42,26 @@ async function main() {
     console.log('Файл bad_seo_meta.json не найден или пуст.');
   }
 
+  // 3. Сканируем саму БД на предмет шаблонных SEO-тегов
+  try {
+    const forbiddenWords = ['ремонт', 'своими руками', 'причин', 'диагностик', 'проблем', 'устранени', 'исправить', 'что значит'];
+    const orConditions = [];
+    forbiddenWords.forEach(word => {
+      orConditions.push({ seoTitle: { contains: word } });
+      orConditions.push({ seoDescription: { contains: word } });
+    });
+
+    const templateCards = await prisma.diagnosticReport.findMany({
+      where: { OR: orConditions },
+      select: { id: true }
+    });
+
+    templateCards.forEach(c => idsToReset.add(c.id));
+    console.log(`Найдено ${templateCards.length} карточек с запрещенными шаблонными словами в БД.`);
+  } catch (err) {
+    console.log('Ошибка при поиске шаблонных слов в БД:', err);
+  }
+
   const idsArray = Array.from(idsToReset);
   
   if (idsArray.length === 0) {
