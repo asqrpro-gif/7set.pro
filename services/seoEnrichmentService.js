@@ -1,13 +1,24 @@
 import fetch from 'node-fetch';
 import { enrichReportText } from '../lib/seoEnricher.js';
 
+const sleep = (ms) => new Promise(resolve => setTimeout(resolve, ms));
+
 export async function enrichSeoCard(report, prisma) {
   try {
     console.log(`[pSEO] Запуск обогащения для: ${report.brand} ${report.model} ${report.code}`);
 
     const API_URL = `https://aged-tree-edb7carcode-proxy.asqr-pro.workers.dev/v1beta/models/gemini-flash-lite-latest:generateContent?key=${process.env.GEMINI_API_KEY}`;
 
-    const prompt = `
+    let lastError = null;
+
+    // Retry-карусель (до 3 попыток на идеальную генерацию)
+    for (let attempt = 1; attempt <= 3; attempt++) {
+      try {
+        if (attempt > 1) {
+          console.log(`[pSEO] Повторная попытка ${attempt}/3 для ${report.code}...`);
+        }
+
+        const prompt = `
 Ты — автоэксперт и опытный шеф-механик. Твоя задача — переписать техническую статью по коду ошибки ${report.code} для ${report.brand} ${report.model} так, чтобы она была полезна и обычным водителям, и крутым диагностам.
 
 Текущий текст:
@@ -44,75 +55,114 @@ ${report.full_analysis_markdown || report.summary}
 [Здесь текст следующего абзаца]
 5. tools_table_md: Markdown-таблица (Инструмент | Назначение).
 6. oem_parts_table_md: Markdown-таблица (Деталь | Тип/Артикул).
-7. new_seo_description: SEO-описание (до 155 символов, плотно).
-    `.trim();
+7. new_seo_title: SEO-заголовок (от 30 до 75 символов). ОБЯЗАТЕЛЬНО включи название конкретного узла, датчика или детали, с которым связана ошибка, чтобы заголовок был уникальным (например: Ошибка P0010 Chevrolet Cobalt: клапан фазорегулятора VVT).
+8. new_seo_description: SEO-описание (СТРОГО от 140 до 160 символов, плотно).
+        `.trim();
 
-    const requestBody = {
-      contents: [{ role: "user", parts: [{ text: prompt }] }],
-      generationConfig: {
-        responseMimeType: "application/json",
-        responseSchema: {
-          type: "OBJECT",
-          properties: {
-            new_full_analysis_markdown: { type: "STRING" },
-            driving_risks_md: { type: "STRING" },
-            diagnostic_data_md: { type: "STRING" },
-            pro_tips_md: { type: "STRING" },
-            tools_table_md: { type: "STRING" },
-            oem_parts_table_md: { type: "STRING" },
-            new_seo_description: { type: "STRING" }
-          },
-          required: ["new_full_analysis_markdown", "driving_risks_md", "diagnostic_data_md", "pro_tips_md", "tools_table_md", "oem_parts_table_md", "new_seo_description"]
+        const requestBody = {
+          contents: [{ role: "user", parts: [{ text: prompt }] }],
+          generationConfig: {
+            maxOutputTokens: 8192,
+            responseMimeType: "application/json",
+            responseSchema: {
+              type: "OBJECT",
+              properties: {
+                new_full_analysis_markdown: { type: "STRING" },
+                driving_risks_md: { type: "STRING" },
+                diagnostic_data_md: { type: "STRING" },
+                pro_tips_md: { type: "STRING" },
+                tools_table_md: { type: "STRING" },
+                oem_parts_table_md: { type: "STRING" },
+                new_seo_title: { type: "STRING" },
+                new_seo_description: { type: "STRING" }
+              },
+              required: ["new_full_analysis_markdown", "driving_risks_md", "diagnostic_data_md", "pro_tips_md", "tools_table_md", "oem_parts_table_md", "new_seo_title", "new_seo_description"]
+            }
+          }
+        };
+
+        const response = await fetch(API_URL, {
+          method: 'POST',
+          headers: { 'Content-Type': 'application/json' },
+          body: JSON.stringify(requestBody),
+          signal: AbortSignal.timeout(120000)
+        });
+
+        const responseText = await response.text();
+        if (!response.ok) {
+          throw new Error(`Ошибка API Gemini: ${response.status} ${responseText}`);
+        }
+
+        const data = JSON.parse(responseText);
+        const resultText = data.candidates?.[0]?.content?.parts?.[0]?.text;
+        if (!resultText) {
+          throw new Error('Пустой ответ от Gemini API');
+        }
+
+        const enrichedData = JSON.parse(resultText);
+
+        // --- ВАЛИДАЦИЯ ---
+        if (!enrichedData.new_seo_title || enrichedData.new_seo_title.length < 30 || enrichedData.new_seo_title.length > 75) {
+          throw new Error(`Длина SEO-заголовка не в рамках 30-75 символов (Текущая: ${enrichedData.new_seo_title?.length || 0})`);
+        }
+        
+        if (!enrichedData.new_seo_description || enrichedData.new_seo_description.length < 140 || enrichedData.new_seo_description.length > 160) {
+          throw new Error(`Длина SEO-описания не в рамках 140-160 символов (Текущая: ${enrichedData.new_seo_description?.length || 0})`);
+        }
+
+        if (!enrichedData.new_full_analysis_markdown || enrichedData.new_full_analysis_markdown.length < 1500) {
+          throw new Error(`Слишком короткая статья (обрыв генерации? Длина: ${enrichedData.new_full_analysis_markdown?.length || 0})`);
+        }
+
+        // Проверка на висячий номер в конце статьи (частый признак обрыва)
+        if (/(?:^|\n)\s*\d+\.\s*$/.test(enrichedData.new_full_analysis_markdown)) {
+            throw new Error(`Обнаружен обрыв текста (висячая цифра в конце markdown)`);
+        }
+        
+        // --- ПРИМЕНЕНИЕ ОБОГАЩЕНИЯ ---
+        const newMarkdown = enrichReportText(enrichedData.new_full_analysis_markdown, report.brand, report.model, report.code, report.drivability);
+
+        const updatedReport = await prisma.diagnosticReport.update({
+          where: { id: report.id },
+          data: {
+            seoTitle: enrichedData.new_seo_title,
+            seoDescription: enrichedData.new_seo_description,
+            tools_table_md: enrichedData.tools_table_md,
+            oem_parts_table_md: enrichedData.oem_parts_table_md,
+            pro_tips_md: enrichedData.pro_tips_md,
+            driving_risks_md: enrichedData.driving_risks_md,
+            diagnostic_data_md: enrichedData.diagnostic_data_md,
+            full_analysis_markdown: newMarkdown, 
+            seoScore: 95,
+            seoRisk: 'SAFE',
+            uniquenessScore: 100
+          }
+        });
+
+        console.log(`[pSEO] ✅ Успешно обогащена карточка ${report.code} (Попытка ${attempt})`);
+        return { success: true, report: updatedReport };
+
+      } catch (err) {
+        lastError = err;
+        console.log(`[pSEO] ⚠️ Провал на попытке ${attempt}: ${err.message}`);
+        
+        // Прерываем цикл только при фатальных ошибках (Quota, 429), чтобы сразу выйти
+        const errStr = err.message.toLowerCase();
+        if (errStr.includes('quota') || errStr.includes('429')) {
+          break;
+        }
+        
+        if (attempt < 3) {
+          await sleep(5000); // 5 секунд перед новой попыткой
         }
       }
-    };
-
-    const response = await fetch(API_URL, {
-      method: 'POST',
-      headers: { 'Content-Type': 'application/json' },
-      body: JSON.stringify(requestBody),
-      signal: AbortSignal.timeout(120000) // Увеличен таймаут до 120 секунд для полной перегенерации
-    });
-
-    const responseText = await response.text();
-    if (!response.ok) {
-      throw new Error(`Ошибка API Gemini: ${response.status} ${responseText}`);
     }
 
-    const data = JSON.parse(responseText);
-    const resultText = data.candidates?.[0]?.content?.parts?.[0]?.text;
-    if (!resultText) {
-      throw new Error('Пустой ответ от Gemini API');
-    }
-
-    const enrichedData = JSON.parse(resultText);
-
-    // Применяем ретроактивное обогащение (глоссарий, ПДД, вики-ссылки) 
-    // к новому переписанному тексту от ИИ.
-    const newMarkdown = enrichReportText(enrichedData.new_full_analysis_markdown, report.brand, report.model, report.code, report.drivability);
-
-    // Обновляем БД с новыми полями (без матрешек)
-    const updatedReport = await prisma.diagnosticReport.update({
-      where: { id: report.id },
-      data: {
-        seoDescription: enrichedData.new_seo_description,
-        tools_table_md: enrichedData.tools_table_md,
-        oem_parts_table_md: enrichedData.oem_parts_table_md,
-        pro_tips_md: enrichedData.pro_tips_md,
-        driving_risks_md: enrichedData.driving_risks_md,
-        diagnostic_data_md: enrichedData.diagnostic_data_md,
-        full_analysis_markdown: newMarkdown, // Сохраняем ретроактивное обогащение
-        seoScore: 95,
-        seoRisk: 'SAFE',
-        uniquenessScore: 100 // После такого обогащения текст точно становится уникальнее
-      }
-    });
-
-    console.log(`[pSEO] ✅ Успешно обогащена карточка ${report.code}`);
-    return { success: true, report: updatedReport };
+    // Если мы вышли из цикла, значит все 3 попытки провалились
+    throw lastError;
 
   } catch (error) {
-    console.error(`[pSEO] ❌ Ошибка обогащения карточки ${report?.code}:`, error);
+    console.error(`[pSEO] ❌ Итоговая ошибка обогащения карточки ${report?.code}:`, error.message);
     return { success: false, error: error.message };
   }
 }

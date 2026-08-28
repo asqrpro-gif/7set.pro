@@ -70,13 +70,13 @@ async function runBatchEnrichment() {
 
       const now = new Date();
       
-      // Сперва ищем опубликованные карточки
+      // Сперва ищем опубликованные карточки (сортировка по generated_at по возрастанию, чтобы не застревать на одной)
       let report = await prisma.diagnosticReport.findFirst({
         where: {
           seoRisk: { in: ['WARNING', 'DANGER'] },
           created_at: { lte: now }
         },
-        orderBy: { created_at: 'desc' }
+        orderBy: { generated_at: 'asc' }
       });
 
       if (!report) {
@@ -98,13 +98,19 @@ async function runBatchEnrichment() {
           console.log(`🛑 Достигнуто 1500 обогащений. Суточный лимит исчерпан.`);
           await saveDailyState(state);
         } else {
-          // Пауза 15 секунд между запросами (хватит, чтобы не превысить 15 RPM, и 100% безопасно)
-          console.log(`⏳ Ожидание 15 секунд перед следующей карточкой... (Выполнено ${state.count} за сегодня)`);
+          // Пауза 30 секунд между запросами (хватит, чтобы не превысить 2 RPM, и 100% безопасно)
+          console.log(`⏳ Ожидание 30 секунд перед следующей карточкой... (Выполнено ${state.count} за сегодня)`);
           await saveDailyState(state);
-          await sleep(15000);
+          await sleep(30000);
         }
       } else {
         console.error(`❌ Ошибка обогащения:`, result.error);
+        
+        // Отодвигаем эту карточку в конец очереди, чтобы не зацикливаться на ней
+        await prisma.diagnosticReport.update({
+          where: { id: report.id },
+          data: { generated_at: new Date() }
+        });
         
         // Проверяем лимиты API (429, quota)
         const errorStr = String(result.error).toLowerCase();
