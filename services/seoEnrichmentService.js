@@ -100,6 +100,9 @@ ${report.full_analysis_markdown || report.summary}
         }
 
         const enrichedData = JSON.parse(resultText);
+        
+        if (enrichedData.new_seo_title) enrichedData.new_seo_title = enrichedData.new_seo_title.trim();
+        if (enrichedData.new_seo_description) enrichedData.new_seo_description = enrichedData.new_seo_description.trim();
 
         // --- ВАЛИДАЦИЯ ---
         if (!enrichedData.new_seo_title || enrichedData.new_seo_title.length < 30 || enrichedData.new_seo_title.length > 75) {

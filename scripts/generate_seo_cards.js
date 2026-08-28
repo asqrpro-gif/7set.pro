@@ -299,8 +299,14 @@ async function main() {
 
     } catch (error) {
       console.error(`❌ Сбой API для ${brand} ${model} ${code}:`, error.message);
-      console.log('💤 Штрафная пауза 5 минут перед новой попыткой...');
-      await sleep(300000);
+      const errStr = String(error.message).toLowerCase();
+      if (errStr.includes('quota') || errStr.includes('429') || errStr.includes('too many') || errStr.includes('exhausted')) {
+        console.log('🛑 Достигнут лимит API Gemini! Уходим на паузу 1 час...');
+        await sleep(60 * 60 * 1000);
+      } else {
+        console.log('💤 Штрафная пауза 5 минут перед новой попыткой...');
+        await sleep(5 * 60 * 1000);
+      }
     }
   }
 
