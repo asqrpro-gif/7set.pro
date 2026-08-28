@@ -73,22 +73,56 @@ async function runBatchEnrichment() {
 
       const now = new Date();
       
-      // Сперва ищем опубликованные карточки (сортировка по generated_at по возрастанию, чтобы не застревать на одной)
-      let report = await prisma.diagnosticReport.findFirst({
+      // Забираем проблемные карточки (до 500 штук для скорости)
+      let allBadReports = await prisma.diagnosticReport.findMany({
         where: {
           seoRisk: { in: ['WARNING', 'DANGER'] },
           created_at: { lte: now }
         },
-        orderBy: { generated_at: 'asc' }
+        orderBy: { generated_at: 'asc' },
+        take: 500
       });
 
-      if (!report) {
+      if (allBadReports.length === 0) {
         console.log('✅ Нет карточек для обогащения (WARNING/DANGER). Спим 1 час...');
         await sleep(60 * 60 * 1000); // 1 час
-        continue; // После сна проверяем заново
+        continue;
       }
 
+      const forbiddenWords = ['ремонт', 'своими руками', 'причин', 'диагностик', 'проблем', 'устранени', 'исправить', 'что значит'];
+
+      // Расстановка приоритетов (1 - Высший, 3 - Низший)
+      allBadReports = allBadReports.map(r => {
+        let priority = 3; // По умолчанию: остальное (тексты, таблицы)
+        
+        const titleLower = (r.seoTitle || '').toLowerCase();
+        const descLower = (r.seoDescription || '').toLowerCase();
+        const titleLen = (r.seoTitle || '').length;
+        const descLen = (r.seoDescription || '').length;
+        
+        const titleHasForbidden = forbiddenWords.some(w => titleLower.includes(w));
+        const descHasForbidden = forbiddenWords.some(w => descLower.includes(w));
+
+        // Приоритет 1: Плохой СЕО-заголовок
+        if (titleLen < 30 || titleLen > 75 || titleHasForbidden || titleLower.includes('неизвестный')) {
+          priority = 1;
+        } 
+        // Приоритет 2: Плохое СЕО-описание
+        else if (descLen < 120 || descLen > 160 || descHasForbidden) {
+          priority = 2;
+        }
+        
+        return { ...r, _priority: priority };
+      });
+
+      // Сортировка по приоритету (1 -> 2 -> 3), при равном приоритете сохраняется порядок generated_at (asc)
+      allBadReports.sort((a, b) => a._priority - b._priority);
+
+      const report = allBadReports[0];
+      const priorityText = report._priority === 1 ? 'СЕО-заголовок' : (report._priority === 2 ? 'СЕО-описание' : 'Структура / Markdown');
+
       console.log(`\n⏳ Обогащение карточки: ${report.brand} ${report.model} ${report.code} (ID: ${report.id})`);
+      console.log(`🎯 Приоритет исправления: [${report._priority}] ${priorityText}`);
       
       const result = await enrichSeoCard(report, prisma);
       
