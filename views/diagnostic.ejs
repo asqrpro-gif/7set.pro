@@ -185,7 +185,7 @@
             <details class="bg-white dark:bg-slate-800 rounded-2xl shadow-sm mb-4 overflow-hidden border border-gray-50 dark:border-slate-700" open>
               <summary class="flex items-center gap-3 font-semibold p-5 cursor-pointer hover:bg-gray-50 dark:hover:bg-slate-700/50 transition-colors list-none outline-none">
                 <h2 class="text-base md:text-lg font-semibold m-0 flex items-center gap-3 w-full font-inherit text-inherit text-gray-900 dark:text-white">
-                  <i data-lucide="file-search" class="w-5 h-5 text-brand shrink-0 order-1"></i> <span class="order-2">Полный разбор причины</span></h2>
+                  <i data-lucide="file-search" class="w-5 h-5 text-brand shrink-0 order-1"></i> <span class="order-2">Подробный разбор ошибки <%= displayCode %></span></h2>
               </summary>
               <div class="p-5 border-t border-gray-50 dark:border-slate-700 bg-white dark:bg-slate-800 prose prose-blue prose-lg dark:prose-invert max-w-none text-gray-800 dark:text-gray-200">
                 <%- fullAnalysisHtml %>
@@ -196,7 +196,7 @@
             <details class="bg-white dark:bg-slate-800 rounded-2xl shadow-sm mb-4 overflow-hidden border border-gray-50 dark:border-slate-700" open>
               <summary class="flex items-center gap-3 font-semibold p-5 cursor-pointer hover:bg-gray-50 dark:hover:bg-slate-700/50 transition-colors list-none outline-none">
                 <h2 class="text-base md:text-lg font-semibold m-0 flex items-center gap-3 w-full font-inherit text-inherit text-gray-900 dark:text-white">
-                  <i data-lucide="cpu" class="w-5 h-5 text-indigo-500 shrink-0 order-1"></i> <span class="order-2">Спецификации для диагноста</span></h2>
+                  <i data-lucide="cpu" class="w-5 h-5 text-indigo-500 shrink-0 order-1"></i> <span class="order-2">Параметры и диагностика <%= displayCode %></span></h2>
               </summary>
               <div class="p-5 border-t border-gray-50 dark:border-slate-700 bg-slate-50 dark:bg-slate-800/80 prose prose-blue prose-lg dark:prose-invert max-w-none text-gray-800 dark:text-gray-200 font-mono text-sm">
                 <%- diagnosticDataHtml %>
@@ -220,7 +220,7 @@
             <details class="bg-white dark:bg-slate-800 rounded-2xl shadow-sm mb-4 overflow-hidden border border-gray-50 dark:border-slate-700" open>
               <summary class="flex items-center gap-3 font-semibold p-5 cursor-pointer hover:bg-gray-50 dark:hover:bg-slate-700/50 transition-colors list-none outline-none">
                 <h2 class="text-base md:text-lg font-semibold m-0 flex items-center gap-3 w-full font-inherit text-inherit text-gray-900 dark:text-white">
-                  <i data-lucide="alert-triangle" class="w-5 h-5 text-red-500 shrink-0 order-1"></i> <span class="order-2">ПДД и последствия эксплуатации</span></h2>
+                  <i data-lucide="alert-triangle" class="w-5 h-5 text-red-500 shrink-0 order-1"></i> <span class="order-2">Риски и последствия при езде с <%= displayCode %></span></h2>
               </summary>
               <div class="p-5 border-t border-gray-50 dark:border-slate-700 bg-white dark:bg-slate-800 prose prose-blue prose-lg dark:prose-invert max-w-none text-gray-800 dark:text-gray-200">
                 <%- drivingRisksHtml %>
@@ -244,7 +244,7 @@
                 class="flex items-center gap-3 font-semibold p-5 cursor-pointer hover:bg-gray-50 dark:hover:bg-slate-700/50 transition-colors list-none outline-none">
                 <h2
                   class="text-base md:text-lg font-semibold m-0 flex items-center gap-3 w-full font-inherit text-inherit text-gray-900 dark:text-white">
-                  <i data-lucide="wallet" class="w-5 h-5 text-green-600 shrink-0 order-1"></i> <span class="order-2">Финансовый прогноз</span></h2>
+                  <i data-lucide="wallet" class="w-5 h-5 text-green-600 shrink-0 order-1"></i> <span class="order-2">Стоимость ремонта и запчастей</span></h2>
               </summary>
               <div class="p-5 border-t border-gray-50 dark:border-slate-700 bg-white dark:bg-slate-800">
                 <div class="grid grid-cols-2 gap-4 mt-2">
@@ -287,12 +287,12 @@
               <summary
                 class="flex items-center gap-3 font-semibold p-5 cursor-pointer hover:bg-gray-50 dark:hover:bg-slate-700/50 transition-colors list-none outline-none">
                 <h2
-                  class="text-base md:text-lg font-semibold m-0 flex items-center gap-3 w-full font-inherit text-inherit text-gray-900 dark:text-white">
-                  <i data-lucide="wrench" class="w-5 h-5 text-gray-500 dark:text-gray-400 shrink-0 order-1"></i> <span class="order-2">Сделай сам</span>
+                  class="text-base md:text-lg font-semibold m-0 flex items-center gap-3 font-inherit text-inherit text-gray-900 dark:text-white">
+                  <i data-lucide="wrench" class="w-5 h-5 text-gray-500 dark:text-gray-400 shrink-0 order-1"></i> <span class="order-2">Как исправить ошибку <%= displayCode %> своими руками</span></h2>
                   <span
-                    class="text-xs px-2 py-0.5 rounded bg-gray-100 dark:bg-slate-700 text-gray-600 dark:text-gray-300 ml-auto font-normal shrink-0 order-3">
+                    class="text-xs px-2 py-0.5 rounded bg-gray-100 dark:bg-slate-700 text-gray-600 dark:text-gray-300 ml-auto font-normal shrink-0">
                     <%= report.diy_difficulty_text || 'Неизвестно' %>
-                  </span></h2>
+                  </span>
               </summary>
               <div class="p-5 border-t border-gray-50 dark:border-slate-700 bg-white dark:bg-slate-800">
                 <div class="grid grid-cols-2 gap-3 mb-5">
@@ -351,9 +351,9 @@
               open>
               <summary
                 class="flex items-center gap-3 font-semibold p-5 cursor-pointer hover:bg-gray-50 dark:hover:bg-slate-700/50 transition-colors list-none outline-none">
-                <h2
+                <div
                   class="text-base md:text-lg font-semibold m-0 flex items-center gap-3 w-full font-inherit text-inherit text-gray-900 dark:text-white">
-                  <i data-lucide="link" class="w-5 h-5 text-blue-500 shrink-0 order-1"></i> <span class="order-2">Полезные ссылки</span></h2>
+                  <i data-lucide="link" class="w-5 h-5 text-blue-500 shrink-0 order-1"></i> <span class="order-2">Полезные ссылки</span></div>
               </summary>
               <div
                 class="seo-footer-content p-5 border-t border-gray-50 dark:border-slate-700 bg-white dark:bg-slate-800 prose prose-sm md:prose-lg dark:prose-invert max-w-none text-gray-800 dark:text-gray-200">
@@ -367,7 +367,7 @@
             <div class="engagement-block mt-8 mb-4 bg-white dark:bg-slate-800 rounded-2xl shadow-sm border border-gray-100 dark:border-slate-700 p-5 md:p-6 transition-all duration-300">
               <div class="flex flex-col md:flex-row items-center justify-between gap-4">
                 <div class="flex-1 w-full">
-                  <h3 class="text-lg font-bold text-gray-900 dark:text-white mb-3" id="feedback-title">Помог ли вам этот разбор ошибки?</h3>
+                  <div class="text-lg font-bold text-gray-900 dark:text-white mb-3" id="feedback-title">Помог ли вам этот разбор ошибки?</div>
                   <div id="feedback-buttons" class="flex gap-3">
                     <button class="feedback-btn flex items-center justify-center gap-2 bg-gray-50 hover:bg-green-50 dark:bg-slate-700/50 dark:hover:bg-green-900/20 text-gray-700 dark:text-gray-300 hover:text-green-600 dark:hover:text-green-400 border border-gray-200 dark:border-slate-600 rounded-xl px-4 py-2 font-medium transition-colors flex-1 md:flex-none" data-type="like" data-id="<%= report.id %>">
                       <i data-lucide="thumbs-up" class="w-5 h-5"></i> Да
