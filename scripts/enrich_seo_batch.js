@@ -41,6 +41,8 @@ async function runBatchEnrichment() {
       }
 
       const checkNow = new Date();
+      // Закомментировано по просьбе пользователя для немедленного запуска
+      /*
       // Строгий запуск с 00:00 (если счетчик 0, и время уже больше 01:00, ждем до полуночи)
       if (state.count === 0 && checkNow.getHours() >= 1) {
         console.log(`🛑 Скрипт настроен на запуск строго с 00:00. Сейчас ${checkNow.getHours()}:${checkNow.getMinutes().toString().padStart(2, '0')}. Спим до полуночи...`);
@@ -49,6 +51,7 @@ async function runBatchEnrichment() {
         await sleep(msUntilTomorrow);
         continue;
       }
+      */
 
       // Проверка паузы (например, после 30 карточек)
       if (state.pausedUntil > Date.now()) {
