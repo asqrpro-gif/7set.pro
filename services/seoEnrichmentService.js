@@ -56,7 +56,7 @@ ${report.full_analysis_markdown || report.summary}
 5. tools_table_md: Markdown-таблица (Инструмент | Назначение).
 6. oem_parts_table_md: Markdown-таблица (Деталь | Тип/Артикул).
 7. new_seo_title: SEO-заголовок (от 30 до 75 символов). ОБЯЗАТЕЛЬНО включи название конкретного узла, датчика или детали, с которым связана ошибка, чтобы заголовок был уникальным (например: Ошибка P0010 Chevrolet Cobalt: клапан фазорегулятора VVT). КАТЕГОРИЧЕСКИ ЗАПРЕЩАЮ использовать слова: ремонт, своими руками, причин, диагностик, проблем, устранени, исправить, что значит. ИСПОЛЬЗУЙ живой авто-сленг, если это уместно (например: троит, жрет масло, пинается АКПП, лямбда, ДМРВ, ЭБУ).
-8. new_seo_description: SEO-описание (СТРОГО от 140 до 160 символов, плотно). КАТЕГОРИЧЕСКИ ЗАПРЕЩАЮ использовать слова: ремонт, своими руками, причин, диагностик, проблем, устранени, исправить, что значит.
+8. new_seo_description: SEO-описание (СТРОГО от 120 до 160 символов, плотно). КАТЕГОРИЧЕСКИ ЗАПРЕЩАЮ использовать слова: ремонт, своими руками, причин, диагностик, проблем, устранени, исправить, что значит.
         `.trim();
 
         const requestBody = {
@@ -106,8 +106,8 @@ ${report.full_analysis_markdown || report.summary}
           throw new Error(`Длина SEO-заголовка не в рамках 30-75 символов (Текущая: ${enrichedData.new_seo_title?.length || 0})`);
         }
         
-        if (!enrichedData.new_seo_description || enrichedData.new_seo_description.length < 140 || enrichedData.new_seo_description.length > 160) {
-          throw new Error(`Длина SEO-описания не в рамках 140-160 символов (Текущая: ${enrichedData.new_seo_description?.length || 0})`);
+        if (!enrichedData.new_seo_description || enrichedData.new_seo_description.length < 120 || enrichedData.new_seo_description.length > 160) {
+          throw new Error(`Длина SEO-описания не в рамках 120-160 символов (Текущая: ${enrichedData.new_seo_description?.length || 0})`);
         }
 
         const forbiddenWords = ['ремонт', 'своими руками', 'причин', 'диагностик', 'проблем', 'устранени', 'исправить', 'что значит'];

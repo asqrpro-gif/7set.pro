@@ -196,7 +196,7 @@
             <details class="bg-white dark:bg-slate-800 rounded-2xl shadow-sm mb-4 overflow-hidden border border-gray-50 dark:border-slate-700" open>
               <summary class="flex items-center gap-3 font-semibold p-5 cursor-pointer hover:bg-gray-50 dark:hover:bg-slate-700/50 transition-colors list-none outline-none">
                 <h2 class="text-base md:text-lg font-semibold m-0 flex items-center gap-3 w-full font-inherit text-inherit text-gray-900 dark:text-white">
-                  <i data-lucide="cpu" class="w-5 h-5 text-indigo-500 shrink-0 order-1"></i> <span class="order-2">Параметры и диагностика <%= displayCode %></span></h2>
+                  <i data-lucide="cpu" class="w-5 h-5 text-indigo-500 shrink-0 order-1"></i> <span class="order-2">Параметры и диагностика <%= displayCode %> для <%= displayBrand %></span></h2>
               </summary>
               <div class="p-5 border-t border-gray-50 dark:border-slate-700 bg-slate-50 dark:bg-slate-800/80 prose prose-blue prose-lg dark:prose-invert max-w-none text-gray-800 dark:text-gray-200 font-mono text-sm">
                 <%- diagnosticDataHtml %>
@@ -288,7 +288,7 @@
                 class="flex items-center gap-3 font-semibold p-5 cursor-pointer hover:bg-gray-50 dark:hover:bg-slate-700/50 transition-colors list-none outline-none">
                 <h2
                   class="text-base md:text-lg font-semibold m-0 flex items-center gap-3 font-inherit text-inherit text-gray-900 dark:text-white">
-                  <i data-lucide="wrench" class="w-5 h-5 text-gray-500 dark:text-gray-400 shrink-0 order-1"></i> <span class="order-2">Как исправить ошибку <%= displayCode %> своими руками</span></h2>
+                  <i data-lucide="wrench" class="w-5 h-5 text-gray-500 dark:text-gray-400 shrink-0 order-1"></i> <span class="order-2">Как исправить ошибку <%= displayCode %> на <%= displayBrand %> <%= displayModel %> своими руками</span></h2>
                   <span
                     class="text-xs px-2 py-0.5 rounded bg-gray-100 dark:bg-slate-700 text-gray-600 dark:text-gray-300 ml-auto font-normal shrink-0">
                     <%= report.diy_difficulty_text || 'Неизвестно' %>

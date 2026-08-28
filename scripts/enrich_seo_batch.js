@@ -120,6 +120,9 @@ async function runBatchEnrichment() {
         if (errorStr.includes('quota') || errorStr.includes('429') || errorStr.includes('too many') || errorStr.includes('exhausted')) {
           console.log(`🛑 Достигнут лимит API Gemini! Ставим скрипт на паузу на 1 час...`);
           await sleep(60 * 60 * 1000); // 1 час паузы
+        } else if (errorStr.includes('длина') || errorStr.includes('шаблонное') || errorStr.includes('короткая') || errorStr.includes('обрыв')) {
+          console.log(`⏭️ ИИ не справился с жесткой валидацией SEO за 3 попытки. Переходим к следующей карточке без паузы.`);
+          // Нет долгой паузы, так как это просто браковка ИИ-генерации
         } else {
           // Иные ошибки API (500 и т.д.) - ждем 5 минут
           console.log(`⏳ Неизвестная ошибка API, пауза 5 минут перед новой попыткой...`);
