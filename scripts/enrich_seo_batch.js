@@ -120,11 +120,13 @@ async function runBatchEnrichment() {
 
       const report = allBadReports[0];
       const priorityText = report._priority === 1 ? 'СЕО-заголовок' : (report._priority === 2 ? 'СЕО-описание' : 'Структура / Markdown');
+      
+      const enrichmentMode = (report._priority === 1 || report._priority === 2) ? 'seo_only' : 'full';
 
       console.log(`\n⏳ Обогащение карточки: ${report.brand} ${report.model} ${report.code} (ID: ${report.id})`);
-      console.log(`🎯 Приоритет исправления: [${report._priority}] ${priorityText}`);
+      console.log(`🎯 Приоритет исправления: [${report._priority}] ${priorityText} (Режим: ${enrichmentMode})`);
       
-      const result = await enrichSeoCard(report, prisma);
+      const result = await enrichSeoCard(report, prisma, enrichmentMode);
       
       if (result.success) {
         console.log(`✅ Успешно обогащена.`);

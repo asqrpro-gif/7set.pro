@@ -3,9 +3,9 @@ import { enrichReportText } from '../lib/seoEnricher.js';
 
 const sleep = (ms) => new Promise(resolve => setTimeout(resolve, ms));
 
-export async function enrichSeoCard(report, prisma) {
+export async function enrichSeoCard(report, prisma, enrichmentMode = 'full') {
   try {
-    console.log(`[pSEO] Запуск обогащения для: ${report.brand} ${report.model} ${report.code}`);
+    console.log(`[pSEO] Запуск обогащения для: ${report.brand} ${report.model} ${report.code} (Режим: ${enrichmentMode})`);
 
     const API_URL = `https://aged-tree-edb7carcode-proxy.asqr-pro.workers.dev/v1beta/models/gemini-flash-lite-latest:generateContent?key=${process.env.GEMINI_API_KEY}`;
 
@@ -18,7 +18,31 @@ export async function enrichSeoCard(report, prisma) {
           console.log(`[pSEO] Повторная попытка ${attempt}/3 для ${report.code}...`);
         }
 
-        const prompt = `
+        let prompt = '';
+        let responseSchema = {};
+
+        if (enrichmentMode === 'seo_only') {
+          prompt = `
+Ты — автоэксперт и SEO-специалист. Твоя задача — исправить SEO-теги для страницы об ошибке ${report.code} для ${report.brand} ${report.model}.
+
+Текущий текст статьи (для контекста):
+${report.full_analysis_markdown || report.summary}
+
+ЖЕСТКАЯ СТРУКТУРА (верни JSON):
+1. new_seo_title: SEO-заголовок (от 30 до 75 символов). ОБЯЗАТЕЛЬНО включи название конкретного узла, датчика или детали, с которым связана ошибка, чтобы заголовок был уникальным (например: Ошибка P0010 Chevrolet Cobalt: клапан фазорегулятора VVT). КАТЕГОРИЧЕСКИ ЗАПРЕЩАЮ использовать слова: ремонт, своими руками, причин, диагностик, проблем, устранени, исправить, что значит.
+2. new_seo_description: SEO-описание (СТРОГО от 120 до 160 символов, плотно). КАТЕГОРИЧЕСКИ ЗАПРЕЩАЮ использовать слова: ремонт, своими руками, причин, диагностик, проблем, устранени, исправить, что значит.
+          `.trim();
+
+          responseSchema = {
+            type: "OBJECT",
+            properties: {
+              new_seo_title: { type: "STRING" },
+              new_seo_description: { type: "STRING" }
+            },
+            required: ["new_seo_title", "new_seo_description"]
+          };
+        } else {
+          prompt = `
 Ты — автоэксперт и опытный шеф-механик. Твоя задача — переписать техническую статью по коду ошибки ${report.code} для ${report.brand} ${report.model} так, чтобы она была полезна и обычным водителям, и крутым диагностам.
 
 Текущий текст:
@@ -57,27 +81,30 @@ ${report.full_analysis_markdown || report.summary}
 6. oem_parts_table_md: Markdown-таблица (Деталь | Тип/Артикул).
 7. new_seo_title: SEO-заголовок (от 30 до 75 символов). ОБЯЗАТЕЛЬНО включи название конкретного узла, датчика или детали, с которым связана ошибка, чтобы заголовок был уникальным (например: Ошибка P0010 Chevrolet Cobalt: клапан фазорегулятора VVT). КАТЕГОРИЧЕСКИ ЗАПРЕЩАЮ использовать слова: ремонт, своими руками, причин, диагностик, проблем, устранени, исправить, что значит. ИСПОЛЬЗУЙ живой авто-сленг, если это уместно (например: троит, жрет масло, пинается АКПП, лямбда, ДМРВ, ЭБУ).
 8. new_seo_description: SEO-описание (СТРОГО от 120 до 160 символов, плотно). КАТЕГОРИЧЕСКИ ЗАПРЕЩАЮ использовать слова: ремонт, своими руками, причин, диагностик, проблем, устранени, исправить, что значит.
-        `.trim();
+          `.trim();
+
+          responseSchema = {
+            type: "OBJECT",
+            properties: {
+              new_full_analysis_markdown: { type: "STRING" },
+              driving_risks_md: { type: "STRING" },
+              diagnostic_data_md: { type: "STRING" },
+              pro_tips_md: { type: "STRING" },
+              tools_table_md: { type: "STRING" },
+              oem_parts_table_md: { type: "STRING" },
+              new_seo_title: { type: "STRING" },
+              new_seo_description: { type: "STRING" }
+            },
+            required: ["new_full_analysis_markdown", "driving_risks_md", "diagnostic_data_md", "pro_tips_md", "tools_table_md", "oem_parts_table_md", "new_seo_title", "new_seo_description"]
+          };
+        }
 
         const requestBody = {
           contents: [{ role: "user", parts: [{ text: prompt }] }],
           generationConfig: {
             maxOutputTokens: 8192,
             responseMimeType: "application/json",
-            responseSchema: {
-              type: "OBJECT",
-              properties: {
-                new_full_analysis_markdown: { type: "STRING" },
-                driving_risks_md: { type: "STRING" },
-                diagnostic_data_md: { type: "STRING" },
-                pro_tips_md: { type: "STRING" },
-                tools_table_md: { type: "STRING" },
-                oem_parts_table_md: { type: "STRING" },
-                new_seo_title: { type: "STRING" },
-                new_seo_description: { type: "STRING" }
-              },
-              required: ["new_full_analysis_markdown", "driving_risks_md", "diagnostic_data_md", "pro_tips_md", "tools_table_md", "oem_parts_table_md", "new_seo_title", "new_seo_description"]
-            }
+            responseSchema: responseSchema
           }
         };
 
@@ -104,7 +131,7 @@ ${report.full_analysis_markdown || report.summary}
         if (enrichedData.new_seo_title) enrichedData.new_seo_title = enrichedData.new_seo_title.trim();
         if (enrichedData.new_seo_description) enrichedData.new_seo_description = enrichedData.new_seo_description.trim();
 
-        // --- ВАЛИДАЦИЯ ---
+        // --- ОБЩАЯ ВАЛИДАЦИЯ SEO ---
         if (!enrichedData.new_seo_title || enrichedData.new_seo_title.length < 30 || enrichedData.new_seo_title.length > 75) {
           throw new Error(`Длина SEO-заголовка не в рамках 30-75 символов (Текущая: ${enrichedData.new_seo_title?.length || 0})`);
         }
@@ -122,34 +149,48 @@ ${report.full_analysis_markdown || report.summary}
           throw new Error(`Найдено запрещенное шаблонное слово в SEO-тегах: "${foundForbidden}"`);
         }
 
-        if (!enrichedData.new_full_analysis_markdown || enrichedData.new_full_analysis_markdown.length < 1500) {
-          throw new Error(`Слишком короткая статья (обрыв генерации? Длина: ${enrichedData.new_full_analysis_markdown?.length || 0})`);
-        }
+        let updatedReport;
 
-        // Проверка на висячий номер в конце статьи (частый признак обрыва)
-        if (/(?:^|\n)\s*\d+\.\s*$/.test(enrichedData.new_full_analysis_markdown)) {
-            throw new Error(`Обнаружен обрыв текста (висячая цифра в конце markdown)`);
-        }
-        
-        // --- ПРИМЕНЕНИЕ ОБОГАЩЕНИЯ ---
-        const newMarkdown = enrichReportText(enrichedData.new_full_analysis_markdown, report.brand, report.model, report.code, report.drivability);
-
-        const updatedReport = await prisma.diagnosticReport.update({
-          where: { id: report.id },
-          data: {
-            seoTitle: enrichedData.new_seo_title,
-            seoDescription: enrichedData.new_seo_description,
-            tools_table_md: enrichedData.tools_table_md,
-            oem_parts_table_md: enrichedData.oem_parts_table_md,
-            pro_tips_md: enrichedData.pro_tips_md,
-            driving_risks_md: enrichedData.driving_risks_md,
-            diagnostic_data_md: enrichedData.diagnostic_data_md,
-            full_analysis_markdown: newMarkdown, 
-            seoScore: 95,
-            seoRisk: 'SAFE',
-            uniquenessScore: 100
+        if (enrichmentMode === 'full') {
+          // --- ДОП. ВАЛИДАЦИЯ ДЛЯ FULL ---
+          if (!enrichedData.new_full_analysis_markdown || enrichedData.new_full_analysis_markdown.length < 600) {
+            throw new Error(`Слишком короткая статья (обрыв генерации? Длина: ${enrichedData.new_full_analysis_markdown?.length || 0})`);
           }
-        });
+
+          if (/(?:^|\n)\s*\d+\.\s*$/.test(enrichedData.new_full_analysis_markdown)) {
+              throw new Error(`Обнаружен обрыв текста (висячая цифра в конце markdown)`);
+          }
+          
+          const newMarkdown = enrichReportText(enrichedData.new_full_analysis_markdown, report.brand, report.model, report.code, report.drivability);
+
+          updatedReport = await prisma.diagnosticReport.update({
+            where: { id: report.id },
+            data: {
+              seoTitle: enrichedData.new_seo_title,
+              seoDescription: enrichedData.new_seo_description,
+              tools_table_md: enrichedData.tools_table_md,
+              oem_parts_table_md: enrichedData.oem_parts_table_md,
+              pro_tips_md: enrichedData.pro_tips_md,
+              driving_risks_md: enrichedData.driving_risks_md,
+              diagnostic_data_md: enrichedData.diagnostic_data_md,
+              full_analysis_markdown: newMarkdown, 
+              seoScore: 95,
+              seoRisk: 'SAFE',
+              uniquenessScore: 100
+            }
+          });
+        } else {
+          // --- СОХРАНЕНИЕ ТОЛЬКО ДЛЯ SEO ---
+          updatedReport = await prisma.diagnosticReport.update({
+            where: { id: report.id },
+            data: {
+              seoTitle: enrichedData.new_seo_title,
+              seoDescription: enrichedData.new_seo_description,
+              seoScore: 95,
+              seoRisk: 'SAFE' // Считаем безопасным (следующий скан найдет ошибки в markdown, если они есть)
+            }
+          });
+        }
 
         console.log(`[pSEO] ✅ Успешно обогащена карточка ${report.code} (Попытка ${attempt})`);
         return { success: true, report: updatedReport };
