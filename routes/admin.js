@@ -426,6 +426,12 @@ router.get('/seo-detector', async (req, res) => {
             orderBy: orderBy
         });
 
+        // Добавляем penaltyString на лету для тултипов (передаем null вместо prisma для скорости)
+        for (let r of reports) {
+            const seoData = await calculateSeoScore(r, null);
+            r.penaltyString = seoData.penaltyString || '';
+        }
+
         // Статистика фонового сканирования
         const totalCards = await prisma.diagnosticReport.count();
         const unscannedCount = await prisma.diagnosticReport.count({ where: { seoScore: 0 } });
