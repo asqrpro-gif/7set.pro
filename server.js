@@ -587,18 +587,22 @@ app.get('/catalog/:brand/:model/:code', async (req, res) => {
 
     const baseUrl = process.env.SITE_URL || 'https://7set.pro';
 
+    const safeBrand = encodeURIComponent(brand.toLowerCase());
+    const safeModel = encodeURIComponent(model.toLowerCase());
+    const safeCode = encodeURIComponent(code.toLowerCase());
+    
     const breadcrumbSchema = {
       "@context": "https://schema.org",
       "@type": "BreadcrumbList",
       "itemListElement": [
         { "@type": "ListItem", "position": 1, "name": "Главная", "item": baseUrl },
-        { "@type": "ListItem", "position": 2, "name": displayBrand, "item": `${baseUrl}/catalog/${encodeURIComponent(brand.toLowerCase())}` },
-        { "@type": "ListItem", "position": 3, "name": displayModel, "item": `${baseUrl}/catalog/${encodeURIComponent(brand.toLowerCase())}/${encodeURIComponent(model.toLowerCase())}` },
-        { "@type": "ListItem", "position": 4, "name": isUnsupportedReport ? 'Неизвестный' : displayCode }
+        { "@type": "ListItem", "position": 2, "name": displayBrand, "item": `${baseUrl}/catalog/${safeBrand}` },
+        { "@type": "ListItem", "position": 3, "name": displayModel, "item": `${baseUrl}/catalog/${safeBrand}/${safeModel}` },
+        { "@type": "ListItem", "position": 4, "name": isUnsupportedReport ? 'Неизвестный' : displayCode, "item": isUnsupportedReport ? `${baseUrl}/catalog/unknown-code` : `${baseUrl}/catalog/${safeBrand}/${safeModel}/${safeCode}` }
       ]
     };
-    const pageUrl = isUnsupportedReport ? `${baseUrl}/catalog/unknown-code` : `${baseUrl}/catalog/${brand.toLowerCase()}/${model.toLowerCase()}/${code.toLowerCase()}`;
-    const ogImage = isUnsupportedReport ? `${baseUrl}/og-default.png` : `${baseUrl}/og-images/${brand.toLowerCase()}-${model.toLowerCase()}-${code.toLowerCase()}.png`;
+    const pageUrl = isUnsupportedReport ? `${baseUrl}/catalog/unknown-code` : `${baseUrl}/catalog/${safeBrand}/${safeModel}/${safeCode}`;
+    const ogImage = isUnsupportedReport ? `${baseUrl}/og-default.png` : `${baseUrl}/og-images/${safeBrand}-${safeModel}-${safeCode}.png`;
     let seoTitle = report.seoTitle || (isUnsupportedReport ? "Неизвестный код ошибки автомобиля: причины и проверка" : `Ошибка ${displayCode} ${displayBrand} ${displayModel}: расшифровка, причины и ремонт`);
     if (!isUnsupportedReport && seoTitle && !seoTitle.toLowerCase().includes(displayModel.toLowerCase())) {
       const brandReg = new RegExp(`(${displayBrand})`, 'i');
@@ -627,7 +631,8 @@ app.get('/catalog/:brand/:model/:code', async (req, res) => {
       "dateModified": report && report.updated_at ? report.updated_at.toISOString() : new Date().toISOString(),
       "author": {
         "@type": "Organization",
-        "name": "Редакция 7Set.pro"
+        "name": "Редакция 7Set.pro",
+        "url": baseUrl
       },
       "publisher": {
         "@type": "Organization",
@@ -641,11 +646,11 @@ app.get('/catalog/:brand/:model/:code', async (req, res) => {
     };
 
     if (!isUnlockedForUser) {
-      techArticleSchema.isAccessibleForFree = "False";
+      techArticleSchema.isAccessibleForFree = false;
       techArticleSchema.hasPart = [
         {
           "@type": "WebPageElement",
-          "isAccessibleForFree": "False",
+          "isAccessibleForFree": false,
           "cssSelector": ".paywall-blur-container"
         }
       ];
@@ -693,7 +698,15 @@ app.get('/catalog/:brand/:model/:code', async (req, res) => {
 
          if (howToSteps.length > 0) {
            const parsedTime = parseInt(report.diy_time);
-           const totalTime = isNaN(parsedTime) ? "PT30M" : `PT${parsedTime}M`;
+           let totalTime = "PT30M";
+           if (!isNaN(parsedTime)) {
+             if (report.diy_time.toLowerCase().includes('час')) {
+               totalTime = `PT${parsedTime}H`;
+             } else {
+               totalTime = `PT${parsedTime}M`;
+             }
+           }
+           
            const howToSchema = {
               "@context": "https://schema.org",
               "@type": "HowTo",
