@@ -217,8 +217,10 @@ async function main() {
         const modelLower = r.model.toLowerCase();
 
         // Обработка SEO-заголовков
-        if (r.seoTitle) {
-            const trimmedTitle = r.seoTitle.trim();
+        const trimmedTitle = (r.seoTitle || '').trim();
+        const titleLen = trimmedTitle.length;
+
+        if (titleLen > 0) {
             let titleTpl = trimmedTitle.toLowerCase();
             const escapeRegExp = (string) => string.replace(/[.*+?^${}()|[\]\\]/g, '\\$&');
 
@@ -229,14 +231,15 @@ async function main() {
 
             if (!titleMap[titleTpl]) titleMap[titleTpl] = [];
             titleMap[titleTpl].push(r);
+        }
             
-            // Проверка длины заголовка
-            const titleLen = trimmedTitle.length;
-            if (titleLen < 30 || titleLen > 75) {
-                problematicTitles.push({ ...r, reason: 'Длина' });
-            }
+        // Проверка длины заголовка
+        if (titleLen < 30 || titleLen > 75) {
+            problematicTitles.push({ ...r, reason: titleLen === 0 ? 'Отсутствует (Ожидает генерации)' : 'Длина' });
+        }
 
-            // Проверка на стоп-слова и "неизвестный"
+        // Проверка на стоп-слова и "неизвестный"
+        if (titleLen > 0) {
             const titleLower = trimmedTitle.toLowerCase();
             if (titleLower.includes('неизвестный')) {
                 problematicTitles.push({ ...r, reason: 'Содержит "неизвестный"' });
@@ -249,8 +252,10 @@ async function main() {
         }
 
         // Обработка SEO-описаний
-        if (r.seoDescription) {
-            const trimmedDesc = r.seoDescription.trim();
+        const trimmedDesc = (r.seoDescription || '').trim();
+        const descLen = trimmedDesc.length;
+
+        if (descLen > 0) {
             let descTpl = trimmedDesc.toLowerCase();
             const escapeRegExp = (string) => string.replace(/[.*+?^${}()|[\]\\]/g, '\\$&');
 
@@ -261,14 +266,15 @@ async function main() {
 
             if (!descMap[descTpl]) descMap[descTpl] = [];
             descMap[descTpl].push(r);
+        }
             
-            // Проверка длины описания
-            const descLen = trimmedDesc.length;
-            if (descLen < 140 || descLen > 160) {
-                problematicDescriptions.push({ ...r, reason: 'Длина' });
-            }
+        // Проверка длины описания
+        if (descLen < 140 || descLen > 160) {
+            problematicDescriptions.push({ ...r, reason: descLen === 0 ? 'Отсутствует (Ожидает генерации)' : 'Длина' });
+        }
 
-            // Проверка на стоп-слова
+        // Проверка на стоп-слова
+        if (descLen > 0) {
             const descLower = trimmedDesc.toLowerCase();
             const forbiddenWords = ['ремонт', 'своими руками', 'причин', 'диагностик', 'проблем', 'устранени', 'исправить', 'что значит'];
             const foundWord = forbiddenWords.find(w => descLower.includes(w));
