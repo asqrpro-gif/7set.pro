@@ -651,6 +651,64 @@ app.get('/catalog/:brand/:model/:code', async (req, res) => {
       ];
     }
 
+    let faqSchemaHtml = '';
+    if (report.schema_faq) {
+      try {
+        const faqItems = JSON.parse(report.schema_faq);
+        if (faqItems && Array.isArray(faqItems) && faqItems.length > 0) {
+          const faqSchema = {
+            "@context": "https://schema.org",
+            "@type": "FAQPage",
+            "mainEntity": faqItems.map(item => ({
+              "@type": "Question",
+              "name": item.question,
+              "acceptedAnswer": {
+                "@type": "Answer",
+                "text": item.answer
+              }
+            }))
+          };
+          faqSchemaHtml = `\n        <script type="application/ld+json">${JSON.stringify(faqSchema)}</script>`;
+        }
+      } catch (e) {
+        console.error("Ошибка парсинга schema_faq:", e);
+      }
+    }
+
+    let howToSchemaHtml = '';
+    if (report.diy_instructions) {
+      try {
+         const stepsRaw = report.diy_instructions.split(/###\s+/).filter(s => s.trim().length > 0);
+         const howToSteps = stepsRaw.map((stepRaw, index) => {
+            const lines = stepRaw.trim().split('\n');
+            const stepTitle = lines[0].replace(/<[^>]+>/g, '').trim();
+            const stepText = lines.slice(1).join('\n').replace(/<[^>]+>/g, '').trim();
+            return {
+              "@type": "HowToStep",
+              "name": stepTitle || `Шаг ${index + 1}`,
+              "text": stepText || stepTitle,
+              "url": `${pageUrl}#diy`
+            };
+         });
+
+         if (howToSteps.length > 0) {
+           const parsedTime = parseInt(report.diy_time);
+           const totalTime = isNaN(parsedTime) ? "PT30M" : `PT${parsedTime}M`;
+           const howToSchema = {
+              "@context": "https://schema.org",
+              "@type": "HowTo",
+              "name": `Ремонт ошибки ${displayCode} ${displayBrand} ${displayModel}`,
+              "description": `Пошаговая инструкция по устранению проблемы ${displayCode}.`,
+              "step": howToSteps,
+              "totalTime": totalTime
+           };
+           howToSchemaHtml = `\n        <script type="application/ld+json">${JSON.stringify(howToSchema)}</script>`;
+         }
+      } catch (e) {
+         console.error("Ошибка парсинга HowTo:", e);
+      }
+    }
+
     let rawFullAnalysis = report.full_analysis_markdown || '';
     let rawScamProtection = '';
 
@@ -694,7 +752,7 @@ app.get('/catalog/:brand/:model/:code', async (req, res) => {
     let drivingRisksHtml = report.driving_risks_md ? cleanReportHtml(marked.parse(formatReportMarkdown(report.driving_risks_md))) : '';
     let diagnosticDataHtml = report.diagnostic_data_md ? cleanReportHtml(marked.parse(formatReportMarkdown(report.diagnostic_data_md))) : '';
 
-    const schemaHtml = `<script type="application/ld+json">${JSON.stringify(techArticleSchema)}</script>\n        <script type="application/ld+json">${JSON.stringify(breadcrumbSchema)}</script>`;
+    const schemaHtml = `<script type="application/ld+json">${JSON.stringify(techArticleSchema)}</script>\n        <script type="application/ld+json">${JSON.stringify(breadcrumbSchema)}</script>${faqSchemaHtml}${howToSchemaHtml}`;
 
     res.render('diagnostic', {
       seoTitle,

@@ -40,7 +40,17 @@ const TARGET_CARS = [
   { brand: 'Toyota', model: 'RAV4' },      // Новинка
   { brand: 'Volkswagen', model: 'Polo' },  // Новинка (суперпопулярна в СНГ)     
   { brand: 'Hyundai', model: 'Santa Fe' },
-  { brand: 'Kia', model: 'Sorento' }
+  { brand: 'Kia', model: 'Sorento' },
+  { brand: 'Hyundai', model: 'Solaris' },
+  { brand: 'Kia', model: 'Rio' },
+  { brand: 'Skoda', model: 'Octavia' },
+  { brand: 'Skoda', model: 'Rapid' },
+  { brand: 'Renault', model: 'Logan' },
+  { brand: 'Renault', model: 'Duster' },
+  { brand: 'Volkswagen', model: 'Tiguan' },
+  { brand: 'Ford', model: 'Focus' },
+  { brand: 'Lada', model: 'Vesta' },
+  { brand: 'Lada', model: 'Granta' }
 ];
 
 // Массив на 121 код (Дает 1210 комбинаций. После фильтров выйдет ~1000-1100 чистых карточек)
@@ -120,18 +130,7 @@ async function main() {
   let codeIndex = 0;
 
   while (carIndex < TARGET_CARS.length) {
-    // Ограничение по времени генерации (от 00:00 до 05:00)
-    let loggedWait = false;
-    while (new Date().getHours() >= 5) {
-      if (!loggedWait) {
-        console.log(`\n⏳ Время генерации вышло (сейчас ${new Date().getHours()} ч.). Работаем только с 00:00 до 05:00. Ждем...`);
-        loggedWait = true;
-      }
-      await sleep(10 * 60 * 1000); // Спим 10 минут и проверяем снова
-    }
-    if (loggedWait) {
-      console.log(`\n🌌 Наступило разрешенное время (00:00 - 05:00)! Возобновляем работу...`);
-    }
+    // Ограничение по времени генерации убрано для круглосуточной работы
 
     const todayStr = new Date().toDateString();
     if (todayStr !== currentDayStr) {
@@ -142,9 +141,9 @@ async function main() {
       console.log(`\n🌅 Наступили новые сутки в процессе работы! Сброс счетчика.`);
     }
 
-    // ЛИМИТ ГЕНЕРАЦИИ: 30 (24 новых + 6 на ремонт)
-    if (dailyGeneratedCount + dailyRegeneratedCount >= 30) {
-      console.log(`\n🛑 Достигнут суточный лимит (30 карточек суммарно). Засыпаем до наступления новых суток...`);
+    // ЛИМИТ ГЕНЕРАЦИИ: 150 (130 новых + 20 на ремонт)
+    if (dailyGeneratedCount + dailyRegeneratedCount >= 150) {
+      console.log(`\n🛑 Достигнут суточный лимит (150 карточек суммарно). Засыпаем до наступления новых суток...`);
       while (new Date().toDateString() === currentDayStr) {
         await sleep(10 * 60 * 1000); // проверяем каждые 10 минут
       }
@@ -157,7 +156,7 @@ async function main() {
 
     // 1. ПРИОРИТЕТ: ПОИСК БРАКА (-1)
     let failedReport = null;
-    if (dailyRegeneratedCount < 6) {
+    if (dailyRegeneratedCount < 20) {
       failedReport = await prisma.diagnosticReport.findFirst({
         where: { seoScore: -1 }
       });
@@ -174,8 +173,8 @@ async function main() {
       console.log(`🔄 [АВТО-ВОССТАНОВЛЕНИЕ] Приоритетный ремонт брака: ${brand} ${model} ${code} (seoScore = -1)`);
     } else {
       // 2. ИНАЧЕ БЕРЕМ СТАНДАРТНУЮ КОМБИНАЦИЮ ИЗ СПИСКА
-      if (dailyGeneratedCount >= 24) {
-         console.log(`\n🛑 Лимит новых карточек (24) исчерпан, а брака для ремонта нет. Спим 10 минут...`);
+      if (dailyGeneratedCount >= 130) {
+         console.log(`\n🛑 Лимит новых карточек (130) исчерпан, а брака для ремонта нет. Спим 10 минут...`);
          await sleep(10 * 60 * 1000);
          continue; // начнем цикл сначала, вдруг появится брак или сменятся сутки
       }
@@ -237,6 +236,12 @@ async function main() {
 
       // Шаг 2: Глубокая генерация
       const deepData = await analyzeCarErrorDeep(brand, model, code, '');
+      
+      // БЛОКИРОВКА FALLBACK-ЗАГЛУШЕК
+      if (deepData.is_fallback) {
+        throw new Error('AI_FALLBACK_REACHED: ИИ не смог сгенерировать качественный JSON за 3 попытки. Отмена.');
+      }
+      
       const publishDate = await getNextPublishDate();
 
       let safeDrivability = fastData.drivability;
@@ -261,7 +266,10 @@ async function main() {
           drivability: safeDrivability, seoTitle: deepData.seo_title || fastData.seoTitle,
           seoDescription: deepData.seo_description || fastData.seoDescription,
           is_paid: false, is_complete: true,
-          full_analysis_markdown: deepData.full_analysis_markdown, sto_protection_tips: deepData.sto_protection_tips,
+          full_analysis_markdown: (deepData.full_analysis_markdown || '').replace(/^\s*\d+\.\s/gm, '- ').replace(/\n{3,}/g, '\n\n').trim(), 
+          sto_protection_tips: '',
+          driving_risks_md: (deepData.driving_risks_md || '').replace(/^\s*\d+\.\s/gm, '- ').replace(/\n{3,}/g, '\n\n').trim(), 
+          diagnostic_data_md: (deepData.diagnostic_data_md || '').replace(/^\s*\d+\.\s/gm, '- ').replace(/\n{3,}/g, '\n\n').trim(),
           diy_instructions: deepData.diy_instructions, price_parts: deepData.price_parts,
           price_labor: deepData.price_labor, diy_difficulty_text: deepData.diy_difficulty_text,
           diy_difficulty_score: deepData.diy_difficulty_score, diy_time: deepData.diy_time,
@@ -269,11 +277,20 @@ async function main() {
           oem_parts_table_md: deepData.oem_parts_table_md, pro_tips_md: deepData.pro_tips_md,
           popular_engine_codes: deepData.popular_engine_codes || [],
           related_obd_codes: deepData.related_obd_codes || [],
+          schema_faq: deepData.faq_items ? JSON.stringify(deepData.faq_items) : '[]',
           created_at: publishDate
         }
       });
 
       const { score, risk, uniquenessScore } = await calculateSeoScore(newReport, prisma);
+      
+      // ЖЕСТКИЙ QUALITY GATE
+      if (score < 80 || uniquenessScore < 50) {
+        console.log(`🗑️ Отбраковка! Карточка получилась некачественной (SEO: ${score}, Уникальность: ${uniquenessScore}%). Удаляем из базы...`);
+        await prisma.diagnosticReport.delete({ where: { id: newReport.id } });
+        throw new Error(`QUALITY_GATE_FAILED: Низкое качество текста (SEO: ${score}, Уникальность: ${uniquenessScore}%)`);
+      }
+      
       await prisma.diagnosticReport.update({
         where: { id: newReport.id },
         data: { seoScore: score, seoRisk: risk, uniquenessScore }
@@ -289,19 +306,20 @@ async function main() {
       }
       await saveDailyState(currentDayStr, dailyGeneratedCount, dailyRegeneratedCount);
 
-      if ((dailyGeneratedCount + dailyRegeneratedCount) % 6 === 0) {
-        console.log(`💤 Сгенерировано 6 карточек. Уходим на длинную паузу 30 минут...`);
-        await sleep(30 * 60 * 1000);
-      } else {
-        console.log(`💤 Остываем 5 минут...`);
-        await sleep(5 * 60 * 1000);
-      }
+      console.log(`💤 Остываем 30 секунд (безопасный интервал API)...`);
+      await sleep(30 * 1000);
 
     } catch (error) {
       console.error(`❌ Сбой API для ${brand} ${model} ${code}:`, error.message);
       const errStr = String(error.message).toLowerCase();
-      if (errStr.includes('quota') || errStr.includes('429') || errStr.includes('too many') || errStr.includes('exhausted')) {
-        console.log('🛑 Достигнут лимит API Gemini! Уходим на паузу 1 час...');
+      const retryMatch = String(error.message).match(/"retryDelay"\s*:\s*"(\d+)s"/i);
+      
+      if (retryMatch) {
+        const delaySeconds = parseInt(retryMatch[1], 10);
+        console.log(`🛑 Сработал минутный лимит (Rate Limit)! API просит подождать ${delaySeconds} сек. Спим ${delaySeconds + 5} сек...`);
+        await sleep((delaySeconds + 5) * 1000);
+      } else if (errStr.includes('quota') || errStr.includes('429') || errStr.includes('too many') || errStr.includes('exhausted')) {
+        console.log('🛑 Достигнут суточный лимит API Gemini! Уходим на паузу 1 час...');
         await sleep(60 * 60 * 1000);
       } else {
         console.log('💤 Штрафная пауза 5 минут перед новой попыткой...');

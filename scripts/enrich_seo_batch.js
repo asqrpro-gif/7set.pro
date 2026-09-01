@@ -161,8 +161,14 @@ async function runBatchEnrichment() {
         
         // Проверяем лимиты API (429, quota)
         const errorStr = String(result.error).toLowerCase();
-        if (errorStr.includes('quota') || errorStr.includes('429') || errorStr.includes('too many') || errorStr.includes('exhausted')) {
-          console.log(`🛑 Достигнут лимит API Gemini! Ставим скрипт на паузу на 1 час...`);
+        const retryMatch = String(result.error).match(/"retryDelay"\s*:\s*"(\d+)s"/i);
+
+        if (retryMatch) {
+          const delaySeconds = parseInt(retryMatch[1], 10);
+          console.log(`🛑 Сработал минутный лимит (Rate Limit)! API просит подождать ${delaySeconds} сек. Спим ${delaySeconds + 5} сек...`);
+          await sleep((delaySeconds + 5) * 1000);
+        } else if (errorStr.includes('quota') || errorStr.includes('429') || errorStr.includes('too many') || errorStr.includes('exhausted')) {
+          console.log(`🛑 Достигнут суточный лимит API Gemini! Ставим скрипт на паузу на 1 час...`);
           await sleep(60 * 60 * 1000); // 1 час паузы
         } else if (errorStr.includes('длина') || errorStr.includes('шаблонное') || errorStr.includes('короткая') || errorStr.includes('обрыв')) {
           console.log(`⏭️ ИИ не справился с жесткой валидацией SEO за 3 попытки. Переходим к следующей карточке без паузы.`);
