@@ -95,10 +95,12 @@ async function runBatchEnrichment() {
       allBadReports = allBadReports.map(r => {
         let priority = 3; // По умолчанию: остальное (тексты, таблицы)
         
-        const titleLower = (r.seoTitle || '').toLowerCase();
-        const descLower = (r.seoDescription || '').toLowerCase();
-        const titleLen = (r.seoTitle || '').length;
-        const descLen = (r.seoDescription || '').length;
+        const trimmedTitle = (r.seoTitle || '').trim();
+        const trimmedDesc = (r.seoDescription || '').trim();
+        const titleLower = trimmedTitle.toLowerCase();
+        const descLower = trimmedDesc.toLowerCase();
+        const titleLen = trimmedTitle.length;
+        const descLen = trimmedDesc.length;
         
         const titleHasForbidden = forbiddenWords.some(w => titleLower.includes(w));
         const descHasForbidden = forbiddenWords.some(w => descLower.includes(w));
@@ -108,7 +110,7 @@ async function runBatchEnrichment() {
           priority = 1;
         } 
         // Приоритет 2: Плохое СЕО-описание
-        else if (descLen < 120 || descLen > 160 || descHasForbidden) {
+        else if (descLen < 140 || descLen > 160 || descHasForbidden) {
           priority = 2;
         }
         

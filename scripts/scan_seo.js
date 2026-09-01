@@ -218,7 +218,8 @@ async function main() {
 
         // Обработка SEO-заголовков
         if (r.seoTitle) {
-            let titleTpl = r.seoTitle.toLowerCase();
+            const trimmedTitle = r.seoTitle.trim();
+            let titleTpl = trimmedTitle.toLowerCase();
             const escapeRegExp = (string) => string.replace(/[.*+?^${}()|[\]\\]/g, '\\$&');
 
             titleTpl = titleTpl.replace(new RegExp(escapeRegExp(codeLower), 'g'), '[code]');
@@ -230,15 +231,27 @@ async function main() {
             titleMap[titleTpl].push(r);
             
             // Проверка длины заголовка
-            const titleLen = r.seoTitle.trim().length;
+            const titleLen = trimmedTitle.length;
             if (titleLen < 30 || titleLen > 75) {
                 problematicTitles.push({ ...r, reason: 'Длина' });
+            }
+
+            // Проверка на стоп-слова и "неизвестный"
+            const titleLower = trimmedTitle.toLowerCase();
+            if (titleLower.includes('неизвестный')) {
+                problematicTitles.push({ ...r, reason: 'Содержит "неизвестный"' });
+            }
+            const forbiddenWords = ['ремонт', 'своими руками', 'причин', 'диагностик', 'проблем', 'устранени', 'исправить', 'что значит'];
+            const foundWord = forbiddenWords.find(w => titleLower.includes(w));
+            if (foundWord) {
+                problematicTitles.push({ ...r, reason: `Стоп-слово: ${foundWord}` });
             }
         }
 
         // Обработка SEO-описаний
         if (r.seoDescription) {
-            let descTpl = r.seoDescription.toLowerCase();
+            const trimmedDesc = r.seoDescription.trim();
+            let descTpl = trimmedDesc.toLowerCase();
             const escapeRegExp = (string) => string.replace(/[.*+?^${}()|[\]\\]/g, '\\$&');
 
             descTpl = descTpl.replace(new RegExp(escapeRegExp(codeLower), 'g'), '[code]');
@@ -250,9 +263,17 @@ async function main() {
             descMap[descTpl].push(r);
             
             // Проверка длины описания
-            const descLen = r.seoDescription.trim().length;
+            const descLen = trimmedDesc.length;
             if (descLen < 140 || descLen > 160) {
                 problematicDescriptions.push({ ...r, reason: 'Длина' });
+            }
+
+            // Проверка на стоп-слова
+            const descLower = trimmedDesc.toLowerCase();
+            const forbiddenWords = ['ремонт', 'своими руками', 'причин', 'диагностик', 'проблем', 'устранени', 'исправить', 'что значит'];
+            const foundWord = forbiddenWords.find(w => descLower.includes(w));
+            if (foundWord) {
+                problematicDescriptions.push({ ...r, reason: `Стоп-слово: ${foundWord}` });
             }
         }
     });
