@@ -105,16 +105,22 @@ async function runBatchEnrichment() {
         const titleHasForbidden = forbiddenWords.some(w => titleLower.includes(w));
         const descHasForbidden = forbiddenWords.some(w => descLower.includes(w));
 
-        // Приоритет 1: Плохой СЕО-заголовок
-        if (titleLen < 30 || titleLen > 75 || titleHasForbidden || titleLower.includes('неизвестный')) {
+        const titleBad = titleLen < 30 || titleLen > 75 || titleHasForbidden || titleLower.includes('неизвестный');
+        const descBad = descLen < 140 || descLen > 160 || descHasForbidden;
+
+        let mode = 'content_only';
+        if (titleBad && descBad) {
           priority = 1;
-        } 
-        // Приоритет 2: Плохое СЕО-описание
-        else if (descLen < 140 || descLen > 160 || descHasForbidden) {
+          mode = 'seo_only';
+        } else if (titleBad) {
+          priority = 1;
+          mode = 'seo_title_only';
+        } else if (descBad) {
           priority = 2;
+          mode = 'seo_desc_only';
         }
         
-        return { ...r, _priority: priority };
+        return { ...r, _priority: priority, _enrichmentMode: mode };
       });
 
       // Сортировка по приоритету (1 -> 2 -> 3), при равном приоритете сохраняется порядок generated_at (asc)
@@ -123,7 +129,7 @@ async function runBatchEnrichment() {
       const report = allBadReports[0];
       const priorityText = report._priority === 1 ? 'СЕО-заголовок' : (report._priority === 2 ? 'СЕО-описание' : 'Структура / Markdown');
       
-      const enrichmentMode = (report._priority === 1 || report._priority === 2) ? 'seo_only' : 'full';
+      const enrichmentMode = report._enrichmentMode || 'full';
 
       console.log(`\n⏳ Обогащение карточки: ${report.brand} ${report.model} ${report.code} (ID: ${report.id})`);
       console.log(`🎯 Приоритет исправления: [${report._priority}] ${priorityText} (Режим: ${enrichmentMode})`);

@@ -14,6 +14,8 @@ async function main() {
   console.log('🔄 Сброс статуса плохих карточек для повторного обогащения...');
   
   let idsToReset = new Set();
+  let titleIdsToClear = new Set();
+  let descIdsToClear = new Set();
   
   // 1. Читаем bad_cards_report.json (обрывы генерации, шаблоны)
   try {
@@ -31,11 +33,11 @@ async function main() {
     const { problematicTitles, problematicDescriptions } = JSON.parse(data);
     
     if (problematicTitles) {
-      problematicTitles.forEach(c => idsToReset.add(c.id));
+      problematicTitles.forEach(c => { idsToReset.add(c.id); titleIdsToClear.add(c.id); });
       console.log(`Прочитано ${problematicTitles.length} карточек из SEO-заголовков.`);
     }
     if (problematicDescriptions) {
-      problematicDescriptions.forEach(c => idsToReset.add(c.id));
+      problematicDescriptions.forEach(c => { idsToReset.add(c.id); descIdsToClear.add(c.id); });
       console.log(`Прочитано ${problematicDescriptions.length} карточек из SEO-описаний.`);
     }
   } catch (err) {
@@ -72,6 +74,22 @@ async function main() {
   
   console.log(`Всего уникальных карточек для сброса: ${idsArray.length}`);
   
+  if (titleIdsToClear.size > 0) {
+    await prisma.diagnosticReport.updateMany({
+      where: { id: { in: Array.from(titleIdsToClear) } },
+      data: { seoTitle: "" }
+    });
+    console.log(`🧹 Очищено ${titleIdsToClear.size} сломанных SEO-заголовков.`);
+  }
+
+  if (descIdsToClear.size > 0) {
+    await prisma.diagnosticReport.updateMany({
+      where: { id: { in: Array.from(descIdsToClear) } },
+      data: { seoDescription: "" }
+    });
+    console.log(`🧹 Очищено ${descIdsToClear.size} сломанных SEO-описаний.`);
+  }
+
   // Сбрасываем seoRisk на DANGER, чтобы enrich_seo_batch.js снова их захватил
   const result = await prisma.diagnosticReport.updateMany({
     where: { id: { in: idsArray } },
